@@ -72,9 +72,9 @@
 │   ├── media/              # Uploaded Templates & Processed IDs
 │   └── core/               # Django Settings & WSGI
 ```
-##⚙️ Installation & Setup
+## ⚙️ Installation & Setup
 
-###1. Backend
+### 1. Backend
 
 ```bash
 
@@ -90,7 +90,7 @@ python manage.py runserver
 
 
 
-###2. Frontend
+### 2. Frontend
 
 ```bash
 
