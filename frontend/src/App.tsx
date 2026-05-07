@@ -1,0 +1,49 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { OrderProvider } from './context/OrderContext';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import './App.css';
+
+// --- PROTECTED ROUTE COMPONENT ---
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading session...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return <>{children}</>;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Private Routes */}
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <OrderProvider>
+                  <Dashboard />
+                </OrderProvider>
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+export default App;
