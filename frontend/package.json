@@ -15,6 +15,7 @@
     "papaparse": "^5.5.3",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-draggable": "^4.5.0",
     "react-router-dom": "^7.15.0",
     "tailwindcss": "^4.2.4"
   },
