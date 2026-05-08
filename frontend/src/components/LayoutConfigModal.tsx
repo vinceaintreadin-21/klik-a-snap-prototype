@@ -58,7 +58,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number, onClose: () 
     formData.append('fields_config', JSON.stringify(configForPython));
 
     try {
-      await api.post(`/orders/${orderId}/layout/`, formData);
+      await api.post(`/orders/${orderId}/layout/create`, formData);
       alert("Template Published!");
       onClose();
     } catch (err) { alert("Save failed"); } finally { setLoading(false); }
