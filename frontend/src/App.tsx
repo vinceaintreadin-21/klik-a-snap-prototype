@@ -10,9 +10,10 @@ import './App.css';
 // --- PROTECTED ROUTE COMPONENT ---
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const token = localStorage.getItem('access_token');
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading session...</div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user && !token) return <Navigate to="/login" replace />;
 
   return <>{children}</>;
 };
