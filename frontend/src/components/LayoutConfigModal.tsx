@@ -10,6 +10,28 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number, onClose: () 
   const [loading, setLoading] = useState(false);
   const [selectedElement, setSelectedElement] = useState<ElementKey>('photo');
 
+  //state for card dimensions
+  const [cardWidth, setCardWidth] = useState(638);
+  const [cardHeight, setCardHeight] = useState(1012);
+  const [zoom, setZoom] = useState(1)
+
+  const prevWidth = cardWidth * zoom;
+  const prevHeight = cardHeight * zoom;
+
+  const handleDimensionChange = (dimension: 'width' | 'height', value: number) => {
+    if (dimension === 'width') {
+      setCardWidth(value);  
+    } else {
+      setCardHeight(value)
+    }
+  }
+
+  const presets = [
+    { label: 'Standard (638x1012)', width: 638, height: 1012 },
+    { label: 'Compact (600x900)', width: 600, height: 900 },
+    { label: 'Wide (800x1000)', width: 800, height: 1000 },
+  ]
+
   const refs: Record<ElementKey, React.RefObject<any>> = {
     photo: useRef(null), name: useRef(null), section: useRef(null),
     qr: useRef(null), barcode: useRef(null),
@@ -58,7 +80,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number, onClose: () 
     formData.append('fields_config', JSON.stringify(configForPython));
 
     try {
-      await api.post(`/orders/${orderId}/layout/create`, formData);
+      await api.post(`/orders/${orderId}/layout/create/`, formData);
       alert("Template Published!");
       onClose();
     } catch (err) { alert("Save failed"); } finally { setLoading(false); }
@@ -77,7 +99,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number, onClose: () 
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-80 border-r bg-gray-50 p-6 flex flex-col gap-6">
+        <aside className="w-80 border-r bg-gray-50 p-6 flex flex-col gap-6 overflow-y-scroll">
           <div>
             <h3 className="text-[10px] font-black text-gray-400 uppercase mb-2">1. Background</h3>
             <input type="file" onChange={(e) => {
@@ -109,17 +131,108 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number, onClose: () 
                 )}
             </div>
           </div>
+
+          <div>
+            <h3 className="text-[10px] font-black text-gray-400 uppercase mb-2">3. Canvas Settings</h3>
+            <div className="space-y-3">
+              {/* Presets */}
+              <div className="grid grid-cols-1 gap-1">
+                {presets.map(p => (
+                  <button 
+                    key={p.label}
+                    onClick={() => { setCardWidth(p.width); setCardHeight(p.height); }}
+                    className="text-[10px] bg-white border p-1 hover:bg-gray-100 text-left"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Manual Dimensions */}
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[9px] uppercase font-bold">Width</label>
+                  <input 
+                    type="number" 
+                    value={cardWidth} 
+                    onChange={(e) => handleDimensionChange('width', +e.target.value)}
+                    className="w-full border p-1 text-xs"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[9px] uppercase font-bold">Height</label>
+                  <input 
+                    type="number" 
+                    value={cardHeight} 
+                    onChange={(e) => handleDimensionChange('height', +e.target.value)}
+                    className="w-full border p-1 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Zoom Slider */}
+              <div>
+                <label className="text-[9px] uppercase font-bold">Zoom ({Math.round(zoom * 100)}%)</label>
+                <input 
+                  type="range" min="0.1" max="2" step="0.1" 
+                  value={zoom} 
+                  onChange={(e) => setZoom(+e.target.value)} 
+                  className="w-full" 
+                />
+              </div>
+            </div>
+          </div>
         </aside>
 
         <main className="flex-1 bg-gray-200 relative overflow-auto flex items-center justify-center p-10">
-          <div className="relative bg-white shadow-2xl shrink-0" style={{ width: '400px', height: '600px', backgroundImage: bgImage ? `url(${bgImage})` : 'none', backgroundSize: '100% 100%' }}>
-            {(Object.keys(elements) as ElementKey[]).map((key) => (
-              <Draggable key={key} nodeRef={refs[key]} bounds="parent" position={{ x: elements[key].x, y: elements[key].y }} onStart={() => setSelectedElement(key)} onStop={(e, d) => setElements(prev => ({ ...prev, [key]: { ...prev[key], x: d.x, y: d.y } }))}>
-                <div ref={refs[key]} className={`absolute cursor-move flex items-center justify-center border-2 border-dashed ${selectedElement === key ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-400'}`} style={{ width: elements[key].w, height: elements[key].h, color: (elements[key] as any).color || '#000', fontSize: '10px' }}>
-                  {key}
-                </div>
-              </Draggable>
-            ))}
+          <div style={{ 
+            width: `${cardWidth * zoom}px`, 
+            height: `${cardHeight * zoom}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'width 0.2s, height 0.2s' 
+          }}>
+            
+            <div 
+              className="relative bg-white shadow-2xl shrink-0" 
+              style={{ 
+                width: `${cardWidth}px`, 
+                height: `${cardHeight}px`, 
+                backgroundImage: bgImage ? `url(${bgImage})` : 'none', 
+                backgroundSize: '100% 100%',
+                transform: `scale(${zoom})`,
+                transformOrigin: 'center center',
+              }}
+            >
+              {(Object.keys(elements) as ElementKey[]).map((key) => (
+                <Draggable 
+                  key={key} 
+                  nodeRef={refs[key]} 
+                  bounds="parent" 
+                  // 3. Scale the dragging speed to match the zoom level
+                  scale={zoom} 
+                  position={{ x: elements[key].x, y: elements[key].y }} 
+                  onStart={() => setSelectedElement(key)} 
+                  onStop={(e, d) => setElements(prev => ({ ...prev, [key]: { ...prev[key], x: d.x, y: d.y } }))}
+                >
+                  <div 
+                    ref={refs[key]} 
+                    className={`absolute cursor-move flex items-center justify-center border-2 border-dashed ${
+                      selectedElement === key ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-400'
+                    }`} 
+                    style={{ 
+                      width: elements[key].w, 
+                      height: elements[key].h, 
+                      color: (elements[key] as any).color || '#000', 
+                      fontSize: `${(elements[key] as any).fontSize || 10}px` 
+                    }}
+                  >
+                    {key}
+                  </div>
+                </Draggable>
+              ))}
+            </div>
           </div>
         </main>
       </div>
