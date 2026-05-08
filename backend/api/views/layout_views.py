@@ -1,3 +1,4 @@
+#layout_views.py
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -60,6 +61,7 @@ def create_layout(request, order_id):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_layout(request, order_id):
     """Returns current layout config for an order"""
     try:

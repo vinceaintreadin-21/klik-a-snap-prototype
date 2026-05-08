@@ -1,3 +1,4 @@
+#student_views.py
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
@@ -8,22 +9,28 @@ from api.models.students import Student
 from api.models.orders import Order
 import json
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def student_detail_controller(request, order_id):
     if request.method == 'GET':
         students = list(Student.objects.filter(order_id=order_id).values(
             'id', 'student_id', 'full_name', 'grade_level', 
             'is_approved', 'photo_status', 'is_walk_in'
         ))
-        return JsonResponse(students, safe=False)
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+        return Response(students, safe=False)
+    return Response({'error': 'Method not allowed'}, status=405)
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def search_students(request, order_id):
-    """Fail-Safe A: Search student by name to display QR on coordinator's phone"""
     query = request.GET.get('q', '').strip()
     if not query:
         return Response({'error': 'Query parameter q is required'}, status=400)
+
+    # Validate order exists
+    if not Order.objects.filter(id=order_id).exists():
+        return Response({'error': 'Order not found'}, status=404)
 
     students = Student.objects.filter(
         order_id=order_id,
@@ -34,6 +41,7 @@ def search_students(request, order_id):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def quick_add_student(request, order_id):
     """Fail-Safe C: Walk-in student — create instantly and return student_id for QR display"""
     try:
@@ -59,6 +67,7 @@ def quick_add_student(request, order_id):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def manual_link_photo(request, order_id):
     """Fail-Safe B: Operator manually links an unmatched photo to a student"""
     try:

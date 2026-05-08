@@ -7,7 +7,6 @@ from ..serializers import RegisterSerializer, UserSerializer
 
 from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):

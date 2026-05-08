@@ -1,3 +1,4 @@
+#id_engine.py
 import cv2
 import mediapipe as mp
 import qrcode
@@ -131,10 +132,7 @@ def _render_id_card(cropped_path, student, layout):
         if field_key not in cfg:
             return
         f = cfg[field_key]
-        try:
-            font = _get_font(f.get('font_size', 24))
-        except Exception:
-            font = ImageFont.load_default()
+        font = _get_font(f.get('font_size', 24))
 
         color = f.get('color', '#000000')
         x, y = f['x'], f['y']

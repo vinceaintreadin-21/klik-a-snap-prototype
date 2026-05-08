@@ -27,6 +27,6 @@ urlpatterns = [
     path('orders/<int:order_id>/students/quick-add/', quick_add_student, name='student-quick-add'),
     path('orders/<int:order_id>/students/manual-link/', manual_link_photo, name='student-manual-link'),
     
-    path('orders/<int:order_id>/layout/', create_layout, name='create-layout'),
-    path('orders/<int:order_id>/layout/detail/', get_layout, name='get-layout'),
+    path('orders/<int:order_id>/layout/create/', create_layout, name='create-layout'),
+    path('orders/<int:order_id>/layout/', get_layout, name='get-layout'),
 ]
