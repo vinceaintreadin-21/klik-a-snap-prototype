@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import OrderInitiator from '../components/OrderInitiator';
 import OrderList from '../components/OrderList';
@@ -7,6 +8,7 @@ import OperatorDashboard from '../components/OperatorDashboard';
 const Dashboard = () => {
   const [view, setView] = useState<'client' | 'operator'>('client');
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -40,6 +42,17 @@ const Dashboard = () => {
                 </button>
               )}
             </nav>
+            
+            {/* Admin link to Operator Management */}
+            {user?.is_staff && (
+              <button
+                onClick={() => navigate('/admin/operators')}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all shadow-md"
+              >
+                Manage Operators
+              </button>
+            )}
+            
             <button onClick={logout} className="text-sm font-bold text-red-600 hover:underline">Logout</button>
           </div>
         </header>

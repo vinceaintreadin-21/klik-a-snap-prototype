@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
