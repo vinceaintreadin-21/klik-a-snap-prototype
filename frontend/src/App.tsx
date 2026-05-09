@@ -5,6 +5,7 @@ import { OrderProvider } from './context/OrderContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Operators from './pages/Operators';
 import './App.css';
 
 // --- PROTECTED ROUTE COMPONENT ---
@@ -35,6 +36,16 @@ function App() {
                 <OrderProvider>
                   <Dashboard />
                 </OrderProvider>
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Admin Routes */}
+          <Route 
+            path="/admin/operators" 
+            element={
+              <ProtectedRoute>
+                <Operators />
               </ProtectedRoute>
             } 
           />

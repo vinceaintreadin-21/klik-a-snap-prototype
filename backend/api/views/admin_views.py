@@ -11,7 +11,7 @@ from api.models.user_profile import UserProfile
 
 def is_admin(user): 
     try:
-        return user.profile_role == UserProfile.Role.ADMIN
+        return user.profile.role == UserProfile.Role.ADMIN
     except Exception as e:
         return False
 
@@ -113,7 +113,8 @@ def update_operator(request, id):
 
     try:
         profile = UserProfile.objects.select_related('user').get(
-            id = id, role = UserProfile.Role.OPERATOR
+            id = id,
+            role = UserProfile.Role.OPERATOR
         )
     except UserProfile.DoesNotExist:
         return Response({'error': 'Operator not found'}, status=404)
@@ -121,13 +122,16 @@ def update_operator(request, id):
     data = request.data
     
     #Update info
-    if 'username' in data:
-        new_username = data['username'].strip()
-        if User.objects.exclude(
-            id = profile.user.id).filter(
-                email = new_email
-            ).exists():
-                return Response({'error': 'Email already in use'}, status=400)
+    new_username = data.get('username', '').strip()
+    if new_username:
+        if User.objects.exclude(id=profile.user.id).filter(username=new_username).exists():
+            return Response({'error': 'Username already taken'}, status=400)
+        profile.user.username = new_username
+
+    new_email = data.get('email', '').strip()
+    if new_email:
+        if User.objects.exclude(id=profile.user.id).filter(email=new_email).exists():
+            return Response({'error': 'Email already in use'}, status=400)
         profile.user.email = new_email
         
     #Deactivation
@@ -154,12 +158,54 @@ def update_operator(request, id):
     
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
-def reset_password(request):
+def reset_password(request, id):
+    if not is_admin(request.user):
+        return Response({'error': 'Admin access required'}, status=403)
+    
+    try:
+        profile = UserProfile.objects.select_related('user').get(
+            id = id,
+            role = UserProfile.Role.OPERATOR    
+        )
+    except UserProfile.DoesNotExist:
+        return Response({
+            'error': 'Operator not found'
+        }, status = 404)
+        
+    new_password = get_random_string(
+        length = 12,
+        allowed_chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%'
+    )
+    
+    profile.user.set_password(new_password)
+    profile.user.save()
+    
+    profile.last_password_reset = timezone.now()
+    profile.save()
+    
+    return Response({
+        'message': 'Password reset successfully.',
+        'temp_password': new_password
+    }) 
+           
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_operator(request, id):
     if not is_admin(request.user):
         return Response({'error': 'Admin access required'}, status=403)
 
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def delete_operator(request):
-    if not is_admin(request.user):
-        return Response({'error': 'Admin access required'}, status=403)
+    try:
+        profile = UserProfile.objects.select_related('user').get(
+            id=id, role=UserProfile.Role.OPERATOR
+        )
+    except UserProfile.DoesNotExist:
+        return Response({'error': 'Operator not found'}, status=404)
+
+    assigned_count = profile.user.assigned_orders.count()
+    if assigned_count > 0:
+        return Response({
+            'error': f'Cannot delete — operator has {assigned_count} assigned order(s). Deactivate instead.'
+        }, status=400)
+
+    profile.user.delete() 
+    return Response({'message': 'Operator deleted successfully.'}, status=200)

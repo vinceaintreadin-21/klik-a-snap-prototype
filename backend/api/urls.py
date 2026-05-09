@@ -7,6 +7,11 @@ from api.views.student_views import (
 )
 from api.views.layout_views import create_layout, get_layout
 from api.views.auth_views import register_user, get_user_profile
+from api.views.admin_views import (    
+    get_operators, create_operator, operator_detail,
+    update_operator, reset_password, delete_operator
+
+)
 
 urlpatterns = [
     # Order routes
@@ -29,4 +34,12 @@ urlpatterns = [
     
     path('orders/<int:order_id>/layout/create/', create_layout, name='create-layout'),
     path('orders/<int:order_id>/layout/', get_layout, name='get-layout'),
+    
+    #Operator Management for admin (tentative)
+    path('admin/operators/', get_operators, name='get_operators'), #GET
+    path('admin/create-operator/',  create_operator, name='create_operator'), #POST
+    path('admin/operators/<int:id>/', operator_detail, name='operator_detail'), #GET
+    path('admin/operators/<int:id>/update/', update_operator, name='update_operator'), #PATCH
+    path('admin/operators/<int:id>/reset-password/', reset_password, name='reset_password'), #PATCH
+    path('admin/operators/<int:id>/delete/', delete_operator, name='delete_operator'), #DELETE
 ]

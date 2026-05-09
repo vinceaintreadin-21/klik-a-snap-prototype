@@ -1,6 +1,11 @@
-from django.db import models
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.utils.crypto import get_random_string
+from django.db import models
 
 
 class UserProfile(models.Model):
@@ -31,6 +36,11 @@ class UserProfile(models.Model):
 
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    is_active = models.BooleanField(default=True)
+    last_password_reset = models.DateTimeField(default=timezone.now, blank=True)
+    deactivated_at = models.DateTimeField(default=timezone.now, editable=False)
+    deactivated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='deactivated_profiles')
 
     class Meta:
         db_table = 'user_profiles'
