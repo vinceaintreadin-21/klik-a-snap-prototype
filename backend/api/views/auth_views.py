@@ -35,10 +35,6 @@ register_user.throttle_scope = 'auth'
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_profile(request):
-    """
-    Helper endpoint for React to fetch user details.
-    Since the request is IsAuthenticated, 'request.user' is automatically 
-    populated by the JWT token in the header.
-    """
+
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
