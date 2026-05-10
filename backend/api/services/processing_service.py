@@ -14,7 +14,7 @@ def broadcast_status(order_id, status, extra=None):
     if extra:
         message.update(extra)
     async_to_sync(channel_layer.group_send)(
-        "posts",
+        f"order_{order_id}", # Scope by order ID 
         {"type": "post_update", "message": message}
     )
 
@@ -47,6 +47,16 @@ def start_processing_queue(order_id):
         processed = 0
         manual_review = 0
 
+        broadcast_status(order.id, "PENDING", {
+            "action": "order_created",
+            "order": {
+                "id": order.id,
+                "school_name": order.school_name,
+                "batch_name": order.batch_name,
+                "status": "PENDING",  
+            }
+        })
+
         for filename in image_files:
             file_path = os.path.join(order_folder, filename)
             print(f"AI Engine working on: {filename}")
@@ -68,6 +78,7 @@ def start_processing_queue(order_id):
 
         order.status = "PROOFING"
         order.save()
+        
         broadcast_status(order_id, "PROOFING", {
             "processed": processed,
             "manual_review": manual_review,
