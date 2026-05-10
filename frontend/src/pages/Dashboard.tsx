@@ -44,13 +44,25 @@ const Dashboard = () => {
             </nav>
             
             {/* Admin link to Operator Management */}
-            {user?.is_staff && (
-              <button
+            {user?.role === 'ADMIN' && (
+              <>
+                <button 
+                  onClick={() => setView('operator')}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                    view === 'operator' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Operator Dashboard
+                </button>
+                
+                <button
                 onClick={() => navigate('/admin/operators')}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all shadow-md"
-              >
-                Manage Operators
-              </button>
+                >
+                  Manage Operators
+                </button>
+              </>
+              
             )}
             
             <button onClick={logout} className="text-sm font-bold text-red-600 hover:underline">Logout</button>
