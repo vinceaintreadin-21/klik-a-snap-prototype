@@ -19,14 +19,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const token = localStorage.getItem('access_token');
+
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading session...</div>;
+  if (user || token) return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
           {/* Private Routes */}
           <Route 
