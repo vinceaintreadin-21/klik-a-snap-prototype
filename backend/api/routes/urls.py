@@ -12,6 +12,11 @@ from api.views.admin_views import (
     update_operator, reset_password, delete_operator
 
 )
+from api.views.institution_views import (
+    get_institutions, create_institution, institution_detail,
+    update_institution, get_institution_orders
+)
+
 
 urlpatterns = [
     # Order routes
@@ -42,6 +47,13 @@ urlpatterns = [
     path('admin/operators/<int:id>/update/', update_operator, name='update_operator'), #PATCH
     path('admin/operators/<int:id>/reset-password/', reset_password, name='reset_password'), #PATCH
     path('admin/operators/<int:id>/delete/', delete_operator, name='delete_operator'), #DELETE
+    
+    #Institution Management
+    path('admin/institutions/', get_institutions, name='get_institutions'),
+    path('admin/create-institution/', create_institution, name='create_institution'),
+    path('admin/institutions/<int:id>/', institution_detail, name='institution_detail'),
+    path('admin/institutions/<int:id>/update/', update_institution, name='update_institution'),
+    path('admin/institutions/<int:id>/orders/', get_institution_orders, name='institution_orders'),
 
     # QR code generation
     path('orders/<int:order_id>/qr-codes/download/', download_qr_codes, name='download_qr_codes'),
