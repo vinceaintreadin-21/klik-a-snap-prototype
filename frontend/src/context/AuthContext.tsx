@@ -45,23 +45,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 2. Login Logic
   const login = async (credentials: any) => {
     const res = await api.post('/auth/login/', credentials);
-    const { access, refresh, user: userData } = res.data;
+    const { access, refresh } = res.data;
 
     localStorage.setItem('access_token', access);
     localStorage.setItem('refresh_token', refresh);
     
-    setUser(userData);
+    const profile = await api.get('/auth/me/');
+    setUser(profile.data);
   };
 
   // 3. Register Logic (Now auto-logs in based on your refined backend)
   const register = async (data: any) => {
     const res = await api.post('/auth/register/', data);
-    
-    // If your backend returns tokens on register, log them in immediately
+
     if (res.data.tokens) {
       localStorage.setItem('access_token', res.data.tokens.access);
       localStorage.setItem('refresh_token', res.data.tokens.refresh);
-      setUser(res.data.user);
+
+      // Fetch full profile instead of using register response data
+      const profile = await api.get('/auth/me/');
+      setUser(profile.data);
     }
   };
 
