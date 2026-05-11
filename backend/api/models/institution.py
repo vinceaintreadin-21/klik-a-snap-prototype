@@ -21,9 +21,12 @@ class Institution(models.Model):
     contact_person = models.CharField(max_length=255)
     contact_email = models.EmailField()
     contact_phone = models.CharField(max_length=20, blank=True)
-    logo = models.ImageField(
-        upload_to='institution_logos/',
-        null=True, blank=True
+    
+    logo_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,  
+        help_text="URL to institution's logo"
     )
 
     status = models.CharField(
@@ -31,7 +34,11 @@ class Institution(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE
     )
-
+    
+    suspended_at = models.DateTimeField(null=True, blank=True)
+    suspended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='suspended_institutions')
+    suspended_reason = models.TextField(blank=True)
+    
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
