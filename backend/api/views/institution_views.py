@@ -120,6 +120,25 @@ def update_institution(request, id):
     return Response({'message': f'Institution status updated to {new_status}'})
         
         
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_institution_orders(request, id):
+    if not is_admin(request.user):
+        return Response({'error': 'Admin access required'}, status=403)
 
-def get_institution_orders():
-    pass
+    try:
+        institution = Institution.objects.get(id=id)
+    except Institution.DoesNotExist:
+        return Response({'error': 'Institution not found'}, status=404)
+
+    orders = institution.orders.values(
+        'id',
+        'school_name',
+        'batch_name',
+        'student_count',
+        'status',
+        'deadline',
+        'created_at',
+    )
+
+    return Response({'orders': list(orders)})   
