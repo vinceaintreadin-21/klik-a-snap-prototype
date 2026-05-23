@@ -19,4 +19,4 @@ class AdminAuditLog(models.Model):
         db_table = 'admin_audit_logs'
         
     def __str__(self):
-        return self.name
+        return f"{self.action} on {self.target_model}#{self.target_id} by {self.admin_user}"

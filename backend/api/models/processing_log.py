@@ -34,4 +34,4 @@ class ProcessingLog(models.Model):
         db_table = 'processing_logs'
         
     def __str__(self):
-        return self.name
+        return f"{self.level} - Order {self.order_id} - {self.created_at}" 
