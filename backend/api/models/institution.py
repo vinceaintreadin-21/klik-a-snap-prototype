@@ -22,11 +22,10 @@ class Institution(models.Model):
     contact_email = models.EmailField()
     contact_phone = models.CharField(max_length=20, blank=True)
     
-    logo_url = models.URLField(
-        max_length=500,
+    logo_url = models.TextField(
         null=True,
         blank=True,  
-        help_text="URL to institution's logo"
+        help_text="Cloudinary URL to institution's logo"
     )
 
     status = models.CharField(
