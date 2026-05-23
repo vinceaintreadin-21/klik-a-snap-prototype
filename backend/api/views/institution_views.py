@@ -5,6 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 import cloudinary.uploader
 from django.utils import timezone
+from django.contrib.auth.models import User 
+from django.utils.crypto import get_random_string
+from rest_framework.parsers import MultiPartParser, FormParser
+
+
 def is_admin(user): 
     try:
         return user.profile.role == UserProfile.Role.ADMIN
@@ -20,6 +25,7 @@ def get_institutions(request):
     return Response({'institutions': Institution.objects.all().values()})
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
 @permission_classes([IsAuthenticated])
 def create_institution(request):
     if not is_admin(request.user):
@@ -27,10 +33,11 @@ def create_institution(request):
         
     try:
         name = request.data.get('name', '').strip()
+        email = request.data.get('email', '').strip()
         address = request.data.get('address', '').strip()
         contact_person = request.data.get('contact_person', '').strip()
         contact_phone = request.data.get('contact_phone', '').strip()
-        logo_url = request.data.get('logo_url')
+        logo_file = request.FILES.get('logo')
         
         if Institution.objects.filter(name=name).exists():
             return Response({
@@ -42,21 +49,48 @@ def create_institution(request):
 
         photo_url = None
         
-        if logo_url:
+        if logo_file:
             upload_result = cloudinary.uploader.upload(
-                logo_url,
+                logo_file,
                 folder='institutions/logo',
                 resource_type = 'image',
                 format='png'
             )
             photo_url = upload_result['secure_url']
             
+        if not email:
+            return Response({"error": "email is required"}, status=400)
+
+        if User.objects.filter(email=email).exists():
+            return Response({'error': 'Email already in use'}, status=400)
+
+        # Create user account
+        temp_password = get_random_string(
+            length=12,
+            allowed_chars='abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%'
+        )
+
+        user = User.objects.create_user(
+            username=email,  # Use email as username
+            email=email,
+            password=temp_password,
+            is_staff=False,
+            is_superuser=False
+        )
+
+        # Create UserProfile
+        profile = user.profile
+        profile.role = UserProfile.Role.INSTITUTION
+        profile.save()
+                
         institution = Institution.objects.create(
+            user = user,
             name = name,
             address = address,
             contact_person = contact_person,
+            contact_email = email,
             contact_phone = contact_phone,
-            photo_url = photo_url
+            logo_url = photo_url
         )
         
         return Response({
@@ -67,7 +101,8 @@ def create_institution(request):
                 'address': institution.address,
                 'contact_person': institution.contact_person,
                 'contact_phone': institution.contact_phone,
-                'photo_url': institution.photo_url,
+                'logo_url': institution.logo_url,
+                'temp_password': temp_password
             }
         }, status=201)
     except Exception as e:
@@ -83,8 +118,19 @@ def institution_detail(request, id):
         institution = Institution.objects.get(id=id)
         
         return Response({
-            'institution': institution.get.values()
-        }, status = 201)
+            'institution': {
+                'id': institution.id,
+                'name': institution.name,
+                'address': institution.address,
+                'contact_person': institution.contact_person,
+                'contact_email': institution.contact_email,
+                'contact_phone': institution.contact_phone,
+                'logo_url': institution.logo_url,
+                'status': institution.status,
+                'created_at': institution.created_at,
+            }
+        }, status=200)
+    
     except Exception as e:
         return Response({'error': 'Institution not found'}, status = 404)
 
@@ -101,7 +147,7 @@ def update_institution(request, id):
     
     new_status = request.data.get('status')
     
-    if new_status not in Institution.Status.values:
+    if new_status not in [choice[0] for choice in Institution.Status.choices]:
         return Response({'error': 'Invalid status update'}, status=400)
 
     institution.status = new_status
@@ -125,20 +171,25 @@ def update_institution(request, id):
 def get_institution_orders(request, id):
     if not is_admin(request.user):
         return Response({'error': 'Admin access required'}, status=403)
-
-    try:
+    
+    try: 
         institution = Institution.objects.get(id=id)
     except Institution.DoesNotExist:
         return Response({'error': 'Institution not found'}, status=404)
 
-    orders = institution.orders.values(
+    orders = institution.orders.all().values(
         'id',
-        'school_name',
-        'batch_name',
-        'student_count',
+        'name',
+        'address',
+        'contact_person',
+        'contact_email',
+        'contact_phone',
+        'logo_url',
         'status',
-        'deadline',
         'created_at',
+        'suspended_at',
+        'suspended_by__username',
+        'suspended_reason'
     )
 
-    return Response({'orders': list(orders)})   
+    return Response({'orders': list(orders)})
