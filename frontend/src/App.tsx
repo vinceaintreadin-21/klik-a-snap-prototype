@@ -6,6 +6,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Operators from './pages/Operators';
+import InstitutionsPage from './pages/InstitutionsPage';
+import DashboardReference from './pages/DashboardReference'
+import KlikASnapRoadmap from './pages/RoadMap';
+
 import './App.css';
 
 // --- PROTECTED ROUTE COMPONENT ---
@@ -60,8 +64,24 @@ function App() {
             } 
           />
 
+          <Route 
+            path="/admin/institutions" 
+            element={
+              <ProtectedRoute>
+                <InstitutionsPage />
+              </ProtectedRoute>
+            } 
+          />
+
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
+
+          {/* Dashboard References */}
+          <Route path="/operator/dashboard/reference" element={<DashboardReference />}/>
+          <Route path="/dashboard/roadmap" element={<KlikASnapRoadmap />}/>
+
+
+          
         </Routes>
       </Router>
     </AuthProvider>
