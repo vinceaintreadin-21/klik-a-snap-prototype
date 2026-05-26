@@ -27,7 +27,7 @@ interface CreateInstitutionPayload {
 }
 
 interface UpdateInstitutionPayload {
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPEND'
+    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
     suspended_reason?: string
 }
 
@@ -140,7 +140,7 @@ export const useInstitutionOrders = (id: number) => {
         setError(null)
 
         try {
-            const res = await api.get(`admin/institutions/${id}/orders`)
+            const res = await api.get(`admin/institutions/${id}/orders/`)
             setOrders(res.data.orders)
         } catch (err: any) {
             setError(err.response?.data?.error || 'Failed to fetch orders')
