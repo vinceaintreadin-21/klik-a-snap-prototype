@@ -20,7 +20,7 @@ const AnalyticsOverview = () => {
             {stats.map(stat => (
                 <div key={stat.label} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
                     <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
-                    <p className="text-2x1 font-semibold text-gray-800">{stat.value}</p>
+                    <p className="text-2xl font-semibold text-gray-800">{stat.value}</p>
                 </div>
             ))}
         </div>

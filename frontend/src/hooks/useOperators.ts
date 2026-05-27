@@ -54,7 +54,7 @@ export interface ResetPasswordResponse {
 // ─── Hook 1: useOperators ────────────────────────────────────────────────────
 
 export function useOperators() {
-  const [operators, setOperators] = useState<Operator[] | null>(null);
+  const [operators, setOperators] = useState<Operator[] | null>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
