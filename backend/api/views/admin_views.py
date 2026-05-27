@@ -8,6 +8,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from api.models.user_profile import UserProfile
+from api.models.orders import Order
+from api.models.admin_audit_log import AdminAuditLog 
 
 def is_admin(user): 
     try:
@@ -209,3 +211,114 @@ def delete_operator(request, id):
 
     profile.user.delete() 
     return Response({'message': 'Operator deleted successfully.'}, status=200)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_orders(request):
+    if not is_admin(request.user):
+        return Response({
+            'error': 'Access admin required'
+        }, status=403)
+    
+    orders = Order.objects.select_related('institution', 'assigned_operator').values(
+        'id',
+        'institution_id',
+        'institution__name',
+        'school_name',
+        'batch_name',
+        'student_count',
+        'status',
+        'deadline',
+        'created_at',
+        'assigned_operator__username'
+    )
+
+    status = request.query_params.get('status')
+    institution_id = request.query_params.get('institution_id')
+    date_from = request.query_params.get('date_from')
+    date_to = request.query_params.get('date_to')
+
+    if status:
+        orders = orders.filter(status=status.upper())
+    if institution_id:
+        orders = orders.filter(institution_id=institution_id)
+    if date_from:
+        orders = orders.filter(created_at__date__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__date__lte=date_to)
+    
+    orders = orders.order_by('-created_at')
+    
+    return Response({
+        'orders': list(orders)
+    })
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def assign_operator(request, order_id): 
+    if not is_admin(request.user):
+        return Response({'error': 'Admin access required'}, status=403)
+
+    operator_id = request.data.get('operator_id')  
+
+    try:
+        order = Order.objects.get(id=order_id)  
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=404)
+
+    if operator_id is None:
+        order.assigned_operator = None
+    else:
+        try:
+            profile = UserProfile.objects.get(id=operator_id, role=UserProfile.Role.OPERATOR, is_active=True)
+        except UserProfile.DoesNotExist:
+            return Response({'error': 'Operator not found'}, status=404)
+        order.assigned_operator = profile.user
+
+    order.save()
+
+    return Response({
+        'message': 'Operator assignment updated',
+        'order_id': order.id,
+        'assigned_operator': order.assigned_operator.username if order.assigned_operator else None
+    })
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def override_order_status(request, order_id):
+    if not is_admin(request.user):
+        return Response({'error': 'Admin access required'}, status=403)
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=404)
+
+    new_status = request.data.get('status')
+    reason = request.data.get('reason', '')
+
+    if new_status not in [choice[0] for choice in Order.Status.choices]:
+        return Response({'error': 'Invalid status'}, status=400)
+
+    old_status = order.status
+    order.status = new_status
+    order.save()
+
+    AdminAuditLog.objects.create(
+        admin_user=request.user,
+        action='OVERRIDE_ORDER_STATUS',
+        target_model='Order',
+        target_id=order.id,
+        details={
+            'old_status': old_status,
+            'new_status': new_status,
+            'reason': reason
+        }
+    )
+
+    return Response({
+        'message': 'Order status overridden',
+        'order_id': order.id,
+        'old_status': old_status,
+        'new_status': order.status
+    })
