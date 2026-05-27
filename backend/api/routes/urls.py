@@ -9,12 +9,21 @@ from api.views.layout_views import create_layout, get_layout
 from api.views.auth_views import register_user, get_user_profile
 from api.views.admin_views import (    
     get_operators, create_operator, operator_detail,
-    update_operator, reset_password, delete_operator
+    update_operator, reset_password, delete_operator, get_all_orders,
+    assign_operator, override_order_status 
 
 )
 from api.views.institution_views import (
     get_institutions, create_institution, institution_detail,
     update_institution, get_institution_orders
+)
+
+from api.views.analytics_views import (
+    get_analytics_overview, get_orders_per_month, get_manual_review_rate
+)
+
+from api.views.logs_views import (
+    get_audit_logs, get_processing_logs, get_error_logs
 )
 
 
@@ -55,7 +64,23 @@ urlpatterns = [
     path('admin/institutions/<int:id>/update/', update_institution, name='update_institution'),
     path('admin/institutions/<int:id>/orders/', get_institution_orders, name='institution_orders'),
 
+    #Analytics
+    path('admin/analytics/overview/', get_analytics_overview, name='analytics-overview'),
+    path('admin/analytics/orders-per-month/', get_orders_per_month, name='orders-per-month'),
+    path('admin/analytics/manual-review-rate/', get_manual_review_rate, name='manual-review-rate'),
+
+    #Logs
+    path('admin/logs/audit/', get_audit_logs, name='audit-logs'),
+    path('admin/logs/processing/', get_processing_logs, name='processing-logs'),
+    path('admin/logs/errors/', get_error_logs, name='error-logs'),
+
+    path('admin/orders/', get_all_orders, name='all-orders'),
+
+    path('admin/orders/<int:order_id>/assign/', assign_operator, name='assign-operator'),
+
+    path('admin/orders/<int:order_id>/override-status/', override_order_status, name='override-order-status'),
+
     # QR code generation
     path('orders/<int:order_id>/qr-codes/download/', download_qr_codes, name='download_qr_codes'),
     path('students/<int:student_id>/qr-code/', get_student_qr, name='get_student_qr'),
-]
+]   

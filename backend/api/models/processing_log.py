@@ -4,10 +4,10 @@ from django.contrib.auth.models import User
 
 class ProcessingLog(models.Model):
     class LogLevel(models.TextChoices):
-        INFO = 'INFO', 'Info',
-        WARNING = 'WARNING', 'Warning',
-        ERROR = 'Error', 'Error',
-        CRITICAL = 'CRITICAL', 'Critical',
+        INFO = 'INFO', 'Info'
+        WARNING = 'WARNING', 'Warning'
+        ERROR = 'ERROR', 'Error'
+        CRITICAL = 'CRITICAL', 'Critical'
         
     order = models.ForeignKey(
         'Order',

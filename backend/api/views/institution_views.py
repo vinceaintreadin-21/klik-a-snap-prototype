@@ -22,7 +22,21 @@ def get_institutions(request):
     if not is_admin(request.user):
         return Response({'error': 'Admin access required'}, status=403)
 
-    return Response({'institutions': Institution.objects.all().values()})
+    institutions = Institution.objects.select_related('suspended_by').values(
+        'id',
+        'name',
+        'address',
+        'contact_person',
+        'contact_email',
+        'contact_phone',
+        'logo_url',
+        'status',
+        'created_at',
+        'suspended_at',
+        'suspended_by__username',
+        'suspended_reason'
+    )
+    return Response({'institutions': list(institutions)})
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
@@ -41,7 +55,7 @@ def create_institution(request):
         
         if Institution.objects.filter(name=name).exists():
             return Response({
-                'error': 'Institution name alredy exists.'
+                'error': 'Institution name already exists.'
             }, status=400)
             
         if not name or not address or not contact_person:
@@ -179,17 +193,12 @@ def get_institution_orders(request, id):
 
     orders = institution.orders.all().values(
         'id',
-        'name',
-        'address',
-        'contact_person',
-        'contact_email',
-        'contact_phone',
-        'logo_url',
+        'school_name',
+        'batch_name',
+        'student_count',
         'status',
-        'created_at',
-        'suspended_at',
-        'suspended_by__username',
-        'suspended_reason'
+        'deadline',
+        'created_at'
     )
 
     return Response({'orders': list(orders)})
