@@ -33,7 +33,7 @@ export const useAnalyticsOverview = () => {
         setError(null)
 
         try {
-            const res = await api.get('/admin/analytics/overview')
+            const res = await api.get('/admin/analytics/overview/')
             setData(res.data)
         } catch (err: any) {
             setError(err.response?.data.error || 'Failed to fetch analytics overview')
@@ -44,7 +44,7 @@ export const useAnalyticsOverview = () => {
 
     useEffect(() => {
         fetchOverview()
-    }, [fetchOverview])
+    }, [])
 
     return {
         data, loading, error, refetch: fetchOverview

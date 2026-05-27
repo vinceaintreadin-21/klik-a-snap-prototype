@@ -17,7 +17,9 @@
     "react-dom": "^19.2.5",
     "react-draggable": "^4.5.0",
     "react-router-dom": "^7.15.0",
-    "tailwindcss": "^4.2.4"
+    "recharts": "^3.8.1",
+    "tailwindcss": "^4.2.4",
+    "victory-vendor": "^36.9.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

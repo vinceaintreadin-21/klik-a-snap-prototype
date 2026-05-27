@@ -13,7 +13,7 @@ const SuspendInstitutionModal = ({ institution, onClose, onSuccess }: Props) => 
 
     const handleSubmit = async () => {
         const result = await updateInstitution(institution.id, {
-            status: 'SUSPEND',
+            status: 'SUSPENDED',
             suspended_reason: reason
         })
         if (result) { onSuccess(); onClose() }

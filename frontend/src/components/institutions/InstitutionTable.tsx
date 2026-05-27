@@ -15,7 +15,7 @@ const InstitutionTable = ({ onSuspend, onActivate, onCreate }: Props) => {
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>
 
     return (
-        <div className='bg-white rounded-x1 shadow-sm border border-gray-200'>
+        <div className='bg-white rounded-xl shadow-sm border border-gray-200'>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <h2 className="text-lg font-semibold text-gray-800">Institutions</h2>
@@ -55,7 +55,7 @@ const InstitutionTable = ({ onSuspend, onActivate, onCreate }: Props) => {
                             <td className="px-6 py-4 text-gray-500">
                                 {new Date(inst.created_at).toLocaleDateString()}
                             </td>
-                            <td className="px-6 px-4 text-right space-x-2">
+                            <td className="px-6 py-4 text-right space-x-2">
                                 {inst.status === 'SUSPENDED' || inst.status === 'INACTIVE' ? (
                                     <button
                                         onClick={() => onActivate(inst)}

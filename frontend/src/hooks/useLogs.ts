@@ -52,7 +52,7 @@ export const useProcessingLogs = (filters?: ProcessingLogFilters) => {
         setError(null)
 
         try {
-            const res = await api.get('/admin/logs/processing', {
+            const res = await api.get('/admin/logs/processing/', {
                 params: filters
             })
             setData(res.data.logs)
