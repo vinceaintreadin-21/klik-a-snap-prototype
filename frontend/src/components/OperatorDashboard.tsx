@@ -2,16 +2,19 @@ import React, { useState } from 'react';
 import api from '../utils/api';
 import { useOrders } from '../context/OrderContext';
 import LayoutConfigModal from './LayoutConfigModal'; 
+import UploadPhotosModal from './UploadPhotosModal';
 
 const OperatorDashboard = () => {
-  const { orders, progress, updateStatus } = useOrders();
+  const { orders, progress, updateStatus, connectOrderSocket } = useOrders();
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
+  const [uploadModalOrder, setUploadModalOrder] = useState<any |null>(null)
   
   const handleStartAI = async (id: number) => {
     try {
       const res = await api.post(`/orders/${id}/process/`);
       updateStatus(id, 'PROCESSING');
+      connectOrderSocket(id)
       alert(res.data.message);
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to start AI engine.");
@@ -20,16 +23,31 @@ const OperatorDashboard = () => {
 
   // 2. Finalize Production (POST /orders/<pk>/complete/)
   const handleCompleteOrder = async (id: number) => {
-    if (!window.confirm("Are you sure? This will generate final print sheets.")) return;
+    if (!window.confirm("Are you sure you want to proceed?")) return;
     
     try {
-      await api.post(`/orders/${id}/complete/`);
-      updateStatus(id, 'COMPLETED');
-      alert("Order finalized! Print sheets are ready.");
+      const res = await api.post(`/orders/${id}/complete/`);
+      const newStatus = res.data.message.includes('PRINTING') ? 'PRINTING' : 'COMPLETED'
+      updateStatus(id, newStatus);
+      alert(res.data.message);
     } catch (err: any) {
       alert(err.response?.data?.error || "Cannot complete order yet.");
     }
   };
+
+  const handleUploadPhotos = async (orderId: number, files: FileList | null) => {
+    if (!files || files.length === 0) return 
+    const formData = new FormData()
+    Array.from(files).forEach(f => formData.append('files', f))
+    try {
+      await api.post(`/orders/${orderId}/photos/upload/`, formData, {
+        headers: {'Content-Type': 'multipart/form-data'}
+      })
+      alert('Photos uploaded successfully')
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to upload photos')
+    }
+  }
 
   const openLayoutEditor = (id: number) => {
     setSelectedOrderId(id);
@@ -74,6 +92,15 @@ const OperatorDashboard = () => {
                   )}
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
+
+                  {['PENDING', 'FAILED'].includes(order.status) && (
+                    <button
+                      onClick={() => setUploadModalOrder(order)}
+                      className="px-4 py-2 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-100 transition-all"
+                    >
+                      Upload Photos
+                    </button>
+                  )}
                   {/* BUTTON 1: Layout Config */}
                   <button 
                     onClick={() => openLayoutEditor(order.id)}
@@ -93,13 +120,26 @@ const OperatorDashboard = () => {
                     {order.status === 'PROCESSING' ? 'Running...' : 'Run AI'}
                   </button>
 
-                  {/* BUTTON 3: Complete */}
-                  <button 
-                    onClick={() => handleCompleteOrder(order.id)}
-                    className="px-4 py-2 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md transition-all"
-                  >
-                    Finalize
-                  </button>
+                  {/* APPROVED -> PROCESSING */}
+                  {order.status === 'APPROVED' && (
+                    <button
+                      onClick={() => handleCompleteOrder(order.id)}
+                      className='px-4 py-2 text-xs font-bold bg-amber-500 text-white rounded-lg hover:bg-amber-600 shadow-md transition-all'
+                    >
+                      Send to Print
+                    </button>
+                  )}
+
+                  {/* PRINTING -> COMPLETED */}
+
+                  {order.status === 'PRINTING' && (
+                    <button
+                      onClick={() => handleCompleteOrder(order.id)}
+                      className="px-4 py-2 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md transition-all"
+                    >
+                      Mark as Complete
+                    </button>
+                  )}
                 </td>
               </tr>
             )
@@ -112,6 +152,14 @@ const OperatorDashboard = () => {
         <LayoutConfigModal 
           orderId={selectedOrderId} 
           onClose={() => setIsLayoutModalOpen(false)} 
+        />
+      )}
+
+      {uploadModalOrder && (
+        <UploadPhotosModal
+            order={uploadModalOrder}
+            onClose={() => setUploadModalOrder(null)}
+            onSuccess={() => setUploadModalOrder(null)}
         />
       )}
     </div>
