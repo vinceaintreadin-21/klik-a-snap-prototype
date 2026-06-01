@@ -55,6 +55,8 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number, onClose: () 
     
     const formData = new FormData();
     formData.append('background_image', bgFile);
+    formData.append('card_width', cardWidth.toString())
+    formData.append('card_height', cardHeight.toString())
     
     // Bridging React state to Python expected keys
     const configForPython = {

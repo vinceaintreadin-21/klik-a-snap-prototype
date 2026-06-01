@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
 
 interface OrderContextType {
@@ -6,6 +6,7 @@ interface OrderContextType {
   progress: Record<number, { processed: number; manual_review: number; total: number }>;
   addOrder: (order: any) => void;
   updateStatus: (id: number, status: string) => void;
+  connectOrderSocket: (orderId: number) => void
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -17,6 +18,8 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     manual_review: number;
     total: number;
   }>>({});
+
+  const orderSockets = useRef<Record<number, WebSocket>>({})
 
   // 1. INITIAL FETCH (Persistence Fix)
   useEffect(() => {
@@ -31,66 +34,43 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchOrders();
   }, []);
 
-  // 2. WebSocket listener (Module 3)
+  const connectOrderSocket = (orderId: number) => {
+    if (orderSockets.current[orderId]) {
+      orderSockets.current[orderId].close()
+    }
+
+    const token = localStorage.getItem('access_token')
+    const WS_BASE = import.meta.env.VITE_WS_URL ?? 'ws://127.0.0.1:8000'
+    const socket = new WebSocket(`${WS_BASE}/ws/orders/${orderId}/?token=${token}`)
+  
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      if (data.action === 'status_update') {
+        updateStatus(data.id, data.status)
+      }
+      if (data.action === 'progress_update') {
+        setProgress(prev => ({
+          ...prev,
+          [orderId]: {
+            processed: data.processed,
+            manual_review: data.manual_review,
+            total: data.total,
+          }
+        }))
+      }
+    }
+
+    socket.onclose = () => { delete orderSockets.current[orderId] }
+    socket.onerror = (err) => { console.error(`WS error order ${orderId}:`, err); socket.close() }
+
+    orderSockets.current[orderId] = socket
+  }
+
   useEffect(() => {
-    let socket: WebSocket;
-    let retryTimeout: ReturnType<typeof setTimeout>;
-    let retryDelay = 1000;
-    let destroyed = false;
-    const MAX_DELAY = 30000;
-
-    const connect = () => {
-      const token = localStorage.getItem('access_token');
-      const WS_BASE = import.meta.env.VITE_WS_URL ?? 'ws://127.0.0.1:8000';
-      socket = new WebSocket(`${WS_BASE}/ws/posts/?token=${token}`);
-
-      socket.onopen = () => {
-        retryDelay = 1000;
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.action === 'status_update') {
-          updateStatus(data.id, data.status);
-        }
-        if (data.action === 'progress_update') {
-          setProgress(prev => ({
-            ...prev,
-            [data.order_id]: {
-              processed: data.processed,
-              manual_review: data.manual_review,
-              total: data.total,
-            }
-          }));
-        }
-        if (data.action === 'order_created') {
-          addOrder(data.order);
-        }
-      };
-
-      socket.onclose = () => {
-        if (destroyed) return;
-        retryTimeout = setTimeout(() => {
-          retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
-          connect();
-        }, retryDelay);
-      };
-
-      socket.onerror = (err) => {
-        console.error("WebSocket error:", err);
-        socket.close();
-      };
-    };
-
-    connect();
-
     return () => {
-      destroyed = true;
-      clearTimeout(retryTimeout);
-      socket?.close();
-    };
-  }, []);
+      Object.values(orderSockets.current).forEach(ws => ws.close())
+    }
+  })
 
   const addOrder = (order: any) => setOrders((prev) => [order, ...prev]);
 
@@ -99,14 +79,15 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <OrderContext.Provider value={{ orders, progress, addOrder, updateStatus }}>
+    <OrderContext.Provider value={{ orders, progress, addOrder, updateStatus, connectOrderSocket }}>
       {children}
     </OrderContext.Provider>
   );
 };
 
 export const useOrders = () => {
-  const context = useContext(OrderContext);
+  const context = useContext(OrderContext)
   if (!context) throw new Error("useOrders must be used within OrderProvider");
-  return context;
-};
+  return context
+}
+
