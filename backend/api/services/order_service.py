@@ -8,6 +8,11 @@ def create_full_order(school_name, batch_name, student_list, institution=None):
     # We use a transaction (like Laravel's DB::transaction)
     # This ensures that if one student fails, the whole order isn't created.
     with transaction.atomic():
+
+        student_ids = [s['student_id'] for s in student_list] 
+        if len (student_ids) != len(set(student_ids)):  
+            raise ValueError("Duplicate student_id values found in the student list")
+            
         new_order = Order.objects.create(
             school_name=school_name,
             batch_name=batch_name,
@@ -24,9 +29,9 @@ def create_full_order(school_name, batch_name, student_list, institution=None):
                 grade_level=s['grade'],
             ) for s in student_list
         ]
+
         
-        for obj in student_objs:
-            obj.save()
+        Student.objects.bulk_create(student_objs)
         
         # Generate QR codes for all students
         students = Student.objects.filter(order_id=new_order.id)

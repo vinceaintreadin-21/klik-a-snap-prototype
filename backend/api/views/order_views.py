@@ -5,17 +5,22 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count # Add this import
 from api.services.id_engine import finalize_order_production
 from api.services.order_service import create_full_order
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from api.models.orders import Order
 from api.models.students import Student
 from api.services.processing_service import start_processing_queue
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.conf import settings
+from api.models.user_profile import UserProfile
+import os
 import zipfile
 from io import BytesIO
 import threading
 import json
 import requests
+import cloudinary
 
 # Download all QR codes for an order as a ZIP file
 @api_view(['GET'])
@@ -85,18 +90,30 @@ def get_student_qr(request, student_id):
 @permission_classes([IsAuthenticated])
 def order_controller(request):
     if request.method == 'GET':
-        return _list_orders()
+        return _list_orders(request)
     return _create_order(request)
 
-def _list_orders():
+def _list_orders(request):
     try:
-        orders = Order.objects.annotate(
-            total_students=Count('students')
-        ).values(
+        profile = request.user.profile
+        orders = Order.objects.annotate(total_students=Count('students'))
+
+        if profile.role == UserProfile.Role.OPERATOR:
+            orders = orders.filter(assigned_operator=request.user)
+        elif profile.role == UserProfile.Role.INSTITUTION:
+            orders = orders.filter(institution=profile.institution)
+        
+        result = orders.values(
             'id', 'school_name', 'batch_name', 'status', 'created_at', 'total_students'
         )
-        order_list = [{**o, 'student_count': o.pop('total_students')} for o in orders]
+
+        order_list = [
+            {**o, 'student_count': o['total_students']} 
+            for o in result
+        ]
+        
         return Response(order_list)
+
     except Exception as e:
         return Response({'error': str(e)}, status=500)
     
@@ -144,6 +161,10 @@ def _create_order(request):
 @permission_classes([IsAuthenticated])
 def start_processing(request, pk):
     try:
+        updated = Order.objects.filter(id=pk, status=['PENDING', 'FAILED']).update(status='PROCESSING')
+        if not updated:
+            return Response({'error': 'Order is already processing or does not exist'}, status=400)
+
         thread = threading.Thread(target=start_processing_queue, args=(pk,))
         thread.daemon = True
         thread.start()
@@ -155,9 +176,53 @@ def start_processing(request, pk):
 @permission_classes([IsAuthenticated])
 def complete_order(request, pk):
     try:
-        success = finalize_order_production(pk)
+        success, new_status = finalize_order_production(pk)
         if success:
-            return JsonResponse({"message": "Order marked as COMPLETED"}, status=200)
+            return JsonResponse({'message': f'Order moved to {new_status}'}, status=200)
         return JsonResponse({"error": "Order is not in a state that can be completed"}, status=400)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def upload_photos(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+
+    except Order.DoesNotExist:
+        return Response({ 'error': 'Order not found' }, status=404)
+    
+    if order.status not in [Order.Status.PENDING, Order.Status.FAILED]:
+        return Response({ 'error': 'Photos can only be uploaded when order is PENDING or FAILED'}, status=400)
+
+    files = request.FILES.getlist('files')
+
+    if not files:
+        return Response({'error': 'No files provided'}, status=400)
+    
+    uploaded = []
+    failed = []
+
+    for file in files: 
+        try: 
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder=f'student_photos/order_{order_id}',
+                resource_type='image',
+                use_filename=True,
+                unique_filename=False
+            )
+            uploaded.append({
+                'file': file.name,
+                'url': upload_result['secure_url'],
+                'public_id': upload_result['public_id']
+            })
+        except Exception as e:
+            failed.append({'file': file.name, 'error': str(e)})
+        
+    return Response({
+        'message': f'{len(uploaded)} photo(s) uploaded successfully',
+        'uploaded': uploaded,
+        'failed': failed
+    }, status=207 if failed else 201)
