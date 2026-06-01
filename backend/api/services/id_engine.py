@@ -1,6 +1,8 @@
 #id_engine.py
 import cv2
 import mediapipe as mp
+import numpy as np
+import requests
 import qrcode
 import barcode
 from barcode.writer import ImageWriter
@@ -20,7 +22,10 @@ def process_single_photo(image_path, order_id):
     3. MediaPipe crops face
     4. Pillow merges into dynamic layout
     """
-    img = cv2.imread(image_path)
+    response = requests.get(image_path)
+    img_array = np.frombuffer(response.content, np.uint8)
+    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
     if img is None:
         return None, 'manual_review'
 
@@ -83,8 +88,11 @@ def _crop_face(img, image_path):
         y2 = min(h, int((bbox.ymin + bbox.height + pad_bottom) * h))
 
         cropped = img[y:y2, x:x2]
-        out = image_path.replace('student_photos', 'cropped_faces')
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+
+        out_dir = os.path.join(settings.MEDIA_ROOT, 'cropped_faces')
+        os.makedirs(out_dir, exist_ok=True)
+        filename = f"cropped_{os.path.basename(image_path.split('/')[-1])}"
+        out = os.path.join(out_dir, filename)
         cv2.imwrite(out, cropped)
         return out
 
@@ -158,7 +166,7 @@ def _render_id_card(cropped_path, student, layout):
         place_text('school_name', order.school_name)
 
     if layout.show_school_year:
-        place_text('school_year', order.batch_name)
+        place_text('batch_name', order.batch_name)
 
     if layout.show_signature_line and 'signature_line' in cfg:
         f = cfg['signature_line']
@@ -193,10 +201,18 @@ def _render_id_card(cropped_path, student, layout):
 
 def finalize_order_production(order_id):
     order = Order.objects.get(id=order_id)
-    if order.status == "PROOFING":
-        order.status = "COMPLETED"
+    if order.status == Order.Status.APPROVED:
+        order.status = Order.Status.PRINTING
         order.save()
         from api.services.processing_service import broadcast_status
-        broadcast_status(order.id, "COMPLETED")
-        return True
-    return False
+        broadcast_status(order.id, Order.Status.PRINTING)
+        return True, 'PRINTING'
+
+    if order.status == Order.Status.PRINTING:
+        order.status = Order.Status.COMPLETED
+        order.save()
+        from api.services.processing_service import broadcast_status
+        broadcast_status(order.id, Order.Status.COMPLETED)
+        return True, 'COMPLETED'
+
+    return False, None

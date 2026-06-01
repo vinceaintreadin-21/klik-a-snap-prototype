@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views.order_views import order_controller, start_processing, complete_order, download_qr_codes, get_student_qr
+from api.views.order_views import order_controller, start_processing, complete_order, download_qr_codes, get_student_qr, upload_photos
 from api.views.student_views import (
     student_detail_controller, search_students, 
     quick_add_student, manual_link_photo
@@ -79,6 +79,9 @@ urlpatterns = [
     path('admin/orders/<int:order_id>/assign/', assign_operator, name='assign-operator'),
 
     path('admin/orders/<int:order_id>/override-status/', override_order_status, name='override-order-status'),
+
+    #Operator
+    path('orders/<int:order_id>/photos/upload/', upload_photos, name='upload-photos'),
 
     # QR code generation
     path('orders/<int:order_id>/qr-codes/download/', download_qr_codes, name='download_qr_codes'),

@@ -8,6 +8,10 @@ from rest_framework import status
 from api.models.students import Student
 from api.models.orders import Order
 import json
+from django.conf import settings
+import cloudinary
+import cloudinary.api
+import cloudinary.uploader
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -15,9 +19,17 @@ def student_detail_controller(request, order_id):
     if request.method == 'GET':
         students = list(Student.objects.filter(order_id=order_id).values(
             'id', 'student_id', 'full_name', 'grade_level', 
-            'is_approved', 'photo_status', 'is_walk_in'
+            'is_approved', 'photo_status', 'is_walk_in', 'processed_photo'
         ))
-        return Response(students, safe=False)
+
+        for s in students:
+            if s['processed_photo']:
+                s['processed_photo_url'] = request.build_absolute_uri(
+                    settings.MEDIA_URL + s['processed_photo']
+                )
+            else:
+                s['processed_photo_url'] = None
+        return Response(students)
     return Response({'error': 'Method not allowed'}, status=405)
 
 
@@ -72,14 +84,26 @@ def manual_link_photo(request, order_id):
     """Fail-Safe B: Operator manually links an unmatched photo to a student"""
     try:
         student_id = request.data.get('student_id')
-        photo_path = request.data.get('photo_path')
+        photo_file = request.FILES.get('photo')
 
         student = Student.objects.get(id=student_id, order_id=order_id)
-        student.photo = photo_path
+
+        upload_result = cloudinary.uploader.upload(
+            photo_file,
+            folder=f'student_photos/order_{order_id}/manual',
+            resource_type='image',
+            use_filename=True,
+            unique_filename=True
+        )
+
+
         student.photo_status = Student.PhotoStatus.PENDING  # Re-queue for processing
         student.save()
 
-        return Response({'message': f'Photo linked to {student.full_name}. Re-queued for processing.'})
+        return Response({
+            'message': f'Photo linked to {student.full_name}. Re-queued for processing.',
+            'photo_url': upload_result['secure_url']
+        })
     except Student.DoesNotExist:
         return Response({'error': 'Student not found'}, status=404)
     except Exception as e:
@@ -88,7 +112,8 @@ def manual_link_photo(request, order_id):
 
 def _generate_student_id(order):
     """Auto-generate KAS-YYYY-XXXX style ID for walk-ins"""
+    import uuid
     from django.utils import timezone
     year = timezone.now().year
-    count = Student.objects.filter(order=order).count() + 1
-    return f"KAS-{year}-{count:04d}"
+    suffix = uuid.uuid4().hex[:6].upper()
+    return f"KAS-{year}-{suffix}"

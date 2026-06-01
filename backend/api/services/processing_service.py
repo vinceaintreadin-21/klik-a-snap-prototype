@@ -6,7 +6,7 @@ from django.conf import settings
 from api.models.students import Student
 from api.models.orders import Order
 from api.services.id_engine import process_single_photo
-
+import cloudinary.api
 
 def broadcast_status(order_id, status, extra=None):
     channel_layer = get_channel_layer()
@@ -22,53 +22,41 @@ def broadcast_status(order_id, status, extra=None):
 def start_processing_queue(order_id):
     try:
         order = Order.objects.get(id=order_id)
-        order.status = "PROCESSING"
-        order.save()
         broadcast_status(order_id, "PROCESSING")
 
-        # Scan the uploaded folder for this order
-        order_folder = os.path.join(
-            settings.MEDIA_ROOT, 'student_photos', f'order_{order_id}'
-        )
-
-        if not os.path.exists(order_folder):
-            print(f"Directory not found: {order_folder}")
-            order.status = "FAILED"
-            order.save()
-            broadcast_status(order_id, "FAILED")
+        try:
+            result = cloudinary.api.resources(
+                type='upload',
+                prefix=f'student_photos/order_{order_id}/',
+                max_results=500
+            )
+            image_files = [r['secure_url'] for r in result.get('resources', [])]
+        except Exception as e:
+            print(f"Cloudinary fetch failed: {str(e)}")
+            Order.objects.filter(id=order_id).update(status="FAILED")
+            broadcast_status(order_id, "FAILED", {"error": str(e)})
             return
 
-        # Collect all valid image files
-        image_files = [
-            f for f in os.listdir(order_folder)
-            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-        ]
+        if not image_files:
+            print(f"No photos found in Cloudinary for order {order_id}")
+            Order.objects.filter(id=order_id).update(status="FAILED")
+            broadcast_status(order_id, "FAILED", {"error": "No photos found"})
+            return
+        
         total = len(image_files)
         processed = 0
         manual_review = 0
 
-        broadcast_status(order.id, "PENDING", {
-            "action": "order_created",
-            "order": {
-                "id": order.id,
-                "school_name": order.school_name,
-                "batch_name": order.batch_name,
-                "status": "PENDING",  
-            }
-        })
+        for url in image_files:
+            print(f"AI Engine working on: {url}")
 
-        for filename in image_files:
-            file_path = os.path.join(order_folder, filename)
-            print(f"AI Engine working on: {filename}")
-
-            _, photo_result = process_single_photo(file_path, order_id)
+            _, photo_result = process_single_photo(url, order_id)
 
             if photo_result == 'manual_review':
                 manual_review += 1
-            else:
+            else: 
                 processed += 1
 
-            # Broadcast per-photo progress to frontend via WebSocket
             broadcast_status(order_id, "PROCESSING", {
                 "action": "progress_update",
                 "processed": processed,
@@ -78,14 +66,14 @@ def start_processing_queue(order_id):
 
         order.status = "PROOFING"
         order.save()
-        
+
         broadcast_status(order_id, "PROOFING", {
             "processed": processed,
             "manual_review": manual_review,
             "total": total
         })
         print(f"Order {order_id} processing complete.")
-
+        
     except Exception as e:
         print(f"Error in Processing Queue: {str(e)}")
         Order.objects.filter(id=order_id).update(status="FAILED")
