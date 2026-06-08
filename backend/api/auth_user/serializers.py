@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from api.models.user_profile import UserProfile
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
@@ -14,10 +15,23 @@ class RegisterSerializer(serializers.ModelSerializer):
             email=validated_data.get('email', ''),
             password=validated_data['password'],
         )
+
+        UserProfile.objects.create(
+            user=user,
+            role=UserProfile.Role.OPERATOR
+        )
+        
         return user
         
 class UserSerializer(serializers.ModelSerializer):
-    role = serializers.CharField(source='profile.role', read_only=True)
+    role = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'is_staff', 'is_superuser', 'role')
+    
+    def get_role(self, obj):
+        try:
+            return obj.profile.role
+        except UserProfile.DoesNotExist:
+            return None

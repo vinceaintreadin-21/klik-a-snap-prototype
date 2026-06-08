@@ -19,7 +19,8 @@ def student_detail_controller(request, order_id):
     if request.method == 'GET':
         students = list(Student.objects.filter(order_id=order_id).values(
             'id', 'student_id', 'full_name', 'grade_level', 
-            'is_approved', 'photo_status', 'is_walk_in', 'processed_photo'
+            'is_approved', 'photo_status', 'is_walk_in', 'processed_photo',
+            'fail_reason', 'original_photo_url'
         ))
 
         for s in students:

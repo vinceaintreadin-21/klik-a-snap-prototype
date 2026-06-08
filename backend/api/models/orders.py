@@ -10,6 +10,7 @@ class Order(models.Model):
         PRINTING = 'PRINTING', 'Printing'
         COMPLETED = 'COMPLETED', 'Ready for Pickup'
         CANCELLED = 'CANCELLED', 'Cancelled'
+        FAILED = 'FAILED', 'Processing Failed'
 
     # Relationships
     institution = models.ForeignKey(

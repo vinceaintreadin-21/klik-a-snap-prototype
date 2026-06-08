@@ -54,6 +54,20 @@ class Student(models.Model):
         choices=PhotoStatus.choices,
         default=PhotoStatus.PENDING
     )
+
+    fail_reason = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Reason for MANUAL_REVIEW: 'no_qr', 'qr_not_found', 'no_face', 'no_layout', 'error'"
+    )
+
+    original_photo_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text='Cloudinary URL of the original uploaded photo'
+    )
     
 
     is_approved = models.BooleanField(default=False)

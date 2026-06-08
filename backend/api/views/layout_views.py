@@ -28,6 +28,13 @@ def create_layout(request, order_id):
 
         fields_config = json.loads(request.data.get('fields_config', '{}'))
 
+        def to_bool(val, default=True):
+            if isinstance(val, bool):
+                return val
+            if isinstance(val, str):
+                return val.lower() == 'true'
+            return default
+
         layout = IDLayout.objects.create(
             order=order,
             background_image=request.FILES['background_image'],
@@ -38,14 +45,14 @@ def create_layout(request, order_id):
             photo_width=request.data.get('photo_width', 300),
             photo_height=request.data.get('photo_height', 350),
             fields_config=fields_config,
-            show_full_name=request.data.get('show_full_name', True),
-            show_student_id=request.data.get('show_student_id', True),
-            show_grade_level=request.data.get('show_grade_level', True),
-            show_school_name=request.data.get('show_school_name', True),
-            show_school_year=request.data.get('show_school_year', True),
-            show_signature_line=request.data.get('show_signature_line', True),
-            show_qr_code=request.data.get('show_qr_code', True),
-            show_barcode=request.data.get('show_barcode', True),
+            show_full_name=to_bool(request.data.get('show_full_name', True)),
+            show_student_id=to_bool(request.data.get('show_student_id', True)),
+            show_grade_level=to_bool(request.data.get('show_grade_level', True)),
+            show_school_name=to_bool(request.data.get('show_school_name', True)),
+            show_school_year=to_bool(request.data.get('show_school_year', True)),
+            show_signature_line=to_bool(request.data.get('show_signature_line', False)),
+            show_qr_code=to_bool(request.data.get('show_qr_code', True)),
+            show_barcode=to_bool(request.data.get('show_barcode', False)),
         )
 
         return Response({
@@ -88,3 +95,48 @@ def get_layout(request, order_id):
         })
     except IDLayout.DoesNotExist:
         return Response({'error': 'No layout found for this order'}, status=404)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def preview_layout(request, order_id):
+    from api.services.id_engine import _render_id_card
+    from api.models.students import Student
+    from django.http import FileResponse
+    import types
+
+    try:
+        student = Student.objects.filter(
+            order_id=order_id,
+            photo_status='PROCESSED'
+        ).first()
+
+        if not student:
+            return Response({'error': 'No processed student found for preview'}, status=404)
+
+        # Build a mock layout object from request data
+        layout = types.SimpleNamespace(
+            card_width=int(request.data.get('card_width', 638)),
+            card_height=int(request.data.get('card_height', 1012)),
+            photo_x=int(request.data.get('photo_x', 50)),
+            photo_y=int(request.data.get('photo_y', 50)),
+            photo_width=int(request.data.get('photo_width', 150)),
+            photo_height=int(request.data.get('photo_height', 200)),
+            fields_config=request.data.get('fields_config', {}),
+            background_image=student.order.layout.background_image,
+            show_full_name=True, show_student_id=True,
+            show_grade_level=True, show_school_name=True,
+            show_school_year=True, show_signature_line=False,
+            show_qr_code=True, show_barcode=False,
+        )
+
+        output_path = _render_id_card(
+            student.processed_photo,  # reuse existing cropped
+            student,
+            layout
+        )
+
+        full_path = os.path.join(settings.MEDIA_ROOT, output_path)
+        return FileResponse(open(full_path, 'rb'), content_type='image/png')
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
