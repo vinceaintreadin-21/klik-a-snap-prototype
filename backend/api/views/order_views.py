@@ -95,7 +95,13 @@ def order_controller(request):
 
 def _list_orders(request):
     try:
-        profile = request.user.profile
+        try:
+            profile = request.user.profile
+        except UserProfile.DoesNotExist:
+            return Response({
+                'error': 'User profile not found. Please contact administrator.'
+            }, status=403)
+                
         orders = Order.objects.annotate(total_students=Count('students'))
 
         if profile.role == UserProfile.Role.OPERATOR:
@@ -108,7 +114,7 @@ def _list_orders(request):
         )
 
         order_list = [
-            {**o, 'student_count': o['total_students']} 
+            {**{k: v for k, v in o.items() if k != 'total_students'}, 'student_count': o['total_students']}
             for o in result
         ]
         
@@ -134,7 +140,7 @@ def _create_order(request):
         if not isinstance(students, list) or len(students) == 0:
             return Response({'error': 'Student list is empty'}, status=400)
         
-        institution = getattr(request.user, 'institution', None)
+        institution = getattr(request.user.profile, 'institution', None)
 
         new_order = create_full_order(
             school_name=school_name,
@@ -161,7 +167,7 @@ def _create_order(request):
 @permission_classes([IsAuthenticated])
 def start_processing(request, pk):
     try:
-        updated = Order.objects.filter(id=pk, status=['PENDING', 'FAILED']).update(status='PROCESSING')
+        updated = Order.objects.filter(id=pk, status__in=['PENDING', 'FAILED', 'PROOFING']).update(status='PROCESSING')
         if not updated:
             return Response({'error': 'Order is already processing or does not exist'}, status=400)
 
@@ -186,15 +192,19 @@ def complete_order(request, pk):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
-def upload_photos(request, order_id):
+def upload_photos(request, order_id, student_id=None):
     try:
         order = Order.objects.get(id=order_id)
 
     except Order.DoesNotExist:
         return Response({ 'error': 'Order not found' }, status=404)
     
-    if order.status not in [Order.Status.PENDING, Order.Status.FAILED]:
-        return Response({ 'error': 'Photos can only be uploaded when order is PENDING or FAILED'}, status=400)
+    if student_id is not None:
+        from api.services.id_engine import manual_crop_photo as execute_manual_crop
+        return execute_manual_crop(request, order_id, student_id)
+        
+    if order.status not in [Order.Status.PENDING, Order.Status.FAILED, Order.Status.PROOFING]:
+        return Response({ 'error': 'Photos can only be uploaded when order is PENDING, PROOFING or FAILED'}, status=400)
 
     files = request.FILES.getlist('files')
 
@@ -226,3 +236,253 @@ def upload_photos(request, order_id):
         'uploaded': uploaded,
         'failed': failed
     }, status=207 if failed else 201)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def parse_order_file(request):
+    """
+    Parses a CSV or Excel file and returns structured student rows.
+    
+    FormData:
+        - file: .csv / .xlsx / .xls
+        - sheet_name: (optional) which sheet to parse for Excel files
+    
+    Returns:
+        - rows: list of mapped student dicts
+        - sheets: list of sheet names (Excel only, empty for CSV)
+        - total_rows: int
+        - file_name: str
+    """
+
+    file = request.FILES.get('file')
+    if not file:
+        return Response({'error': 'No file provided'}, status=400)
+    
+    file_name = file.name.lower()
+    sheet_name = request.data.get('sheet_name', None)
+
+    COLUMN_MAP = {
+        'name': ['name', 'full name', 'full_name'],
+        'student_id': ['student_id', 'student id', 'studentid'],
+        'grade': ['grade', 'grade level', 'grade_level'],
+        'section': ['section']
+    }
+
+    def map_row(row: dict) -> dict:
+        """Maps a raw row dict to standard student format."""
+        result = {}
+        row_lower = {k.strip().lower(): v for k, v in row.items()}
+        for standard_key, variants in COLUMN_MAP.items():
+            for variant in variants:
+                if variant in row_lower:
+                    result[standard_key] = str(row_lower[variant]).strip() if row_lower[variant] else ''
+                    break 
+            else:
+                result[standard_key] = ''
+        return result
+
+    try:
+        # CSV
+        if file_name.endswith('.csv'):
+            import csv, io 
+            decoded = file.read().decode('utf-8-sig')
+            reader = csv.DictReader(io.StringIO(decoded))
+            rows = [map_row(row) for row in reader]
+
+            return Response({
+                'rows': rows, 
+                'sheets': [],
+                'total_rows': len(rows),
+                'file_name': file.name
+            })
+        # Excel
+        elif file_name.endswith('xlsx') or file_name.endswith('xls'):
+            from openpyxl import load_workbook
+
+            wb = load_workbook(file, read_only=True, data_only=True)
+            sheet_names = wb.sheetnames
+
+            if len(sheet_names) > 1 and not sheet_name:
+                return Response({
+                    'rows': [],
+                    'sheets': sheet_names,
+                    'total_rows': 0,
+                    'file_name': file.name
+                })
+            
+            target_sheet = sheet_name if sheet_name in sheet_names else sheet_names[0]
+            ws = wb[target_sheet]
+
+            rows_iter = ws.iter_rows(values_only=True)
+            headers = [str(cell).strip() if cell else '' for cell in next(rows_iter)]
+
+            rows = []
+            for row in rows_iter:
+                raw ={headers[i]: (str(row[i].strip() if row[i] is not None else '')
+                        for i in range(len(headers)))}
+                if not any(raw.values()):
+                    continue 
+                rows.append(map_row(raw))
+
+            wb.close()
+
+            return Response({
+                'rows': rows,
+                'sheets': sheet_names,
+                'total_rows': len(rows),
+                'file_name': file_name
+            })
+        else:
+            return Response({'error': 'Unsupported file type. Upload a CSV or Excel file.'}, status=400)
+                
+    except Exception as e:
+        return Response({'error': f'Failed to parse file: {str(e)}'}, status=400)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def check_duplicate_order(request):
+    """
+    Checks if an order with the same school_name + batch_name already exists
+    for this institution.
+
+    Body:
+        - school_name: str
+        - batch_name: str
+        - student_count: int
+
+    Returns:
+        - is_duplicate: bool
+        - existing_order_id: int | null
+        - existing_count: int | null
+        - can_override: bool (true if new file has more rows than existing)
+    """
+    school_name = request.data.get('school_name', '').strip()
+    batch_name = request.data.get('batch_name', '').strip()
+    student_count = request.data.get('student_count', 0)
+    
+    if not school_name or not batch_name:
+        return Response({'error': 'school_name and batch_name are required'}, status=400)
+    
+    try: 
+        student_count = int(student_count)
+    except (ValueError, TypeError):
+        return Response({'error': 'student_count must be an integer'}, status=400)
+
+    institution = getattr(request.user.profile, 'institution', None)
+
+    existing = Order.objects.filter(
+        school_name__iexact=school_name,
+        batch_name_iexact=batch_name,
+        institution=institution
+    ).exclude(
+        status__in=[Order.Status.CANCELLED, Order.Status.FAILED]
+    ).first()
+
+    if not existing:
+        return Response({
+            'is_duplicate': False,
+            'existing_order_id': None,
+            'existing_count': None,
+            'can_override': False,
+        })
+    
+    can_override = student_count > existing.student_count
+
+    return Response({
+        'is_duplicate':      True,
+        'existing_order_id': existing.id,
+        'existing_count':    existing.student_count,
+        'can_override':      can_override,
+    })
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_order(request, order_id):
+    """
+    Updates an existing order in place with a new student list.
+    Used when a duplicate order is detected but the new file
+    has more rows (override confirmed by user).
+
+    Body:
+        - school_name: str (optional)
+        - batch_name: str (optional)
+        - students: list of { name, student_id, grade, section }
+    """
+    try:
+        institution = getattr(request.user.profile, 'institution', None)
+
+        order = Order.objects.get(
+            id=order_id,
+            institution=institution,
+        )
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=404)
+
+    # Guard — only allow override on non-terminal statuses
+    locked_statuses = [
+        Order.Status.PRINTING,
+        Order.Status.COMPLETED,
+        Order.Status.CANCELLED,
+    ]
+    if order.status in locked_statuses:
+        return Response({
+            'error': f'Order cannot be updated in {order.status} status'
+        }, status=400)
+
+    students = request.data.get('students', [])
+    if not isinstance(students, list) or len(students) == 0:
+        return Response({'error': 'Student list is empty'}, status=400)
+
+    # Optional field updates
+    if 'school_name' in request.data:
+        order.school_name = request.data['school_name'].strip()
+    if 'batch_name' in request.data:
+        order.batch_name = request.data['batch_name'].strip()
+
+    try:
+        with transaction.atomic():
+            # Wipe existing students and re-create
+            Student.objects.filter(order=order).delete()
+
+            student_ids = [s['student_id'] for s in students]
+            if len(student_ids) != len(set(student_ids)):
+                raise ValueError('Duplicate student_id values in the new student list')
+
+            student_objs = [
+                Student(
+                    order=order,
+                    full_name=s['name'],
+                    student_id=s['student_id'],
+                    grade_level=s['grade'],
+                    section=s.get('section', ''),
+                ) for s in students
+            ]
+            Student.objects.bulk_create(student_objs)
+
+            # Reset order back to PENDING with new count
+            order.student_count = len(students)
+            order.status = Order.Status.PENDING
+            order.approved_by = None
+            order.approved_at = None
+            order.approval_notes = ''
+            order.save()
+
+            # Re-generate QR codes for new students
+            new_students = Student.objects.filter(order=order)
+            qr_result = bulk_generate_qr_codes(new_students, order.id)
+            print(f"QR Re-generation: {qr_result['generated']} success, {qr_result['failed']} failed")
+
+    except ValueError as e:
+        return Response({'error': str(e)}, status=400)
+    except Exception as e:
+        return Response({'error': f'Update failed: {str(e)}'}, status=500)
+
+    return Response({
+        'id':            order.id,
+        'school_name':   order.school_name,
+        'batch_name':    order.batch_name,
+        'status':        order.status,
+        'student_count': order.student_count,
+        'message':       'Order updated successfully.',
+    })

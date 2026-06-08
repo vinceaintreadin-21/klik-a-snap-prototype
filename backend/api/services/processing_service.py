@@ -25,12 +25,21 @@ def start_processing_queue(order_id):
         broadcast_status(order_id, "PROCESSING")
 
         try:
-            result = cloudinary.api.resources(
-                type='upload',
-                prefix=f'student_photos/order_{order_id}/',
-                max_results=500
-            )
-            image_files = [r['secure_url'] for r in result.get('resources', [])]
+            image_files = []
+            next_cursor = None
+            while True:
+                result = cloudinary.api.resources(
+                    type='upload',
+                    prefix=f'student_photos/order_{order_id}/',
+                    max_results=500,
+                    next_cursor=next_cursor
+                )
+                image_files.extend([r['secure_url'] for r in result.get('resources', [])])
+                next_cursor = result.get('next_cursor')
+                if not next_cursor:
+                    break
+            print(f"Total images fetched for order {order_id}: {len(image_files)}")
+        
         except Exception as e:
             print(f"Cloudinary fetch failed: {str(e)}")
             Order.objects.filter(id=order_id).update(status="FAILED")
@@ -50,12 +59,16 @@ def start_processing_queue(order_id):
         for url in image_files:
             print(f"AI Engine working on: {url}")
 
-            _, photo_result = process_single_photo(url, order_id)
+            try: 
+                _, photo_result = process_single_photo(url, order_id)
 
-            if photo_result == 'manual_review':
+                if photo_result == 'manual_review':
+                    manual_review += 1
+                else: 
+                    processed += 1
+            except Exception as e:
+                print(f"Error processing {url}: {str(e)}")
                 manual_review += 1
-            else: 
-                processed += 1
 
             broadcast_status(order_id, "PROCESSING", {
                 "action": "progress_update",

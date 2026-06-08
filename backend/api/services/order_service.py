@@ -27,6 +27,7 @@ def create_full_order(school_name, batch_name, student_list, institution=None):
                 full_name=s['name'],
                 student_id=s['student_id'],
                 grade_level=s['grade'],
+                section=s.get('section', '')
             ) for s in student_list
         ]
 
@@ -36,9 +37,7 @@ def create_full_order(school_name, batch_name, student_list, institution=None):
         # Generate QR codes for all students
         students = Student.objects.filter(order_id=new_order.id)
         qr_result = bulk_generate_qr_codes(students, new_order.id)
-        
-    
-        
+                
         print(f"QR Generation: {qr_result['generated']} success, {qr_result['failed']} failed")
         if qr_result['errors']:
             print(f"QR Errors: {qr_result['errors']}")
