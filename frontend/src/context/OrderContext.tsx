@@ -47,6 +47,17 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const data = JSON.parse(event.data)
       if (data.action === 'status_update') {
         updateStatus(data.id, data.status)
+        
+        if (data.status === 'PROOFING' && data.processed !== undefined) {
+            setProgress(prev => ({
+                ...prev,
+                [orderId]: {
+                    processed: data.processed,
+                    manual_review: data.manual_review,
+                    total: data.total,
+                }
+            }))
+        }
       }
       if (data.action === 'progress_update') {
         setProgress(prev => ({
@@ -60,7 +71,16 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    socket.onclose = () => { delete orderSockets.current[orderId] }
+    socket.onclose = () => { 
+      delete orderSockets.current[orderId] 
+      setOrders(prev => {
+        const order = prev.find(o => o.id === orderId)
+        if (order?.status === 'PROCESSING') {
+            setTimeout(() => connectOrderSocket(orderId), 1000)
+        }
+        return prev
+      })
+    }
     socket.onerror = (err) => { console.error(`WS error order ${orderId}:`, err); socket.close() }
 
     orderSockets.current[orderId] = socket
@@ -70,7 +90,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => {
       Object.values(orderSockets.current).forEach(ws => ws.close())
     }
-  })
+  }, [])
 
   const addOrder = (order: any) => setOrders((prev) => [order, ...prev]);
 

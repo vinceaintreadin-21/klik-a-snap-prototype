@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useBulkUpload, useStudentsForOrder, useManualLinkPhoto } from '../hooks/useUploadPhotos'
+import { useManualCrop } from '../hooks/useManualCrop'
 
 interface Props {
     order: { id: number; school_name: string; batch_name: string; student_count: number }
@@ -7,15 +8,16 @@ interface Props {
     onSuccess: () => void
 }
 
-const statusBadge = (status: string) => {
+const statusBadge = (status: string, reason?: string) => {
     const styles: Record<string, string> = {
         PENDING: 'bg-gray-100 text-gray-600',
         PROCESSED: 'bg-green-100 text-green-600',
         MANUAL_REVIEW: 'bg-red-100 text-red-600',
     }
+    const label = status === 'MANUAL_REVIEW' && reason ? `Review: ${reason}` : status
     return (
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] ?? 'bg-gray-100 text-gray-500'}`}>
-            {status}
+            {label}
         </span>
     )
 }
@@ -27,9 +29,18 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
     const [linkingStudentId, setLinkingStudentId] = useState<number | null>(null)
     const [showOnlyReview, setShowOnlyReview] = useState(false)
 
+    // Inline Cropper Work states
+    const [croppingStudent, setCroppingStudent] = useState<any | null>(null)
+    const [cropBox, setCropBox] = useState({ x: 50, y: 50, width: 150, height: 180 })
+    const [isDragging, setIsDragging] = useState(false)
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+    
+    const imageRef = useRef<HTMLImageElement | null>(null)
+
     const { bulkUpload, loading: uploading, error: uploadError, uploadProgress, results } = useBulkUpload()
     const { students, loading: studentsLoading, refetch } = useStudentsForOrder(order.id)
     const { linkPhoto, loading: linking, error: linkError } = useManualLinkPhoto()
+    const { submitCrop, loading: cropping, error: cropError } = useManualCrop()
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -60,7 +71,51 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
         }
     }
 
-    const filteredStudents = students.filter(s => {
+    // --- Absolute Pixel Resolution Coordinate Scaler Transformer ---
+    const handleExecuteManualCrop = async () => {
+        if (!croppingStudent || !imageRef.current) return
+
+        const img = imageRef.current
+        // Calculate the ratio between the real pixel dimensions and the CSS container constraints
+        const scaleX = img.naturalWidth / img.clientWidth
+        const scaleY = img.naturalHeight / img.clientHeight
+
+        const absoluteCropCoordinates = {
+            x: Math.round(cropBox.x * scaleX),
+            y: Math.round(cropBox.y * scaleY),
+            width: Math.round(cropBox.width * scaleX),
+            height: Math.round(cropBox.height * scaleY)
+        }
+
+        const response = await submitCrop(order.id, croppingStudent.id, absoluteCropCoordinates)
+        if (response) {
+            setCroppingStudent(null)
+            refetch()
+        }
+    }
+
+    // Inline box dragging handlers
+    const onMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault()
+        setIsDragging(true)
+        setDragStart({ x: e.clientX - cropBox.x, y: e.clientY - cropBox.y })
+    }
+
+    const onMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging || !imageRef.current) return
+        const rect = imageRef.current.getBoundingClientRect()
+        
+        let newX = e.clientX - dragStart.x
+        let newY = e.clientY - dragStart.y
+
+        // Boundary constraints checks
+        newX = Math.max(0, Math.min(newX, rect.width - cropBox.width))
+        newY = Math.max(0, Math.min(newY, rect.height - cropBox.height))
+
+        setCropBox(prev => ({ ...prev, x: newX, y: newY }))
+    }
+
+    const filteredStudents = (students || []).filter(s => {
         const matchesSearch = s.full_name.toLowerCase().includes(search.toLowerCase()) ||
             s.student_id.toLowerCase().includes(search.toLowerCase())
         const matchesFilter = showOnlyReview ? s.photo_status === 'MANUAL_REVIEW' : true
@@ -87,7 +142,7 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
                         {(['bulk', 'manual'] as const).map(t => (
                             <button
                                 key={t}
-                                onClick={() => setTab(t)}
+                                onClick={() => { setTab(t); setCroppingStudent(null); }}
                                 className={`px-4 py-1.5 text-xs font-medium rounded-lg transition ${
                                     tab === t ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
@@ -99,7 +154,7 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="flex-1 overflow-y-auto px-6 py-4" onMouseUp={() => setIsDragging(false)}>
 
                     {/* --- Tab 1: Bulk Upload --- */}
                     {tab === 'bulk' && (
@@ -168,7 +223,7 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
                     )}
 
                     {/* --- Tab 2: Manual Link --- */}
-                    {tab === 'manual' && (
+                    {tab === 'manual' && !croppingStudent && (
                         <div className="space-y-3">
                             <div className='flex items-center justify-between'>
                                 <input 
@@ -201,18 +256,32 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
                                                     <p className="text-sm font-medium text-gray-800">{student.full_name}</p>
                                                     <p className="text-xs text-gray-400">{student.student_id} • {student.grade_level}</p>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    {statusBadge(student.photo_status)}
-                                                    {['PENDING', 'MANUAL_REVIEW'].includes(student.photo_status) && (
-                                                        <button
-                                                            onClick={() => setLinkingStudentId(
-                                                                linkingStudentId === student.id ? null : student.id
-                                                            )}
-                                                            className="text-xs text-indigo-600 hover:underline"
-                                                        >
-                                                            Link Photo
-                                                        </button>
-                                                    )}
+                                                <div className="flex items-center gap-3">
+                                                    {statusBadge(student.photo_status, student.fail_reason)}
+                                                    <div className="flex gap-2 text-xs font-medium">
+                                                        {/* Render Crop option if student has a recorded original photo asset mapping */}
+                                                        {(student.original_photo_url || student.photo) && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setCroppingStudent(student);
+                                                                    setCropBox({ x: 60, y: 30, width: 140, height: 170 });
+                                                                }}
+                                                                className="text-amber-600 hover:underline"
+                                                            >
+                                                                Crop Photo
+                                                            </button>
+                                                        )}
+                                                        {['PENDING', 'MANUAL_REVIEW'].includes(student.photo_status) && (
+                                                            <button
+                                                                onClick={() => setLinkingStudentId(
+                                                                    linkingStudentId === student.id ? null : student.id
+                                                                )}
+                                                                className="text-indigo-600 hover:underline"
+                                                            >
+                                                                Link Photo
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -239,15 +308,62 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
                             )}
                         </div>
                     )}
+
+                    
+                    {/* --- Sub-Tab View: Inline Manual Drag Cropper Frame UI --- */}
+                    {tab === 'manual' && croppingStudent && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center bg-amber-50 px-4 py-2 rounded-lg text-xs text-amber-800">
+                                <p><strong>Manual Crop Mode:</strong> Drag selection boundary box over the student's face.</p>
+                                <button onClick={() => setCroppingStudent(null)} className="font-bold underline hover:text-amber-950">Back</button>
+                            </div>
+
+                            {/* ✅ remove the outer flex container, wrap image directly */}
+                            <div className="rounded-xl overflow-hidden bg-gray-900 border border-gray-800 select-none flex justify-center">
+                                <div
+                                    className="relative inline-block"  
+                                    onMouseMove={onMouseMove}
+                                    onMouseUp={() => setIsDragging(false)}
+                                >
+                                    <img
+                                        ref={imageRef}
+                                        src={croppingStudent.original_photo_url || croppingStudent.photo}
+                                        alt="Cropping subject"
+                                        className="block"
+                                        style={{ maxHeight: '380px', maxWidth: '100%' }}
+                                    />
+
+                                    {/* ✅ overlay now positioned relative to the image div */}
+                                    <div
+                                        onMouseDown={onMouseDown}
+                                        className="absolute border-2 border-dashed border-amber-400 bg-amber-400/20 cursor-move"
+                                        style={{
+                                            left: `${cropBox.x}px`,
+                                            top: `${cropBox.y}px`,
+                                            width: `${cropBox.width}px`,
+                                            height: `${cropBox.height}px`,
+                                            boxShadow: '0 0 0 4000px rgba(0,0,0,0.6)'  
+                                        }}
+                                    >
+                                        <div className="absolute top-1 left-2 bg-amber-500 text-[9px] text-white font-bold px-1 rounded shadow">
+                                            FACE CROP ZONE
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {cropError && <p className="text-xs text-red-500">{cropError}</p>}
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
                 <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                     <button
-                        onClick={onClose}
+                        onClick={croppingStudent ? () => setCroppingStudent(null) : onClose}
                         className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
                     >
-                        Cancel
+                        {croppingStudent ? 'Cancel Crop' : 'Cancel'}
                     </button>
                     {tab === 'bulk' && (
                         <button
@@ -258,10 +374,19 @@ const UploadPhotosModal = ({ order, onClose, onSuccess }: Props) => {
                             {uploading ? 'Uploading...' : results ? 'Done' : `Upload ${selectedFiles.length} Photo${selectedFiles.length !== 1 ? 's' : ''}`}
                         </button>
                     )}
+                    {tab === 'manual' && croppingStudent && (
+                        <button
+                            onClick={handleExecuteManualCrop}
+                            disabled={cropping}
+                            className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 transition"
+                        >
+                            {cropping ? 'Processing Crop...' : 'Confirm Face Crop'}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
     )
 }
 
-export default UploadPhotosModal
+export default UploadPhotosModal;

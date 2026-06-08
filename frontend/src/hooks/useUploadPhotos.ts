@@ -9,6 +9,9 @@ export interface StudentForOrder {
     full_name: string 
     grade_level: string 
     photo_status: string
+    fail_reason: string
+    original_photo_url?: string | null
+    photo?: string | null
 }
 
 export interface BulkUploadResults {

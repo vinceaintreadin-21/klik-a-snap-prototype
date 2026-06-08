@@ -15,6 +15,20 @@ const OperatorDashboard = () => {
       const res = await api.post(`/orders/${id}/process/`);
       updateStatus(id, 'PROCESSING');
       connectOrderSocket(id)
+
+      const poll = setInterval(async () => {
+        try {
+            const orderRes = await api.get('/orders/')
+            const updated = orderRes.data.find((o: any) => o.id === id)
+            if (updated && updated.status !== 'PROCESSING') {
+                updateStatus(id, updated.status)
+                clearInterval(poll)
+            }
+        } catch {
+            clearInterval(poll)
+        }
+      }, 3000)
+
       alert(res.data.message);
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to start AI engine.");
@@ -35,19 +49,6 @@ const OperatorDashboard = () => {
     }
   };
 
-  const handleUploadPhotos = async (orderId: number, files: FileList | null) => {
-    if (!files || files.length === 0) return 
-    const formData = new FormData()
-    Array.from(files).forEach(f => formData.append('files', f))
-    try {
-      await api.post(`/orders/${orderId}/photos/upload/`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'}
-      })
-      alert('Photos uploaded successfully')
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to upload photos')
-    }
-  }
 
   const openLayoutEditor = (id: number) => {
     setSelectedOrderId(id);
@@ -79,21 +80,30 @@ const OperatorDashboard = () => {
                   }`}>
                     {order.status}
                   </span>
-                  {order.status === 'PROCESSING' && p &&(
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                      <div
-                        className="bg-indigo-600 h-2 rounded-full transition-all"
-                        style={{ width: `${(p.processed / p.total) * 100}%` }}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {p.processed}/{p.total} processed • {p.manual_review} need review
-                      </p>
-                    </div>
+                  {['PROCESSING', 'PROOFING'].includes(order.status) && p && p.total > 0 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                          <div
+                              className="bg-indigo-600 h-2 rounded-full transition-all"
+                              style={{ width: `${(p.processed / p.total) * 100}%` }}
+                          />
+                          {p.processed === 0 && p.manual_review > 0 && (
+                              <div
+                                  className="bg-red-400 h-2 rounded-full transition-all"
+                                  style={{ width: `${(p.manual_review / p.total) * 100}%` }}
+                              />
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                              {p.processed}/{p.total} processed •
+                              <span className={p.manual_review > 0 ? 'text-red-500 ml-1' : 'ml-1'}>
+                                  {p.manual_review} need review
+                              </span>
+                          </p>
+                      </div>
                   )}
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
 
-                  {['PENDING', 'FAILED'].includes(order.status) && (
+                  {['PENDING', 'FAILED', 'PROOFING'].includes(order.status) && (
                     <button
                       onClick={() => setUploadModalOrder(order)}
                       className="px-4 py-2 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-100 transition-all"
