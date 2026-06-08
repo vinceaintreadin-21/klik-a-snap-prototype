@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   login: (credentials: any) => Promise<void>;
   register: (data: any) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 2. Login Logic
   const login = async (credentials: any) => {
     const res = await api.post('/auth/login/', credentials);
-    const { access, refresh } = res.data;
+    const { access, refresh } = res.data.tokens;
 
     localStorage.setItem('access_token', access);
     localStorage.setItem('refresh_token', refresh);
@@ -68,10 +68,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    setUser(null);
+  const logout = async () => {
+    try {
+      const refresh = localStorage.getItem('refresh_token');
+      await api.post('/auth/logout/', { refresh });
+    } catch (err){
+      console.error('Logout error', err)
+    } finally {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      setUser(null);
+    }
+
   };
 
   return (
