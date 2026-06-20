@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import api from '../utils/api';
-import type { ParsedStudent } from '../utils/excelParcer'
+import type { ParsedStudent } from '../utils/excelParser'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ export const useDataValidation = () => {
 
       setIsSubmitting(true);
       try {
-        const res = await api.patch(`/orders/${orderId}/`, {
+        const res = await api.patch(`/orders/${orderId}/update/`, {
           school_name: schoolName,
           batch_name: batchName,
           students,

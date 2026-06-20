@@ -1,9 +1,7 @@
-// frontend/src/components/table/EditableDataTable.tsx
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { StudentRow }    from '../../hooks/useDataValidation';
-import { useDataValidation }  from '../../hooks/useDataValidation';
-import { getPageSizeConfig }  from '../../utils/pagination';
+import { useState, useEffect, useCallback } from 'react';
+import type { StudentRow } from '../../hooks/useDataValidation';
+import { useDataValidation } from '../../hooks/useDataValidation';
+import { getPageSizeConfig } from '../../utils/pagination';
 import {
   initialUndoRedoState,
   pushAction,
@@ -27,25 +25,28 @@ interface EditableDataTableProps {
 }
 
 const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) => {
-  const { revalidateAll }               = useDataValidation();
-  const [rows,        setRows]          = useState<StudentRow[]>(initialRows);
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [currentPage, setCurrentPage]   = useState(1);
-  const [undoRedo,    setUndoRedo]      = useState(initialUndoRedoState<StudentRow>());
+  const { revalidateAll } = useDataValidation();
+  const [rows,        setRows] = useState<StudentRow[]>(initialRows);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [undoRedo,    setUndoRedo] = useState(initialUndoRedoState<StudentRow>());
 
-  const pageSizeConfig                  = getPageSizeConfig(rows.length);
-  const [pageSize, setPageSize]         = useState(pageSizeConfig.default);
-
-  // Sync page size default when row count changes significantly
-  useEffect(() => {
-    const config = getPageSizeConfig(rows.length);
-    setPageSize(config.default);
-  }, []);
+  const pageSizeConfig = getPageSizeConfig(rows.length);
+  const [pageSize, setPageSize] = useState(pageSizeConfig.default);
 
   // Bubble changes upward
   useEffect(() => {
     onChange(rows);
   }, [rows]);
+
+  useEffect(() => {
+    if (initialRows.length > 0) {
+      setRows(initialRows);
+      setPageSize(getPageSizeConfig(initialRows.length).default);
+      setCurrentPage(1);
+      setUndoRedo(initialUndoRedoState<StudentRow>());
+      }
+    }, [initialRows]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   const handleKeyDown = useCallback(

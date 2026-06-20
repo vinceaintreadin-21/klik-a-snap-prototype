@@ -12,7 +12,13 @@ const AnalyticsOverview = () => {
         { label: 'Total Orders', value: data.total_orders },
         { label: 'Pending Orders', value: data.pending_orders },
         { label: 'Active Institutions', value: data.active_institutions },
-        { label: 'Active Operators', value: data.active_operators }
+        { label: 'Active Operators', value: data.active_operators },
+        {
+            label: 'Average Turnaround', 
+            value: data.avg_turnaround_days != null
+                ? `${data.avg_turnaround_days}d`
+                : '—'
+        }
     ]
 
     return (

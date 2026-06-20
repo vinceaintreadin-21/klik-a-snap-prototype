@@ -49,7 +49,7 @@ const AdminOrderTable = ({ orders, loading, error, onRefetch }: Props) => {
                                     {order.assigned_operator__username ?? 'Unassigned'}
                                 </td>
                                 <td className="px-4 py-3 text-gray-500">
-                                    {new Date(order.deadline).toLocaleDateString()}
+                                    {order.deadline ? new Date(order.deadline).toLocaleDateString() : '—'}
                                 </td>
                                 <td className="px-4 py-3 text-gray-400">
                                     {new Date(order.created_at).toLocaleDateString()}

@@ -52,7 +52,7 @@ const AssignOperatorModal = ({ order, onClose, onSuccess }: Props) => {
                     >
                         <option value="">Unassign</option>
                         {operators.map(op => (
-                            <option key={op.id} value={op.user__id}>{op.user__username}</option>
+                            <option key={op.id} value={op.id}>{op.user__username}</option>
                         ))}
                     </select>
                 </div>

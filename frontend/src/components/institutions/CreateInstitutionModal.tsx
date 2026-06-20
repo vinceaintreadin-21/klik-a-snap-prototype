@@ -29,7 +29,6 @@ const CreateInstitutionModal = ({onClose, onSuccess}: Props) => {
 
         if (result) {
             setTempPassword(result.institution.temp_password)
-            onSuccess()
         }
     }
 
@@ -45,7 +44,10 @@ const CreateInstitutionModal = ({onClose, onSuccess}: Props) => {
                         {tempPassword}
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={() => {
+                            onSuccess()
+                            onClose()
+                        }}
                         className="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                     >
                         Done
