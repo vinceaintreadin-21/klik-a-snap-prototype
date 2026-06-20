@@ -2,7 +2,9 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.db.models import Count # Add this import
+from django.db.models import Count
+from django.db import transaction
+from api.services.qr_service import bulk_generate_qr_codes
 from api.services.id_engine import finalize_order_production
 from api.services.order_service import create_full_order
 from rest_framework.decorators import api_view, permission_classes, parser_classes
@@ -14,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
 from api.models.user_profile import UserProfile
+from api.utils.permissions import check_order_access, check_student_access
 import os
 import zipfile
 from io import BytesIO
@@ -22,12 +25,16 @@ import json
 import requests
 import cloudinary
 
+
 # Download all QR codes for an order as a ZIP file
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def download_qr_codes(request, order_id):
+    order, err = check_order_access(request, order_id)
+    if err:
+        return err
+
     try:
-        order = Order.objects.get(id=order_id)
         students = Student.objects.filter(order=order).exclude(qr_code_url__isnull=True).exclude(qr_code_url='')
         
         if not students.exists():
@@ -38,9 +45,7 @@ def download_qr_codes(request, order_id):
             for student in students:
                 if student.qr_code_url:
                     try:
-                        # Download from Cloudinary URL
                         response = requests.get(student.qr_code_url, timeout=10)
-                        
                         if response.status_code == 200 and len(response.content) > 0:
                             clean_name = student.full_name.replace(' ', '_')
                             filename = f"{student.student_id}_{clean_name}.png"
@@ -59,9 +64,7 @@ def download_qr_codes(request, order_id):
         response = HttpResponse(content, content_type='application/zip')
         response['Content-Disposition'] = f'attachment; filename="qr_codes_order_{order_id}.zip"'
         return response
-        
-    except Order.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=404)
+
     except Exception as e:
         return Response({'error': str(e)}, status=500)
 
@@ -69,22 +72,12 @@ def download_qr_codes(request, order_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_student_qr(request, student_id):
-    try:
-        student = Student.objects.get(id=student_id)
-        
-        if not student.qr_code_image:
-            return Response({
-                'error': 'QR code not generated yet'
-            }, status=404)
-        
-        return Response(
-            student.qr_code_image.read(),
-            content_type='image/png'
-        )
-    except Student.DoesNotExist:
-        return Response({
-            'error': 'Student not found'
-        }, status=404)
+    student, err = check_student_access(request, student_id)
+    if err:
+        return err
+    if not student.qr_code_image:
+        return Response({'error': 'QR code not generated yet'}, status=404)
+    return Response(student.qr_code_image.read(), content_type='image/png')
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -98,17 +91,26 @@ def _list_orders(request):
         try:
             profile = request.user.profile
         except UserProfile.DoesNotExist:
-            return Response({
-                'error': 'User profile not found. Please contact administrator.'
-            }, status=403)
-                
-        orders = Order.objects.annotate(total_students=Count('students'))
+            return Response({'error': 'User profile not found.'}, status=403)
 
-        if profile.role == UserProfile.Role.OPERATOR:
-            orders = orders.filter(assigned_operator=request.user)
-        elif profile.role == UserProfile.Role.INSTITUTION:
-            orders = orders.filter(institution=profile.institution)
-        
+        # Default to nothing — never leak data
+        orders = Order.objects.none()
+
+        if profile.role == UserProfile.Role.ADMIN:
+            orders = Order.objects.annotate(total_students=Count('students'))
+
+        elif profile.role == UserProfile.Role.OPERATOR:
+            orders = Order.objects.annotate(
+                total_students=Count('students')
+            ).filter(assigned_operator=request.user)
+
+        elif profile.role in (UserProfile.Role.INSTITUTION, UserProfile.Role.COORDINATOR):
+            if not profile.institution:
+                return Response({'error': 'No institution linked to this account.'}, status=403)
+            orders = Order.objects.annotate(
+                total_students=Count('students')
+            ).filter(institution=profile.institution)
+
         result = orders.values(
             'id', 'school_name', 'batch_name', 'status', 'created_at', 'total_students'
         )
@@ -117,7 +119,6 @@ def _list_orders(request):
             {**{k: v for k, v in o.items() if k != 'total_students'}, 'student_count': o['total_students']}
             for o in result
         ]
-        
         return Response(order_list)
 
     except Exception as e:
@@ -140,7 +141,10 @@ def _create_order(request):
         if not isinstance(students, list) or len(students) == 0:
             return Response({'error': 'Student list is empty'}, status=400)
         
-        institution = getattr(request.user.profile, 'institution', None)
+        try:
+            institution = request.user.institution
+        except Exception:
+            institution = None
 
         new_order = create_full_order(
             school_name=school_name,
@@ -166,6 +170,9 @@ def _create_order(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_processing(request, pk):
+    order, err = check_order_access(request, pk)
+    if err:
+        return err
     try:
         updated = Order.objects.filter(id=pk, status__in=['PENDING', 'FAILED', 'PROOFING']).update(status='PROCESSING')
         if not updated:
@@ -181,9 +188,14 @@ def start_processing(request, pk):
 @api_view(['POST']) 
 @permission_classes([IsAuthenticated])
 def complete_order(request, pk):
+    order, err = check_order_access(request, pk)
+    if err:
+        return err
     try:
         success, new_status = finalize_order_production(pk)
         if success:
+            if new_status == 'COMPLETED':
+                Order.objects.filter(id=pk).update(completed_at=timezone.now())
             return JsonResponse({'message': f'Order moved to {new_status}'}, status=200)
         return JsonResponse({"error": "Order is not in a state that can be completed"}, status=400)
     except Exception as e:
@@ -193,13 +205,12 @@ def complete_order(request, pk):
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def upload_photos(request, order_id, student_id=None):
-    try:
-        order = Order.objects.get(id=order_id)
-
-    except Order.DoesNotExist:
-        return Response({ 'error': 'Order not found' }, status=404)
+    order, err = check_order_access(request, order_id)
+    if err:
+        return err
     
     if student_id is not None:
+
         from api.services.id_engine import manual_crop_photo as execute_manual_crop
         return execute_manual_crop(request, order_id, student_id)
         
@@ -241,101 +252,141 @@ def upload_photos(request, order_id, student_id=None):
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def parse_order_file(request):
-    """
-    Parses a CSV or Excel file and returns structured student rows.
-    
-    FormData:
-        - file: .csv / .xlsx / .xls
-        - sheet_name: (optional) which sheet to parse for Excel files
-    
-    Returns:
-        - rows: list of mapped student dicts
-        - sheets: list of sheet names (Excel only, empty for CSV)
-        - total_rows: int
-        - file_name: str
-    """
-
     file = request.FILES.get('file')
     if not file:
         return Response({'error': 'No file provided'}, status=400)
-    
+
     file_name = file.name.lower()
     sheet_name = request.data.get('sheet_name', None)
 
     COLUMN_MAP = {
-        'name': ['name', 'full name', 'full_name'],
+        'name':       ['name', 'full name', 'full_name'],
         'student_id': ['student_id', 'student id', 'studentid'],
-        'grade': ['grade', 'grade level', 'grade_level'],
-        'section': ['section']
+        'grade':      ['grade', 'grade level', 'grade_level'],
+        'section':    ['section'],
     }
 
     def map_row(row: dict) -> dict:
-        """Maps a raw row dict to standard student format."""
         result = {}
         row_lower = {k.strip().lower(): v for k, v in row.items()}
         for standard_key, variants in COLUMN_MAP.items():
             for variant in variants:
                 if variant in row_lower:
                     result[standard_key] = str(row_lower[variant]).strip() if row_lower[variant] else ''
-                    break 
+                    break
             else:
                 result[standard_key] = ''
         return result
 
     try:
-        # CSV
+        # ── CSV ───────────────────────────────────────────────────────────────
         if file_name.endswith('.csv'):
-            import csv, io 
+            import csv, io
             decoded = file.read().decode('utf-8-sig')
-            reader = csv.DictReader(io.StringIO(decoded))
+            reader  = csv.DictReader(io.StringIO(decoded))
+
+            # ✅ Strip BOM and whitespace from headers
+            reader.fieldnames = [
+                f.strip().lstrip('\ufeff') for f in (reader.fieldnames or [])
+            ]
+
             rows = [map_row(row) for row in reader]
 
             return Response({
-                'rows': rows, 
-                'sheets': [],
+                'rows':       rows,
+                'sheets':     [],
                 'total_rows': len(rows),
-                'file_name': file.name
+                'file_name':  file.name,
             })
-        # Excel
-        elif file_name.endswith('xlsx') or file_name.endswith('xls'):
+
+        # ── xlsx ──────────────────────────────────────────────────────────────
+        elif file_name.endswith('.xlsx'):
             from openpyxl import load_workbook
 
-            wb = load_workbook(file, read_only=True, data_only=True)
+            file.seek(0)
+            file_bytes = BytesIO(file.read())
+            file_bytes.seek(0)  # ✅ seek BytesIO after writing
+
+            wb          = load_workbook(file_bytes, read_only=True, data_only=True)
             sheet_names = wb.sheetnames
 
             if len(sheet_names) > 1 and not sheet_name:
+                wb.close()
                 return Response({
-                    'rows': [],
-                    'sheets': sheet_names,
+                    'rows':       [],
+                    'sheets':     sheet_names,
                     'total_rows': 0,
-                    'file_name': file.name
+                    'file_name':  file.name,
                 })
-            
-            target_sheet = sheet_name if sheet_name in sheet_names else sheet_names[0]
-            ws = wb[target_sheet]
 
-            rows_iter = ws.iter_rows(values_only=True)
-            headers = [str(cell).strip() if cell else '' for cell in next(rows_iter)]
+            target_sheet = sheet_name if sheet_name in sheet_names else sheet_names[0]
+            ws           = wb[target_sheet]
+            rows_iter    = ws.iter_rows(values_only=True)
+            headers      = [str(cell).strip() if cell else '' for cell in next(rows_iter)]
 
             rows = []
             for row in rows_iter:
-                raw ={headers[i]: (str(row[i].strip() if row[i] is not None else '')
-                        for i in range(len(headers)))}
+                raw = {
+                    headers[i]: str(row[i]).strip() if row[i] is not None else ''
+                    for i in range(len(headers))
+                }
                 if not any(raw.values()):
-                    continue 
+                    continue
                 rows.append(map_row(raw))
 
             wb.close()
 
             return Response({
-                'rows': rows,
-                'sheets': sheet_names,
+                'rows':       rows,
+                'sheets':     sheet_names,
                 'total_rows': len(rows),
-                'file_name': file_name
+                'file_name':  file.name,
             })
+
+        # ── xls ───────────────────────────────────────────────────────────────
+        elif file_name.endswith('.xls'):
+            import xlrd
+
+            file.seek(0)
+            wb          = xlrd.open_workbook(file_contents=file.read())
+            sheet_names = wb.sheet_names()
+
+            if len(sheet_names) > 1 and not sheet_name:
+                return Response({
+                    'rows':       [],
+                    'sheets':     sheet_names,
+                    'total_rows': 0,
+                    'file_name':  file.name,
+                })
+
+            target_sheet = sheet_name if sheet_name in sheet_names else sheet_names[0]
+            ws           = wb.sheet_by_name(target_sheet)
+
+            if ws.nrows == 0:
+                return Response({'error': 'The selected sheet is empty.'}, status=400)
+
+            headers = [str(ws.cell_value(0, col)).strip() for col in range(ws.ncols)]
+
+            rows = []
+            for row_idx in range(1, ws.nrows):
+                raw = {
+                    headers[col]: str(ws.cell_value(row_idx, col)).strip()
+                    for col in range(ws.ncols)
+                }
+                if not any(raw.values()):
+                    continue
+                rows.append(map_row(raw))
+
+            return Response({
+                'rows':       rows,
+                'sheets':     sheet_names,
+                'total_rows': len(rows),
+                'file_name':  file.name,
+            })
+
         else:
-            return Response({'error': 'Unsupported file type. Upload a CSV or Excel file.'}, status=400)
-                
+            return Response({'error': 'Unsupported file type.'}, status=400)
+
     except Exception as e:
         return Response({'error': f'Failed to parse file: {str(e)}'}, status=400)
 
@@ -369,11 +420,14 @@ def check_duplicate_order(request):
     except (ValueError, TypeError):
         return Response({'error': 'student_count must be an integer'}, status=400)
 
-    institution = getattr(request.user.profile, 'institution', None)
-
+    try:
+        institution = request.user.institution
+    except Exception:
+        institution = None
+    
     existing = Order.objects.filter(
         school_name__iexact=school_name,
-        batch_name_iexact=batch_name,
+        batch_name__iexact=batch_name,
         institution=institution
     ).exclude(
         status__in=[Order.Status.CANCELLED, Order.Status.FAILED]
@@ -409,15 +463,9 @@ def update_order(request, order_id):
         - batch_name: str (optional)
         - students: list of { name, student_id, grade, section }
     """
-    try:
-        institution = getattr(request.user.profile, 'institution', None)
-
-        order = Order.objects.get(
-            id=order_id,
-            institution=institution,
-        )
-    except Order.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=404)
+    order, err = check_order_access(request, order_id)
+    if err:
+        return err
 
     # Guard — only allow override on non-terminal statuses
     locked_statuses = [
@@ -486,3 +534,42 @@ def update_order(request, order_id):
         'student_count': order.student_count,
         'message':       'Order updated successfully.',
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_id_cards(request, order_id):
+    order, err = check_order_access(request, order_id)
+    if err:
+        return err
+
+    students = Student.objects.filter(
+        order=order,
+        photo_status=Student.PhotoStatus.PROCESSED
+    ).exclude(processed_photo='').exclude(processed_photo__isnull=True)
+
+    if not students.exists():
+        return Response({'error': 'No processed ID cards found for this order'}, status=404)
+
+    zip_buffer = BytesIO()
+    added = 0
+
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for student in students:
+            try:
+                file_path = student.processed_photo.path
+                if os.path.exists(file_path):
+                    clean_name = student.full_name.replace(' ', '_')
+                    ext = os.path.splitext(file_path)[1] or '.png'
+                    filename = f"{student.student_id}_{clean_name}{ext}"
+                    zip_file.write(file_path, filename)
+                    added += 1
+            except Exception as e:
+                print(f"Skipping student {student.student_id}: {e}")
+
+    if added == 0:
+        return Response({'error': 'No ID card files found on disk'}, status=404)
+
+    zip_buffer.seek(0)
+    response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="id_cards_order_{order_id}.zip"'
+    return response

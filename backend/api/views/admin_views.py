@@ -233,13 +233,13 @@ def get_all_orders(request):
         'assigned_operator__username'
     )
 
-    status = request.query_params.get('status')
+    status_filter = request.query_params.get('status')
     institution_id = request.query_params.get('institution_id')
     date_from = request.query_params.get('date_from')
     date_to = request.query_params.get('date_to')
 
-    if status:
-        orders = orders.filter(status=status.upper())
+    if status_filter:
+        orders = orders.filter(status=status_filter.upper())
     if institution_id:
         orders = orders.filter(institution_id=institution_id)
     if date_from:
@@ -270,7 +270,7 @@ def assign_operator(request, order_id):
         order.assigned_operator = None
     else:
         try:
-            profile = UserProfile.objects.get(id=operator_id, role=UserProfile.Role.OPERATOR, is_active=True)
+            profile = UserProfile.objects.get(user__id=operator_id, role=UserProfile.Role.OPERATOR, is_active=True)
         except UserProfile.DoesNotExist:
             return Response({'error': 'Operator not found'}, status=404)
         order.assigned_operator = profile.user

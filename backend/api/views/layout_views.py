@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from api.models.orders import Order
 from api.models.id_layout import IDLayout
+import cloudinary
 import json
 
 @api_view(['POST'])
@@ -35,9 +36,33 @@ def create_layout(request, order_id):
                 return val.lower() == 'true'
             return default
 
+        bg_file = request.FILES.get('background_image')
+        bg_url  = None
+
+        if bg_file:
+            upload_result = cloudinary.uploader.upload(
+                bg_file,
+                folder='id_backgrounds',
+                resource_type='image',
+            )
+            bg_url = upload_result['secure_url']
+        else:
+            # Re-saving without a new file — keep existing URL
+            existing_url = None
+            existing = IDLayout.objects.filter(order=order).first()
+            if existing:
+                existing_url = existing.background_image_url
+            IDLayout.objects.filter(order=order).delete()
+
+        if not bg_url:
+            bg_url = existing_url
+
+        if not bg_url:
+            return Response({'error': 'background_image is required'}, status=400)
+
         layout = IDLayout.objects.create(
             order=order,
-            background_image=request.FILES['background_image'],
+            background_image_url=bg_url, 
             card_width=request.data.get('card_width', 638),
             card_height=request.data.get('card_height', 1012),
             photo_x=request.data.get('photo_x', 169),
@@ -91,7 +116,7 @@ def get_layout(request, order_id):
             'show_signature_line': layout.show_signature_line,
             'show_qr_code': layout.show_qr_code,
             'show_barcode': layout.show_barcode,
-            'background_image_url': request.build_absolute_uri(layout.background_image.url),
+            'background_image_url': layout.background_image_url,
         })
     except IDLayout.DoesNotExist:
         return Response({'error': 'No layout found for this order'}, status=404)
