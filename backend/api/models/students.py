@@ -69,9 +69,9 @@ class Student(models.Model):
         help_text='Cloudinary URL of the original uploaded photo'
     )
     
-
     is_approved = models.BooleanField(default=False)
     is_walk_in = models.BooleanField(default=False)
+    is_photographed = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)

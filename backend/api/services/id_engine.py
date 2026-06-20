@@ -2,8 +2,10 @@ import cv2
 import numpy as np
 import requests
 import os
+import requests
 from django.conf import settings
 from django.http import JsonResponse
+from io import BytesIO
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -276,8 +278,8 @@ def _render_id_card(cropped_path, student, layout):
     """Pillow: compose full ID card layout"""
     order = student.order
 
-    bg_path = os.path.join(settings.MEDIA_ROOT, str(layout.background_image))
-    card = Image.open(bg_path).convert('RGBA')
+    response = requests.get(layout.background_image_url, timeout=15)
+    card = Image.open(BytesIO(response.content)).convert('RGBA')
     card = card.resize((layout.card_width, layout.card_height))
 
     draw = ImageDraw.Draw(card)

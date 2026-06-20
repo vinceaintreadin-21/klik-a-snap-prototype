@@ -9,7 +9,8 @@ class IDLayout(models.Model):
     )
     
     # Background
-    background_image = models.ImageField(upload_to='id_backgrounds/')
+    background_image = models.ImageField(upload_to='id_backgrounds/', null=True, blank=True)
+    background_image_url = models.URLField(max_length=500, null=True, blank=True)
     
     # ID card dimensions (in pixels, for Pillow canvas)
     card_width = models.PositiveIntegerField(default=638)

@@ -11,6 +11,8 @@ from api.models.students import Student
 from api.models.orders import Order
 from django.db.models.functions import TruncMonth
 from django.db.models import Count
+from django.db.models import Avg, F, ExpressionWrapper, DurationField
+
 
 def is_admin(user):
     try:
@@ -32,12 +34,26 @@ def get_analytics_overview(request):
     active_institutions = Institution.objects.filter(status='ACTIVE').count()
     active_operators = UserProfile.objects.filter(role='OPERATOR', is_active=True).count()
     
+    avg_data = Order.objects.filter(
+        status=Order.Status.COMPLETED,
+        completed_at__isnull=False,
+    ).annotate(
+        turnaround=ExpressionWrapper(
+            F('completed_at') - F('created_at'),
+            output_field=DurationField()
+        )
+    ).aggregate(avg_turnaround=Avg('turnaround'))
+
+    avg = avg_data['avg_turnaround']
+    avg_days = round(avg.total_seconds() / 86400, 1) if avg else None
+    
     return Response({
         'total_ids': total_ids,
         'total_orders': total_orders,
         'pending_orders': pending_orders,   
         'active_institutions': active_institutions,
-        'active_operators': active_operators
+        'active_operators': active_operators,
+        'avg_turnaround_days': avg_days
     })
 
 @api_view(['GET'])
@@ -91,5 +107,45 @@ def get_manual_review_rate(request):
         'total_students': total_students
     })
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_avg_turnaround(request):
+    if not is_admin(request.user):
+        return Response({'error': 'Admin access required'}, status=403)
+
+    completed_orders = Order.objects.filter(
+        status=Order.Status.COMPLETED,
+        completed_at__isnull=False,
+        created_at__isnull=False,
+    ).annotate(
+        turnaround=ExpressionWrapper(
+            F('completed_at') - F('created_at'),
+            output_field=DurationField()
+        )
+    ).aggregate(avg_turnaround=Avg('turnaround'))
+
+    avg = completed_orders['avg_turnaround']
+
+    if avg is None:
+        return Response({
+            'avg_turnaround_days': None,
+            'avg_turnaround_hours': None,
+            'completed_order_count': 0,
+            'message': 'No completed orders yet'
+        })
+
+    total_seconds      = avg.total_seconds()
+    avg_days           = round(total_seconds / 86400, 1)
+    avg_hours          = round(total_seconds / 3600, 1)
+    completed_count    = Order.objects.filter(
+        status=Order.Status.COMPLETED,
+        completed_at__isnull=False
+    ).count()
+
+    return Response({
+        'avg_turnaround_days':  avg_days,
+        'avg_turnaround_hours': avg_hours,
+        'completed_order_count': completed_count,
+    })
 
 
