@@ -104,8 +104,8 @@ export const useLayoutConfig = ({ orderId, onClose }: UseLayoutConfigProps) => {
                     signature_line: cfg.signature_line ? { ...prev.signature_line, x: cfg.signature_line.x, y: cfg.signature_line.y } : prev.signature_line,
                 }));
 
-                if (layout.background_image) {
-                    setBgImage(`/media/${layout.background_image}`);
+                if (layout.background_image_url) {
+                    setBgImage(layout.background_image_url);
                 }
 
             } catch (err: any) {

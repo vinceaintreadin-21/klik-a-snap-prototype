@@ -8,6 +8,7 @@ interface AnalyticsOverview {
     pending_orders: number
     active_institutions: number 
     active_operators: number
+    avg_turnaround_days: number | null
 }
 
 interface OrdersPerMonth {

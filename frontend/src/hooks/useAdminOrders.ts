@@ -44,7 +44,7 @@ export const useAdminOrders = (filters?: OrderFilters) => {
         }
     }
 
-    useEffect(() => { fetchOrders }, [])
+    useEffect(() => { fetchOrders() }, [JSON.stringify(filters)])
     
     return {
         orders, loading, error, refetch: fetchOrders

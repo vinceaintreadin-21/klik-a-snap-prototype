@@ -18,7 +18,7 @@ export const parseOrderFile = async (file: File): Promise<ParseFileResponse> => 
     const formData = new FormData()
     formData.append('file', file)
 
-    const res = await api.post('/orders/parse/file/', formData, {
+    const res = await api.post('/orders/parse-file/', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }
@@ -32,7 +32,7 @@ export const parseOrderFileWithSheet = async (file: File, sheetName: string): Pr
     formData.append('file', file)
     formData.append('sheet_name', sheetName)
 
-    const res = await api.post('/orders/parse/file/', formData, {
+    const res = await api.post('/orders/parse-file/', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }

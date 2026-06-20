@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   login: (credentials: any) => Promise<void>;
   register: (data: any) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (onLogout?: () => void) => Promise<void>; 
   loading: boolean;
 }
 
@@ -68,8 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+  const logout = async (onLogout?: () => void) => {
     try {
+      onLogout?.()
       const refresh = localStorage.getItem('refresh_token');
       await api.post('/auth/logout/', { refresh });
     } catch (err){
