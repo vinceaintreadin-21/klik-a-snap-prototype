@@ -265,7 +265,7 @@ function CheckIcon({ done, accent }: { done: boolean; accent: string }) {
 }
 
 function PhaseCard({ phase, accent }: {phase: (typeof ROLES)[0]['phases'][0]; accent: string }) {
-  const st = STATUS_CONFIG[phase.status];
+  const st = STATUS_CONFIG[phase.status as keyof typeof STATUS_CONFIG];
   const doneCount = phase.items.filter(i => i.done).length;
   const total = phase.items.length;
 
@@ -320,7 +320,7 @@ function PhaseCard({ phase, accent }: {phase: (typeof ROLES)[0]['phases'][0]; ac
   );
 }
 
-function RoleTab({ role, active, onClick }) {
+function RoleTab({ role, active, onClick }: { role: (typeof ROLES)[0]; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
       display: "flex", alignItems: "center", gap: 8,

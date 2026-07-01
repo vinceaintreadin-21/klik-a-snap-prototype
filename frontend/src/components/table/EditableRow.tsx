@@ -1,6 +1,6 @@
 // frontend/src/components/table/EditableRow.tsx
 
-import React from 'react';
+
 import EditableCell from './EditableCell';
 import type { StudentRow } from '../../hooks/useDataValidation';
 

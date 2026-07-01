@@ -1,6 +1,6 @@
 // frontend/src/components/table/TableFooter.tsx
 
-import React from 'react';
+
 
 interface TableFooterProps {
   currentPage: number;
