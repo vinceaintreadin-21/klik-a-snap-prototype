@@ -16,10 +16,16 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
         )
 
-        UserProfile.objects.create(
+        # 👇 FIX: Safe update/fallback if a signal already built it
+        profile, created = UserProfile.objects.get_or_create(
             user=user,
-            role=UserProfile.Role.OPERATOR
+            defaults={'role': UserProfile.Role.OPERATOR}
         )
+        
+        # If the profile already existed but needs the default role enforced:
+        if not created:
+            profile.role = UserProfile.Role.OPERATOR
+            profile.save()
         
         return user
         
