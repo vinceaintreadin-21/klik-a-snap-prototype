@@ -164,7 +164,7 @@ export default function AdminSidebar() {
           <SupportIcon /> Support
         </button>
         <button
-          onClick={logout}
+          onClick={() => logout()}
           style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
             borderRadius: 8, border: 'none', cursor: 'pointer',

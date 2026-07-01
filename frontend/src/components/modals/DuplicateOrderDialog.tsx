@@ -1,6 +1,3 @@
-// frontend/src/components/modals/DuplicateOrderDialog.tsx
-
-import React from 'react';
 import type { DuplicateOrderInfo } from '../../hooks/useDataValidation';
 
 interface DuplicateOrderDialogProps {

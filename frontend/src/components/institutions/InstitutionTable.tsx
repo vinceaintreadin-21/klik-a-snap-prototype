@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useInstitutions } from "../../hooks/useInstitutions";
 import InstitutionStatusBadge from "./InstitutionStatusBadge";
 
@@ -9,7 +8,7 @@ interface Props {
 }
 
 const InstitutionTable = ({ onSuspend, onActivate, onCreate }: Props) => {
-    const { institutions, loading, error, refetch } = useInstitutions();
+    const { institutions, loading, error } = useInstitutions();
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading institutions...</div>
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>
