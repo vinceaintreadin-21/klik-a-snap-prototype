@@ -47,6 +47,7 @@ DEBUG = os.getenv('DEBUG') == 'True'
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True # Only if you have an SSL certificate
     SECURE_HSTS_SECONDS = 31536000 # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -179,13 +180,13 @@ TEMPLATES = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://klik-a-snap-prototype.vercel.app/"
+    "https://klik-a-snap-prototype.vercel.app"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://klik-a-snap-prototype.vercel.app/"
+    "https://klik-a-snap-prototype.vercel.app"
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
