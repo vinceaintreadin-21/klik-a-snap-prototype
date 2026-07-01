@@ -1,6 +1,6 @@
 // frontend/src/components/table/TableToolbar.tsx
 
-import React from 'react';
+
 
 interface TableToolbarProps {
   totalRows: number;

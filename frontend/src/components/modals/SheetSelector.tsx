@@ -1,6 +1,6 @@
 // frontend/src/components/modals/SheetSelector.tsx
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 interface SheetSelectorProps {
   sheets: string[];

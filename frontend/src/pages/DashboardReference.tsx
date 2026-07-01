@@ -33,14 +33,7 @@ const AI_METRICS: AIMetric[] = [
   { label: "Security Threading", value: 12, subtitle: "", color: "#a855f7" },
 ];
  
-const NAV_ITEMS = [
-  { icon: DashboardIcon, label: "Dashboard", active: true },
-  { icon: IDBuilderIcon, label: "ID Builder", active: false },
-  { icon: BatchIcon, label: "Batch Processing", active: false },
-  { icon: ClientIcon, label: "Client Portal", active: false },
-  { icon: AnalyticsIcon, label: "Analytics", active: false },
-  { icon: UserIcon, label: "User Management", active: false },
-];
+// NAV_ITEMS removed — nav items are built inline in Sidebar component
  
 // ─── Icons ────────────────────────────────────────────────────────────────────
  
