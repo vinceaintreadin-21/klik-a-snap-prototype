@@ -197,6 +197,8 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+DB_SSL_REQUIRED = os.getenv('DB_SSL_REQUIRED') == 'True'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -207,6 +209,7 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            **({'ssl': {'ssl_mode': 'REQUIRED'}} if DB_SSL_REQUIRED else {})
         },
     }
 }
