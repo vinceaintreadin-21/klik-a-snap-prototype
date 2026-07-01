@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libgl1 \
     libglib2.0-0 \
+    libusb-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -19,10 +20,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
+# Collect static files — dummy SECRET_KEY because env vars aren't available at build time
+RUN SECRET_KEY=placeholder-for-build python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
 # Run with Daphne (ASGI) to support both HTTP and WebSocket
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "core.asgi:application"]
+CMD ["sh", "-c", "python manage.py migrate && daphne -b 0.0.0.0 -p 8000 core.asgi:application"]
