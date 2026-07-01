@@ -246,7 +246,7 @@ const STATUS_CONFIG = {
   future: { label: "Future", color: "#6b7280", bg: "rgba(107,114,128,0.1)", border: "rgba(107,114,128,0.2)" },
 };
 
-function CheckIcon({ done, accent }) {
+function CheckIcon({ done, accent }: { done: boolean; accent: string }) {
   return (
     <div style={{
       width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 1,
@@ -264,7 +264,7 @@ function CheckIcon({ done, accent }) {
   );
 }
 
-function PhaseCard({ phase, accent }) {
+function PhaseCard({ phase, accent }: {phase: (typeof ROLES)[0]['phases'][0]; accent: string }) {
   const st = STATUS_CONFIG[phase.status];
   const doneCount = phase.items.filter(i => i.done).length;
   const total = phase.items.length;
@@ -306,7 +306,7 @@ function PhaseCard({ phase, accent }) {
 
       {/* Items */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {phase.items.map(item => (
+        {phase.items.map((item: { name: string; desc: string; done: boolean }) => (
           <div key={item.name} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <CheckIcon done={item.done} accent={accent} />
             <div>
@@ -345,7 +345,7 @@ function RoleTab({ role, active, onClick }) {
   );
 }
 
-function ProgressSummary({ role }) {
+function ProgressSummary({ role }: { role: (typeof ROLES)[0] }) {
   const allItems = role.phases.flatMap(p => p.items);
   const done = allItems.filter(i => i.done).length;
   const total = allItems.length;
@@ -411,6 +411,8 @@ function Legend() {
 export default function KlikASnapRoadmap() {
   const [activeRole, setActiveRole] = useState("admin");
   const role = ROLES.find(r => r.id === activeRole);
+
+  if (!role) return null;
 
   return (
     <>
