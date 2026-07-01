@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token && !user) {
         try {
           // Verify token and get fresh user data (is_staff, etc.)
-          const res = await api.get('/auth/me/');
+          const res = await api.get('auth/me/');
           setUser(res.data);
         } catch (err) {
           console.error("Session expired or invalid token");
@@ -50,20 +50,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('access_token', access);
     localStorage.setItem('refresh_token', refresh);
     
-    const profile = await api.get('/auth/me/');
+    const profile = await api.get('auth/me/');
     setUser(profile.data);
   };
 
   // 3. Register Logic (Now auto-logs in based on your refined backend)
   const register = async (data: any) => {
-    const res = await api.post('/auth/register/', data);
+    const res = await api.post('auth/register/', data);
 
     if (res.data.tokens) {
       localStorage.setItem('access_token', res.data.tokens.access);
       localStorage.setItem('refresh_token', res.data.tokens.refresh);
 
       // Fetch full profile instead of using register response data
-      const profile = await api.get('/auth/me/');
+      const profile = await api.get('auth/me/');
       setUser(profile.data);
     }
   };
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       onLogout?.()
       const refresh = localStorage.getItem('refresh_token');
-      await api.post('/auth/logout/', { refresh });
+      await api.post('auth/logout/', { refresh });
     } catch (err){
       console.error('Logout error', err)
     } finally {

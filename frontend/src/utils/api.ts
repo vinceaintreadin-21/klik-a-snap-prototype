@@ -5,10 +5,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const isAuthEndpoint = config.url?.includes('/auth/login/') || 
-                         config.url?.includes('/auth/register/') ||
-                         config.url?.includes('/auth/logout/') ||
-                         config.url?.includes('/auth/refresh/');
+  const isAuthEndpoint = config.url?.includes('auth/login/') || 
+                         config.url?.includes('auth/register/') ||
+                         config.url?.includes('auth/logout/') ||
+                         config.url?.includes('auth/refresh/');
   
   if (!isAuthEndpoint) {  
     const token = localStorage.getItem('access_token');
@@ -27,10 +27,10 @@ api.interceptors.response.use(
     // Stop immediately if it's an auth endpoint or already retried
     if (
       originalRequest._retry ||
-      originalRequest.url?.includes('/auth/login/') ||
-      originalRequest.url?.includes('/auth/register/') ||
-      originalRequest.url?.includes('/auth/logout/') ||
-      originalRequest.url?.includes('/auth/refresh/')  // <-- critical: breaks the loop
+      originalRequest.url?.includes('auth/login/') ||
+      originalRequest.url?.includes('auth/register/') ||
+      originalRequest.url?.includes('auth/logout/') ||
+      originalRequest.url?.includes('auth/refresh/')  // <-- critical: breaks the loop
     ) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -45,7 +45,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) throw new Error('No refresh token');
 
-        const res = await api.post('/auth/refresh/', { refresh: refreshToken });
+        const res = await api.post('api/auth/refresh/', { refresh: refreshToken });
         const { access } = res.data;
         localStorage.setItem('access_token', access);
         originalRequest.headers.Authorization = `Bearer ${access}`;
