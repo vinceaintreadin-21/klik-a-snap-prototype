@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { useProcessingLogs } from "../../hooks/useLogs";
 
 const ProcessingLogs = () => {
-    const [filters, setFilters] = useState({})
-    const { data, loading, error } = useProcessingLogs(filters)
+    const { data, loading, error } = useProcessingLogs({})
 
     if (loading) return <p className="text-sm text-gray-500">Loading processing logs...</p>
     if (error) return <p className="text-sm text-red-500">{error}</p>

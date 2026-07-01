@@ -1,7 +1,3 @@
-// frontend/src/components/modals/ModalFooter.tsx
-
-import React from 'react';
-
 interface ModalFooterProps {
   totalRows: number;
   errorRows: number;

@@ -147,6 +147,11 @@ const InstitutionProfileModal = ({ onClose }: Props) => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-black text-gray-900">My Institution Profile</h2>
+          {profile && (
+            <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">
+              Status: {profile.status}
+            </span>
+          )}
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">✕</button>
         </div>
 

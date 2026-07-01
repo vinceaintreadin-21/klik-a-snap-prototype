@@ -1,6 +1,4 @@
-// frontend/src/components/modals/ManualEntryModal.tsx
-
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useDataValidation } from '../../hooks/useDataValidation';
 import EditableDataTable from '../table/EditableDataTable';

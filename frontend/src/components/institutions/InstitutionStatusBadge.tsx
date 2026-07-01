@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 interface Props {
     status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
 }

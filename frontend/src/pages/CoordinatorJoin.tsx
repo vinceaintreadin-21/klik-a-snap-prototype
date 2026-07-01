@@ -5,7 +5,6 @@ import toast from 'react-hot-toast';
 
 const CoordinatorJoin = () => {
   const { token }    = useParams<{ token: string }>();
-  const navigate = useNavigate();
 
   const [invite,     setInvite]     = useState<{ name: string; institution_name: string; email: string } | null>(null);
   const [invalid,    setInvalid]    = useState('');

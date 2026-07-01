@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useCreateInstitution, useInstitutions } from "../../hooks/useInstitutions";
+import { useState} from "react";
+import { useCreateInstitution } from "../../hooks/useInstitutions";
 
 interface Props {
     onClose: () => void 

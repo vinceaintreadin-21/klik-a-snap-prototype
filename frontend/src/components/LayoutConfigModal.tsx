@@ -1,4 +1,3 @@
-import React from 'react';
 import Draggable from 'react-draggable';
 import { useLayoutConfig } from '../hooks/useLayoutConfig';
 import type { ElementKey } from '../hooks/useLayoutConfig';
@@ -179,7 +178,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
                   scale={zoom}
                   position={{ x: elements[key].x, y: elements[key].y }}
                   onStart={() => setSelectedElement(key)}
-                  onStop={(e, d) => handleElementDrag(key, d.x, d.y)}
+                  onStop={(_, d) => handleElementDrag(key, d.x, d.y)}
                 >
                   <div
                     ref={refs[key]}

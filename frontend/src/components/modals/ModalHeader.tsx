@@ -1,7 +1,3 @@
-// frontend/src/components/modals/ModalHeader.tsx
-
-import React from 'react';
-
 interface ModalHeaderProps {
   fileName: string;
   totalRows: number;
