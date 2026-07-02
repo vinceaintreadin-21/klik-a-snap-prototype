@@ -10,19 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
+import dj_database_url
 from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
-from django.db.backends.base.base import BaseDatabaseWrapper
-from django.db.backends.mysql.features import DatabaseFeatures
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
 load_dotenv()
-
-BaseDatabaseWrapper.check_database_version_supported = lambda self: None #type: ignore
-DatabaseFeatures.can_return_columns_from_insert = property(lambda self: False) # type: ignore
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -197,22 +193,35 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DB_SSL_REQUIRED = os.getenv('DB_SSL_REQUIRED') == 'True'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME'),          
-        'USER': os.getenv('DB_USER'),           
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            **({'ssl': {'ssl_mode': 'REQUIRED'}} if DB_SSL_REQUIRED else {})
-        },
+
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    #for Production via Supabase
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
+else:
+    DB_SSL_REQUIRED = os.getenv('DB_SSL_REQUIRED') == 'True'
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME'),          
+            'USER': os.getenv('DB_USER'),           
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                **({'ssl': {'ssl_mode': 'REQUIRED'}} if DB_SSL_REQUIRED else {})
+            },
+        }
+    }
 
 
 # Password validation
