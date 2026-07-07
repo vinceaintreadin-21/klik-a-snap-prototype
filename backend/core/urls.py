@@ -18,11 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+from django.utils import timezone
+
+def health_check(request):
+    return JsonResponse({'status': 'ok', 'timestamp': timezone.now().isoformat()})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.routes.urls')),
-    
+    path('health/', health_check, name='health-check'),
 ]
 
 # Serve media files in development
