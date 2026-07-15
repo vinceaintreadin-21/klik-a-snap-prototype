@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from api.views.order_views import order_controller, start_processing, complete_order, download_qr_codes, get_student_qr, upload_photos, parse_order_file, update_order, check_duplicate_order, download_id_cards
+from api.views.order_views import order_controller, start_processing, complete_order, download_qr_codes, get_student_qr, upload_photos, parse_order_file, update_order, check_duplicate_order, download_id_cards, generate_test_photos
 
 from api.views.student_views import (
     student_detail_controller, search_students, 
@@ -130,4 +130,6 @@ urlpatterns = [
     
     path('coordinator/orders/<int:order_id>/students/', coordinator_student_list, name='coordinator-student-list'),
     path('coordinator/students/<int:student_id>/mark-photographed/', mark_photographed, name='mark-photographed'),
-]   
+
+    path('orders/<int:order_id>/generate-test-photos/', generate_test_photos, name='generate-test-photos'),
+]       
