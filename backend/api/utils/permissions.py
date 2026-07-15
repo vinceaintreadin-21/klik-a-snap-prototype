@@ -40,7 +40,17 @@ def check_order_access(request, order_id):
             return None, Response({'error': 'Access denied'}, status=403)
 
     elif role in (UserProfile.Role.INSTITUTION, UserProfile.Role.COORDINATOR):
-        if order.institution != profile.institution:
+        # INSTITUTION users are linked via Institution.user (OneToOneField on User)
+        # COORDINATOR users are linked via UserProfile.institution (ForeignKey)
+        if role == UserProfile.Role.INSTITUTION:
+            try:
+                institution = request.user.institution
+            except Exception:
+                return None, Response({'error': 'No institution linked to this account'}, status=403)
+        else:
+            institution = profile.institution
+
+        if not institution or order.institution != institution:
             return None, Response({'error': 'Access denied'}, status=403)
 
     else:
