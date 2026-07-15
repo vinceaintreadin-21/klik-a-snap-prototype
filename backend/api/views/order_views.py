@@ -573,3 +573,87 @@ def download_id_cards(request, order_id):
     response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
     response['Content-Disposition'] = f'attachment; filename="id_cards_order_{order_id}.zip"'
     return response
+
+
+#FOR TESTING ONLY
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_test_photos(request, order_id):
+    """
+    Testing utility: overlays each student's QR code onto a uploaded photo,
+    randomizes position slightly under the neck area, zips all output images.
+    """
+    import numpy as np
+    from PIL import Image
+    import io
+    import requests as req
+
+    try: 
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=404)
+    
+    students = Student.objects.filter(
+        order=order
+    ).exclude(qr_code_url__isnull=True).exclude(qr_code_url='')
+
+    if not students.exists():
+        return Response({'error': 'No students with QR codes found for this order'}, status=404)
+    
+    photo_file = request.FILES.get('photo')
+    if not photo_file:
+        return Response({'error': 'A base photo file is required'}, status=400)
+    
+    base_photo = Image.open(photo_file).convert('RGBA')
+    photo_w, photo_h = base_photo.size
+
+    QR_SIZE = min(photo_w, photo_h) // 4
+
+    NECK_Y_MIN = int(photo_h * 0.40)
+    NECK_Y_MAX = int(photo_h * 0.55)
+
+    zip_buffer = BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for student in students:
+            try:
+                qr_response = req.get(student.qr_code_url, timeout=10)
+                if qr_response.status_code != 200:
+                    continue
+                
+                qr_img = Image.open(BytesIO(qr_response.content)).convert('RGBA')
+                qr_img = qr_img.resize((QR_SIZE, QR_SIZE), Image.LANCZOS)
+
+                photo_copy = base_photo.copy()
+                
+                center_x = (photo_w - QR_SIZE) // 2
+                x_offset = int(photo_w * 0.10)
+                paste_x = center_x + random.randint(-x_offset, x_offset)
+                paste_x = max(0, min(paste_x, photo_w - QR_SIZE))
+
+                paste_y = random.randint(NECK_Y_MIN, NECK_Y_MAX - QR_SIZE)
+                paste_y = max(0, min(paste_y, photo_h - QR_SIZE))
+
+                photo_copy.paste(qr_img, (paste_x, paste_y), qr_img)
+
+                out_buffer = BytesIO()
+                photo_copy.convert('RGB').save(out_buffer, format='JPEG', quality=95)
+                out_buffer.seek(0)
+
+                clean_name = student.full_name.replace(' ', '_')
+                filename = f"{student.student_id}_{clean_name}.jpg"
+                zf.writestr(filename, out_buffer.getvalue())
+
+            except Exception as e:
+                print(f"Error generating test photo for {student.full_name}: {e}")
+                continue
+    
+    zip_buffer.seek(0)
+    content = zip_buffer.getvalue()
+    
+    if not content or len(content) < 100:
+        return Response({'error': 'Failed to generate test photos'}, status=500)
+
+    response = HttpResponse(content, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="test_photos_order_{order_id}.zip"'
+    return response
