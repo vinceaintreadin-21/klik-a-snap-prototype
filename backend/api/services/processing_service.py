@@ -34,7 +34,14 @@ def start_processing_queue(order_id):
                     max_results=500,
                     next_cursor=next_cursor
                 )
-                image_files.extend([r['secure_url'] for r in result.get('resources', [])])
+                # Exclude manually-linked photos (uploaded to the /manual/ subfolder).
+                # Those are processed via original_photo_url on the student record,
+                # not as part of the bulk Cloudinary scan. Including them causes
+                # students to be processed twice, inflating the count.
+                image_files.extend([
+                    r['secure_url'] for r in result.get('resources', [])
+                    if '/manual/' not in r.get('public_id', '')
+                ])
                 next_cursor = result.get('next_cursor')
                 if not next_cursor:
                     break
@@ -51,7 +58,21 @@ def start_processing_queue(order_id):
             Order.objects.filter(id=order_id).update(status="FAILED")
             broadcast_status(order_id, "FAILED", {"error": "No photos found"})
             return
-        
+
+        # Also process students who were manually linked (original_photo_url set, still PENDING).
+        # These were uploaded to /manual/ and excluded from the Cloudinary scan above.
+        manually_linked_urls = list(
+            Student.objects.filter(
+                order_id=order_id,
+                photo_status=Student.PhotoStatus.PENDING,
+                original_photo_url__isnull=False
+            ).exclude(original_photo_url='')
+            .values_list('original_photo_url', flat=True)
+        )
+        if manually_linked_urls:
+            print(f"Found {len(manually_linked_urls)} manually linked photo(s) to process")
+            image_files.extend(manually_linked_urls)
+
         total = len(image_files)
         processed = 0
         manual_review = 0
