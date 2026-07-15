@@ -107,8 +107,9 @@ def manual_link_photo(request, order_id):
             unique_filename=True
         )
 
-
+        student.original_photo_url = upload_result['secure_url']  # persist so it won't show as "no photo"
         student.photo_status = Student.PhotoStatus.PENDING  # Re-queue for processing
+        student.fail_reason = ''
         student.save()
 
         return Response({

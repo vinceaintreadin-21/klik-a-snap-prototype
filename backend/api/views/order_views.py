@@ -104,7 +104,16 @@ def _list_orders(request):
                 total_students=Count('students')
             ).filter(assigned_operator=request.user)
 
-        elif profile.role in (UserProfile.Role.INSTITUTION, UserProfile.Role.COORDINATOR):
+        elif profile.role == UserProfile.Role.INSTITUTION:
+            try:
+                institution = request.user.institution
+            except Exception:
+                return Response({'error': 'No institution linked to this account.'}, status=403)
+            orders = Order.objects.annotate(
+                total_students=Count('students')
+            ).filter(institution=institution)
+
+        elif profile.role == UserProfile.Role.COORDINATOR:
             if not profile.institution:
                 return Response({'error': 'No institution linked to this account.'}, status=403)
             orders = Order.objects.annotate(
@@ -580,37 +589,44 @@ def download_id_cards(request, order_id):
 @permission_classes([IsAuthenticated])
 def generate_test_photos(request, order_id):
     """
-    Testing utility: overlays each student's QR code onto a uploaded photo,
-    randomizes position slightly under the neck area, zips all output images.
+    Testing utility: overlays each student's QR code onto a randomly chosen
+    uploaded photo, randomizes position slightly under the neck area, zips
+    all output images.
     """
     import numpy as np
     from PIL import Image
     import io
     import requests as req
+    import random
 
-    try: 
+    try:
         order = Order.objects.get(id=order_id)
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
-    
+
     students = Student.objects.filter(
         order=order
     ).exclude(qr_code_url__isnull=True).exclude(qr_code_url='')
 
     if not students.exists():
         return Response({'error': 'No students with QR codes found for this order'}, status=404)
-    
-    photo_file = request.FILES.get('photo')
-    if not photo_file:
-        return Response({'error': 'A base photo file is required'}, status=400)
-    
-    base_photo = Image.open(photo_file).convert('RGBA')
-    photo_w, photo_h = base_photo.size
 
-    QR_SIZE = min(photo_w, photo_h) // 4
+    photo_files = request.FILES.getlist('photos')
+    if not photo_files:
+        return Response({'error': 'At least one base photo file is required'}, status=400)
 
-    NECK_Y_MIN = int(photo_h * 0.40)
-    NECK_Y_MAX = int(photo_h * 0.55)
+    # Decode all uploaded photos once up front
+    base_photos = []
+    for pf in photo_files:
+        try:
+            img = Image.open(pf).convert('RGBA')
+            base_photos.append(img)
+        except Exception as e:
+            print(f"Skipping unreadable photo {getattr(pf, 'name', '?')}: {e}")
+            continue
+
+    if not base_photos:
+        return Response({'error': 'None of the uploaded photos could be read'}, status=400)
 
     zip_buffer = BytesIO()
 
@@ -620,18 +636,29 @@ def generate_test_photos(request, order_id):
                 qr_response = req.get(student.qr_code_url, timeout=10)
                 if qr_response.status_code != 200:
                     continue
-                
-                qr_img = Image.open(BytesIO(qr_response.content)).convert('RGBA')
-                qr_img = qr_img.resize((QR_SIZE, QR_SIZE), Image.LANCZOS)
+
+                qr_img_src = Image.open(BytesIO(qr_response.content)).convert('RGBA')
+
+                # Pick a random base photo for this student
+                base_photo = random.choice(base_photos)
+                photo_w, photo_h = base_photo.size
+
+                QR_SIZE = min(photo_w, photo_h) // 4
+                NECK_Y_MIN = int(photo_h * 0.40)
+                NECK_Y_MAX = int(photo_h * 0.55)
+
+                qr_img = qr_img_src.resize((QR_SIZE, QR_SIZE), Image.LANCZOS)
 
                 photo_copy = base_photo.copy()
-                
+
                 center_x = (photo_w - QR_SIZE) // 2
                 x_offset = int(photo_w * 0.10)
                 paste_x = center_x + random.randint(-x_offset, x_offset)
                 paste_x = max(0, min(paste_x, photo_w - QR_SIZE))
 
-                paste_y = random.randint(NECK_Y_MIN, NECK_Y_MAX - QR_SIZE)
+                y_low = NECK_Y_MIN
+                y_high = max(NECK_Y_MIN, NECK_Y_MAX - QR_SIZE)
+                paste_y = random.randint(y_low, y_high) if y_high > y_low else y_low
                 paste_y = max(0, min(paste_y, photo_h - QR_SIZE))
 
                 photo_copy.paste(qr_img, (paste_x, paste_y), qr_img)
@@ -647,10 +674,10 @@ def generate_test_photos(request, order_id):
             except Exception as e:
                 print(f"Error generating test photo for {student.full_name}: {e}")
                 continue
-    
+
     zip_buffer.seek(0)
     content = zip_buffer.getvalue()
-    
+
     if not content or len(content) < 100:
         return Response({'error': 'Failed to generate test photos'}, status=500)
 
