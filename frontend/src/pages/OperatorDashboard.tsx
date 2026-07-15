@@ -5,6 +5,7 @@ import api from '../utils/api';
 import LayoutConfigModal from '../components/LayoutConfigModal';
 import UploadPhotosModal from '../components/UploadPhotosModal';
 import ManualReviewQueueModal from '../components/ManualReviewQueueModal';
+import GenerateTestPhotosButton from '../components/GenerateTestPhotosButton';
 
 const OperatorDashboard = () => {
   const { user, logout } = useAuth();
@@ -150,12 +151,20 @@ const OperatorDashboard = () => {
                         </td>
                         <td className="px-6 py-4 text-right space-x-2">
                           {['PENDING', 'FAILED', 'PROOFING'].includes(order.status) && (
-                            <button
-                              onClick={() => setUploadModalOrder(order)}
-                              className="px-4 py-2 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-100 transition-all"
-                            >
-                              Upload Photos
-                            </button>
+                            <>
+                                <GenerateTestPhotosButton
+                                  orderId={order.id}
+                                  orderName={`${order.school_name}_${order.batch_name}`}
+                                />
+                              <button
+                                onClick={() => setUploadModalOrder(order)}
+                                className="px-4 py-2 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-100 transition-all"
+                              >
+                                Upload Photos
+                              </button>
+                            </>
+                            
+
                           )}
 
                           {p.manual_review > 0 && (

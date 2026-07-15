@@ -7,17 +7,35 @@ interface Props {
     onSuccess: () => void
 }
 
+const FAIL_REASON_LABELS: Record<string, string> = {
+    no_qr: 'No QR code detected',
+    qr_not_found: 'QR not matched to any student',
+    no_face: 'No face detected',
+    no_layout: 'No layout configured',
+    error: 'Processing error',
+    revision_requested: 'Revision requested',
+}
+
 const ManualReviewQueueModal = ({ order, onClose, onSuccess }: Props) => {
     const { students, loading, refetch } = useStudentsForOrder(order.id)
     const { linkPhoto, loading: linking, error: linkError } = useManualLinkPhoto()
     const [linkingId, setLinkingId] = useState<number | null>(null)
+    const [linkedIds, setLinkedIds] = useState<Set<number>>(new Set())
 
-    const flagged = students.filter(s => s.photo_status === 'MANUAL_REVIEW')
+    // MANUAL_REVIEW = AI tried but failed; PENDING with no original_photo_url = no photo submitted at all
+    const flagged = students.filter(
+        s => !linkedIds.has(s.id) && (
+            s.photo_status === 'MANUAL_REVIEW' ||
+            (s.photo_status === 'PENDING' && !s.original_photo_url)
+        )
+    )
 
     const handleLink = async (studentDbId: number, file: File) => {
         const result = await linkPhoto(order.id, studentDbId, file)
         if (result) {
             setLinkingId(null)
+            // Optimistically remove from list immediately for instant feedback
+            setLinkedIds(prev => new Set(prev).add(studentDbId))
             refetch()
             onSuccess()
         }
@@ -40,36 +58,44 @@ const ManualReviewQueueModal = ({ order, onClose, onSuccess }: Props) => {
                     ) : flagged.length === 0 ? (
                         <p className="text-sm text-gray-400">No students need review.</p>
                     ) : (
-                        flagged.map(student => (
-                            <div key={student.id} className="border border-red-100 bg-red-50/50 rounded-lg px-4 py-3">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-800">{student.full_name}</p>
-                                        <p className="text-xs text-gray-400">{student.student_id} • {student.grade_level}</p>
+                        flagged.map(student => {
+                            const isNoPhoto = student.photo_status === 'PENDING' && !student.original_photo_url
+                            const failLabel = isNoPhoto
+                                ? 'No photo submitted'
+                                : (FAIL_REASON_LABELS[student.fail_reason] ?? 'Failed — reason unknown')
+
+                            return (
+                                <div key={student.id} className="border border-red-100 bg-red-50/50 rounded-lg px-4 py-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-800">{student.full_name}</p>
+                                            <p className="text-xs text-gray-400">{student.student_id} • {student.grade_level}</p>
+                                            <p className="text-xs text-red-400 mt-0.5">{failLabel}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setLinkingId(linkingId === student.id ? null : student.id)}
+                                            className="text-xs text-indigo-600 hover:underline"
+                                        >
+                                            Link Photo
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => setLinkingId(linkingId === student.id ? null : student.id)}
-                                        className="text-xs text-indigo-600 hover:underline"
-                                    >
-                                        Link Photo
-                                    </button>
+                                    {linkingId === student.id && (
+                                        <div className="mt-2">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="text-xs"
+                                                onChange={async (e) => {
+                                                    if (e.target.files?.[0]) await handleLink(student.id, e.target.files[0])
+                                                }}
+                                            />
+                                            {linking && <p className="text-xs text-gray-400 mt-1">Uploading...</p>}
+                                            {linkError && <p className="text-xs text-red-500 mt-1">{linkError}</p>}
+                                        </div>
+                                    )}
                                 </div>
-                                {linkingId === student.id && (
-                                    <div className="mt-2">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="text-xs"
-                                            onChange={async (e) => {
-                                                if (e.target.files?.[0]) await handleLink(student.id, e.target.files[0])
-                                            }}
-                                        />
-                                        {linking && <p className="text-xs text-gray-400 mt-1">Uploading...</p>}
-                                        {linkError && <p className="text-xs text-red-500 mt-1">{linkError}</p>}
-                                    </div>
-                                )}
-                            </div>
-                        ))
+                            )
+                        })
                     )}
                 </div>
 
