@@ -12,11 +12,11 @@ import TableToolbar  from './TableToolbar';
 import EditableRow   from './EditableRow';
 import TableFooter   from './TableFooter';
 
-const COLUMNS = [
-  { key: 'name'       as const, label: 'Name *'     },
-  { key: 'student_id' as const, label: 'Student ID *'},
-  { key: 'grade'      as const, label: 'Grade'       },
-  { key: 'section'    as const, label: 'Section'     },
+const CORE_COLUMNS = [
+  { key: 'name'       as const, label: 'Name *'      },
+  { key: 'student_id' as const, label: 'Student ID *' },
+  { key: 'grade'      as const, label: 'Grade'        },
+  { key: 'section'    as const, label: 'Section'      },
 ];
 
 interface EditableDataTableProps {
@@ -34,6 +34,19 @@ const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) =>
   const pageSizeConfig = getPageSizeConfig(rows.length);
   const [pageSize, setPageSize] = useState(pageSizeConfig.default);
 
+  // ✅ derive extra columns from first row's extra_fields
+  const extraColumnKeys = rows.length > 0
+    ? Object.keys(rows[0].extra_fields ?? {})
+    : [];
+
+  const COLUMNS = [
+    ...CORE_COLUMNS,
+    ...extraColumnKeys.map(key => ({
+      key: key as any,
+      label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    }))
+  ];
+
   // Bubble changes upward
   useEffect(() => {
     onChange(rows);
@@ -45,8 +58,8 @@ const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) =>
       setPageSize(getPageSizeConfig(initialRows.length).default);
       setCurrentPage(1);
       setUndoRedo(initialUndoRedoState<StudentRow>());
-      }
-    }, [initialRows]);
+    }
+  }, [initialRows]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   const handleKeyDown = useCallback(
@@ -87,11 +100,18 @@ const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) =>
 
   const handleCellSave = (rowNumber: number, field: string, value: string) => {
     const prev = rows;
-    const updated = rows.map((r) =>
-      r.rowNumber === rowNumber ? { ...r, [field]: value } : r
-    );
-    const next = revalidateAll(updated);
-    applyChange(prev, next, 'EDIT_CELL');
+    const updated = rows.map((r) => {
+      if (r.rowNumber !== rowNumber) return r
+      // ✅ core fields update directly, extra fields update inside extra_fields
+      const isCoreField = CORE_COLUMNS.some(c => c.key === field)
+      if (isCoreField) {
+        return { ...r, [field]: value }
+      } else {
+        return { ...r, extra_fields: { ...r.extra_fields, [field]: value } }
+      }
+    })
+    const next = revalidateAll(updated)
+    applyChange(prev, next, 'EDIT_CELL')
   };
 
   // ── Row selection ──────────────────────────────────────────────────────────
@@ -112,14 +132,13 @@ const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) =>
     const prev = rows;
     const newRow: StudentRow = {
       name: '', student_id: '', grade: '', section: '',
+      extra_fields: {},  // ✅
       rowNumber:  rows.length + 1,
       errors:     [],
       isSelected: true,
     };
     const updated = revalidateAll([...rows, newRow]);
     applyChange(prev, updated, 'ADD_ROW');
-
-    // Jump to last page to show the new row
     const newTotal = updated.length;
     setCurrentPage(Math.ceil(newTotal / pageSize));
   };
@@ -129,7 +148,6 @@ const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) =>
   const handleDeleteSelected = () => {
     const prev    = rows;
     const kept    = rows.filter((r) => !r.isSelected);
-    // Re-number after delete
     const renumbered = kept.map((r, i) => ({ ...r, rowNumber: i + 1 }));
     const next    = revalidateAll(renumbered);
     applyChange(prev, next, 'DELETE_ROWS');
@@ -139,7 +157,6 @@ const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) =>
   // ── Tab / Enter navigation ─────────────────────────────────────────────────
 
   const handleTabNext = (rowNumber: number, colIndex: number) => {
-    // Move to next cell; if last column, move to first cell of next row
     const isLastCol = colIndex === COLUMNS.length - 1;
     if (isLastCol) {
       const nextRow = rows.find((r) => r.rowNumber === rowNumber + 1);
@@ -223,18 +240,25 @@ const EditableDataTable = ({ initialRows, onChange }: EditableDataTableProps) =>
                 </td>
               </tr>
             ) : (
-              paginated.map((row) => (
-                <EditableRow
-                  key={row.rowNumber}
-                  row={row}
-                  isSelected={row.isSelected}
-                  columns={COLUMNS}
-                  onCellSave={handleCellSave}
-                  onSelect={handleSelect}
-                  onTabNext={handleTabNext}
-                  onEnterNext={handleEnterNext}
-                />
-              ))
+              paginated.map((row) => {
+                // ✅ flatten extra_fields to top level for EditableRow rendering
+                const flatRow = {
+                  ...row,
+                  ...(row.extra_fields ?? {}),
+                }
+                return (
+                  <EditableRow
+                    key={row.rowNumber}
+                    row={flatRow}
+                    isSelected={row.isSelected}
+                    columns={COLUMNS}
+                    onCellSave={handleCellSave}
+                    onSelect={handleSelect}
+                    onTabNext={handleTabNext}
+                    onEnterNext={handleEnterNext}
+                  />
+                )
+              })
             )}
           </tbody>
         </table>
