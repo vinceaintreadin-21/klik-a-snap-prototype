@@ -12,6 +12,7 @@ export interface StudentForOrder {
     fail_reason: string
     original_photo_url?: string | null
     photo?: string | null
+    extra_data?: Record<string, string | number | null>
 }
 
 export interface BulkUploadResults {
