@@ -180,7 +180,7 @@ const DataCorrectionModal = ({
         />
 
         {/* Body */}
-        <div className="flex-1 overflow-hidden p-6">
+        <div className="flex-1 overflow-auto p-6 min-h-0">
           {modalState === 'SHEET_SELECT' ? (
             <SheetSelector
               sheets={sheets}

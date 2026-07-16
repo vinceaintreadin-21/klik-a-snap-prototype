@@ -151,6 +151,7 @@ export const useDataValidation = () => {
         student_id: r.student_id.trim(),
         grade: r.grade.trim(),
         section: r.section?.trim() ?? '',
+        extra_fields: r.extra_fields ?? {},
       }));
 
       // ── Step 1: Check for duplicate order ─────────────────────────────────
@@ -205,6 +206,7 @@ export const useDataValidation = () => {
         student_id: r.student_id.trim(),
         grade: r.grade.trim(),
         section: r.section?.trim() ?? '',
+        extra_fields: r.extra_fields ?? {},
       }));
 
       setIsSubmitting(true);

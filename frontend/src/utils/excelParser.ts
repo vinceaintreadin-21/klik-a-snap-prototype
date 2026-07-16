@@ -5,6 +5,7 @@ export interface ParsedStudent {
     student_id: string;
     grade: string;
     section: string;
+    extra_fields: Record<string, string>
 }
 
 export interface ParseFileResponse {
