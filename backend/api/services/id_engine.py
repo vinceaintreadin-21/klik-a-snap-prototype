@@ -354,6 +354,16 @@ def _render_id_card(cropped_path, student, layout):
         bc_img = bc_img.resize((f.get('width', 200), f.get('height', 60)))
         card.paste(bc_img, (f['x'], f['y']))
 
+    CORE_FIELDS_KEYS = {
+        'full_name', 'student_id', 'grade_level', 'school_name',
+        'batch_name', 'signature_line', 'qr_code', 'barcode'
+    }
+
+    extra_data = getattr(student, 'extra_data', None) or {}
+    for field_key, value in extra_data.items():
+        if field_key not in CORE_FIELDS_KEYS and field_key in cfg and value:
+            place_text(field_key, str(value))
+            
     out_dir = os.path.join(settings.MEDIA_ROOT, 'final_ids')
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{student.student_id}_id.png")
