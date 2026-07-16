@@ -68,6 +68,12 @@ class Student(models.Model):
         blank=True,
         help_text='Cloudinary URL of the original uploaded photo'
     )
+
+    extra_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional SIS fields"
+    )
     
     is_approved = models.BooleanField(default=False)
     is_walk_in = models.BooleanField(default=False)

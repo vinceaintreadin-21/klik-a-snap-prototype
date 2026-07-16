@@ -285,6 +285,13 @@ def parse_order_file(request):
                     break
             else:
                 result[standard_key] = ''
+            
+            all_known_variants = {v for variants in COLUMN_MAP.values() for v in variants}
+            result['extra_fields'] = {
+                k.strip().lower().replace(' ', '_'): v
+                for l,v in row.items()
+                if k.strip().lower() not in all_know
+             }   
         return result
 
     try:
