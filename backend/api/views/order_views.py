@@ -303,8 +303,8 @@ def parse_order_file(request):
         if not result['name']:
             first = str(row_lower.get('first_name', '') or row_lower.get('first name', '') or '').strip()
             last  = str(row_lower.get('last_name', '')  or row_lower.get('last name', '')  or '').strip()
-        if first or last:
-            result['name'] = f"{first} {last}".strip()
+            if first or last:
+                result['name'] = f"{first} {last}".strip()
             
         all_known_variants = {v for variants in COLUMN_MAP.values() for v in variants}
         all_known_variants.update({'first_name', 'first name', 'last_name', 'last name'})
