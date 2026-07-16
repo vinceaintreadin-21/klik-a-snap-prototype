@@ -17,6 +17,7 @@ const EMPTY_ROW = (): StudentRow => ({
   grade:      '',
   section:    '',
   rowNumber:  1,
+  extra_fields: {},
   errors:     [],
   isSelected: true,
 });
