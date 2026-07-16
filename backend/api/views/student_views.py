@@ -26,7 +26,7 @@ def student_detail_controller(request, order_id):
     students = list(Student.objects.filter(order=order).values(
         'id', 'student_id', 'full_name', 'grade_level',
         'is_approved', 'photo_status', 'is_walk_in', 'processed_photo',
-        'fail_reason', 'original_photo_url'
+        'fail_reason', 'original_photo_url', 'extra_data'
     ))
 
     for s in students:
