@@ -31,9 +31,15 @@ def student_detail_controller(request, order_id):
 
     for s in students:
         if s['processed_photo']:
-            s['processed_photo_url'] = request.build_absolute_uri(
-                settings.MEDIA_URL + s['processed_photo']
-            )
+            # In production, _render_id_card stores a full Cloudinary URL directly.
+            # In development, it stores a relative path under MEDIA_URL.
+            val = s['processed_photo']
+            if val.startswith('http://') or val.startswith('https://'):
+                s['processed_photo_url'] = val
+            else:
+                s['processed_photo_url'] = request.build_absolute_uri(
+                    settings.MEDIA_URL + val
+                )
         else:
             s['processed_photo_url'] = None
 
