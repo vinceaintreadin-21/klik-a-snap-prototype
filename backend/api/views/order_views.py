@@ -269,8 +269,8 @@ def parse_order_file(request):
     sheet_name = request.data.get('sheet_name', None)
 
     COLUMN_MAP = {
-        'name':       ['name', 'full name', 'full_name'],
-        'student_id': ['student_id', 'student id', 'studentid'],
+        'name':       ['name', 'full name', 'full_name', 'fullname'],
+        'student_id': ['student_id', 'student id', 'studentid', 'id_number', 'id number'],
         'grade':      ['grade', 'grade level', 'grade_level'],
         'section':    ['section'],
     }
@@ -278,20 +278,60 @@ def parse_order_file(request):
     def map_row(row: dict) -> dict:
         result = {}
         row_lower = {k.strip().lower(): v for k, v in row.items()}
+
+        INTEGER_FIELDS = {'student_id', 'grade',}
+
         for standard_key, variants in COLUMN_MAP.items():
             for variant in variants:
                 if variant in row_lower:
-                    result[standard_key] = str(row_lower[variant]).strip() if row_lower[variant] else ''
+                    raw_val = row_lower[variant]
+                    if raw_val:
+                        str_val = str(raw_val).strip()
+                        
+                        if standard_key in INTEGER_FIELDS:
+                            try:
+                                str_val = str(int(float(str_val)))
+                            except (ValueError, TypeError):
+                                pass
+                        result[standard_key] = str_val
+                    else:
+                        result[standard_key] = ''
                     break
             else:
                 result[standard_key] = ''
+
+        if not result['name']:
+            first = str(row_lower.get('first_name', '') or row_lower.get('first name', '') or '').strip()
+            last  = str(row_lower.get('last_name', '')  or row_lower.get('last name', '')  or '').strip()
+        if first or last:
+            result['name'] = f"{first} {last}".strip()
             
-            all_known_variants = {v for variants in COLUMN_MAP.values() for v in variants}
-            result['extra_fields'] = {
-                k.strip().lower().replace(' ', '_'): v
-                for l,v in row.items()
-                if k.strip().lower() not in all_know
-             }   
+        all_known_variants = {v for variants in COLUMN_MAP.values() for v in variants}
+        all_known_variants.update({'first_name', 'first name', 'last_name', 'last name'})
+
+        def _to_str(val):
+            if val is None:
+                return ''
+            if isinstance(val, float) and val.is_integer():
+                return str(int(val))
+            
+            if isinstance(val, str):
+                stripped = val.strip()
+                if stripped.endswith('.0'):
+                    try:
+                        return str(int(float(stripped)))
+                    except (ValueError, TypeError):
+                        pass
+                return stripped
+            
+            return str(val).strip()
+
+        result['extra_fields'] = {
+            k.strip().lower().replace(' ', '_'): _to_str(v)
+            for k, v in row.items()
+            if k.strip().lower() not in all_known_variants
+        }   
+        
         return result
 
     try:
@@ -338,13 +378,18 @@ def parse_order_file(request):
             target_sheet = sheet_name if sheet_name in sheet_names else sheet_names[0]
             ws           = wb[target_sheet]
             rows_iter    = ws.iter_rows(values_only=True)
-            headers      = [str(cell).strip() if cell else '' for cell in next(rows_iter)]
+            
+            headers = []
+            for header_row in rows_iter:
+                headers = [str(cell).strip() if cell else '' for cell in header_row]
+                if any(h for h in headers): 
+                    break
 
-            rows = []
+            rows = []        
             for row in rows_iter:
                 raw = {
                     headers[i]: str(row[i]).strip() if row[i] is not None else ''
-                    for i in range(len(headers))
+                    for i in range(min(len(headers), len(row)))
                 }
                 if not any(raw.values()):
                     continue
@@ -381,10 +426,17 @@ def parse_order_file(request):
             if ws.nrows == 0:
                 return Response({'error': 'The selected sheet is empty.'}, status=400)
 
-            headers = [str(ws.cell_value(0, col)).strip() for col in range(ws.ncols)]
+            headers = []
+            header_row_idx = 0
+            for row_idx in range(ws.nrows):
+                candidate = [str(ws.cell_value(row_idx, col)).strip() for col in range(ws.ncols)]
+                if any(candidate):  # ✅ skip blank rows
+                    headers = candidate
+                    header_row_idx = row_idx
+                    break
 
             rows = []
-            for row_idx in range(1, ws.nrows):
+            for row_idx in range(header_row_idx + 1, ws.nrows): 
                 raw = {
                     headers[col]: str(ws.cell_value(row_idx, col)).strip()
                     for col in range(ws.ncols)
