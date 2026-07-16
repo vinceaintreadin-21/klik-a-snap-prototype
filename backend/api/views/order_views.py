@@ -703,8 +703,8 @@ def generate_test_photos(request, order_id):
                 photo_w, photo_h = base_photo.size
 
                 QR_SIZE = min(photo_w, photo_h) // 4
-                NECK_Y_MIN = int(photo_h * 0.40)
-                NECK_Y_MAX = int(photo_h * 0.55)
+                NECK_Y_MIN = int(photo_h * 0.75)
+                NECK_Y_MAX = int(photo_h * 0.90)
 
                 qr_img = qr_img_src.resize((QR_SIZE, QR_SIZE), Image.LANCZOS)
 

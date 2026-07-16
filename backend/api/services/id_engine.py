@@ -68,24 +68,33 @@ def manual_crop_photo(request, order_id, student_id):
     if cropped.size == 0:
         return JsonResponse({'error': 'Calculated crop selection yields an empty image slice matrix.'}, status=400)
 
-    # 5. Write to Disk Layout
-    out_dir = os.path.join(settings.MEDIA_ROOT, 'cropped_faces')
-    os.makedirs(out_dir, exist_ok=True)
-    out_filename = f"manual_crop_{student.student_id}.jpg"
-    out_path = os.path.join(out_dir, out_filename)
-    cv2.imwrite(out_path, cropped)
+    # 5. Write crop to disk (dev) or keep in memory (prod)
+    if not settings.DEBUG:
+        _, buf = cv2.imencode('.jpg', cropped)
+        cropped_input = buf.tobytes()
+    else:
+        out_dir = os.path.join(settings.MEDIA_ROOT, 'cropped_faces')
+        os.makedirs(out_dir, exist_ok=True)
+        out_filename = f"manual_crop_{student.student_id}.jpg"
+        out_path = os.path.join(out_dir, out_filename)
+        cv2.imwrite(out_path, cropped)
+        cropped_input = out_path
 
     # 6. Synthesize Card and Mutate Row Record Flags
     try:
-        output_relative_route = _render_id_card(out_path, student, layout)
-        
-        student.processed_photo = output_relative_route
+        output = _render_id_card(cropped_input, student, layout)
+
+        student.processed_photo = output
         student.photo_status = Student.PhotoStatus.PROCESSED
-        student.fail_reason = '' 
+        student.fail_reason = ''
         student.save()
 
-        processed_photo_url = f"{settings.MEDIA_URL.rstrip('/')}/{output_relative_route.lstrip('/')}"
-        
+        if not settings.DEBUG:
+            # output is already a Cloudinary URL in production
+            processed_photo_url = output
+        else:
+            processed_photo_url = f"{settings.MEDIA_URL.rstrip('/')}/{output.lstrip('/')}"
+
         return JsonResponse({
             'message': 'Manual slice crop synthesis processed successfully.',
             'processed_photo_url': processed_photo_url
@@ -179,11 +188,11 @@ def process_single_photo(image_path, order_id):
 
     # --- Step 5: Save Production Card Layout ---
     try:
-        output_path = _render_id_card(cropped_path, student, layout)
-        
-        student.processed_photo = output_path
+        output = _render_id_card(cropped_path, student, layout)
+
+        student.processed_photo = output
         student.photo_status = Student.PhotoStatus.PROCESSED
-        student.fail_reason = '' 
+        student.fail_reason = ''
         student.save()
         return student, 'processed'
         
@@ -265,17 +274,28 @@ def _crop_face(img, image_path):
         x, y, x2, y2 = int(w * 0.15), int(h * 0.05), int(w * 0.85), int(h * 0.55)
 
     cropped = img[y:y2, x:x2]
-    out_dir = os.path.join(settings.MEDIA_ROOT, 'cropped_faces')
-    os.makedirs(out_dir, exist_ok=True)
-    filename = f"cropped_{os.path.basename(image_path.split('/')[-1].split('?')[0])}"
-    out = os.path.join(out_dir, filename)
-    cv2.imwrite(out, cropped)
+
+    if not settings.DEBUG:
+        # Production: return raw bytes — no disk write needed
+        _, buf = cv2.imencode('.jpg', cropped)
+        return buf.tobytes(), face_detected
+    else:
+        # Development: write to media/cropped_faces/ as before
+        out_dir = os.path.join(settings.MEDIA_ROOT, 'cropped_faces')
+        os.makedirs(out_dir, exist_ok=True)
+        filename = f"cropped_{os.path.basename(image_path.split('/')[-1].split('?')[0])}"
+        out = os.path.join(out_dir, filename)
+        cv2.imwrite(out, cropped)
+        return out, face_detected
+
+
+def _render_id_card(cropped_path_or_bytes, student, layout):
+    """Pillow: compose full ID card layout.
     
-    return out, face_detected
-
-
-def _render_id_card(cropped_path, student, layout):
-    """Pillow: compose full ID card layout"""
+    In production (DEBUG=False), uploads the finished card to Cloudinary and
+    returns the secure URL. In development, saves to media/final_ids/ and
+    returns the relative path — existing behaviour unchanged.
+    """
     order = student.order
 
     response = requests.get(layout.background_image_url, timeout=15)
@@ -285,7 +305,11 @@ def _render_id_card(cropped_path, student, layout):
     draw = ImageDraw.Draw(card)
     cfg = layout.fields_config
 
-    face = Image.open(cropped_path).convert('RGBA')
+    # Accept either a file path (dev) or raw bytes (prod in-memory crop)
+    if isinstance(cropped_path_or_bytes, (bytes, bytearray)):
+        face = Image.open(BytesIO(cropped_path_or_bytes)).convert('RGBA')
+    else:
+        face = Image.open(cropped_path_or_bytes).convert('RGBA')
     face = face.resize((layout.photo_width, layout.photo_height))
     card.paste(face, (layout.photo_x, layout.photo_y), face)
     
@@ -363,12 +387,29 @@ def _render_id_card(cropped_path, student, layout):
     for field_key, value in extra_data.items():
         if field_key not in CORE_FIELDS_KEYS and field_key in cfg and value:
             place_text(field_key, str(value))
-            
-    out_dir = os.path.join(settings.MEDIA_ROOT, 'final_ids')
-    os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"{student.student_id}_id.png")
-    card.save(out_path)
-    return f"final_ids/{student.student_id}_id.png"
+
+    if not settings.DEBUG:
+        # Production: upload to Cloudinary, return secure URL
+        import cloudinary.uploader
+        buf = io.BytesIO()
+        card.convert('RGB').save(buf, format='PNG')
+        buf.seek(0)
+        result = cloudinary.uploader.upload(
+            buf,
+            folder='final_ids',
+            public_id=f"{student.student_id}_id",
+            resource_type='image',
+            format='png',
+            overwrite=True,
+        )
+        return result['secure_url']
+    else:
+        # Development: save to media/final_ids/ as before
+        out_dir = os.path.join(settings.MEDIA_ROOT, 'final_ids')
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = os.path.join(out_dir, f"{student.student_id}_id.png")
+        card.save(out_path)
+        return f"final_ids/{student.student_id}_id.png"
 
 
 def finalize_order_production(order_id):
