@@ -2,6 +2,7 @@ import qrcode
 import uuid
 from io import BytesIO
 import cloudinary.uploader
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.core.files.base import ContentFile
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -48,18 +49,49 @@ def generate_student_qr(student, order_id):
 
     return qr_data
 
-# Generate QR code for multiple students
+def _process_single_student(student, order_id):
+    """Generate QR data, upload to Cloudinary, return update tuple."""
+    qr_data = generate_qr_code_data(order_id, student.student_id)
+    qr_url = upload_qr_to_cloudinary(qr_data, student.id)
+    return student.id, qr_data, qr_url
+
+
+# Generate QR codes for multiple students in parallel
 def bulk_generate_qr_codes(students, order_id):
+    from api.models.students import Student
+
+    student_list = list(students)  # evaluate queryset once
     generated_count = 0
     failed_students = []
+    updates = []
 
-    for student in students:
-        try:
-            generate_student_qr(student, order_id)
-            generated_count += 1
-        except Exception as e:
-            print(f"❌ QR FAILED for {student.student_id}: {e}")
-            failed_students.append({'student_id': student.student_id, 'error': str(e)})
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {
+            executor.submit(_process_single_student, student, order_id): student
+            for student in student_list
+        }
+
+        for future in as_completed(futures):
+            student = futures[future]
+            try:
+                student_id, qr_data, qr_url = future.result()
+                updates.append((student_id, qr_data, qr_url))
+                generated_count += 1
+            except Exception as e:
+                print(f"❌ QR FAILED for {student.student_id}: {e}")
+                failed_students.append({'student_id': student.student_id, 'error': str(e)})
+
+    # Single bulk DB update instead of 400+ individual saves
+    student_map = {s.id: s for s in student_list}
+    students_to_update = []
+    for student_id, qr_data, qr_url in updates:
+        s = student_map[student_id]
+        s.qr_code_data = qr_data
+        s.qr_code_url = qr_url
+        students_to_update.append(s)
+
+    if students_to_update:
+        Student.objects.bulk_update(students_to_update, ['qr_code_data', 'qr_code_url'])
 
     return {
         'generated': generated_count,
