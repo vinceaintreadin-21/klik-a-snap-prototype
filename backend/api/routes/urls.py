@@ -9,7 +9,7 @@ from api.views.student_views import (
     approve_student, request_revision
 )
 from api.views.layout_views import create_layout, get_layout, preview_layout
-from api.views.auth_views import register_user, get_user_profile, login_user, logout_user
+from api.views.auth_views import register_user, get_user_profile, login_user, logout_user, accept_account_invite, validate_account_invite
 from api.views.admin_views import (    
     get_operators, create_operator, operator_detail,
     update_operator, reset_password, delete_operator, get_all_orders,
@@ -132,4 +132,7 @@ urlpatterns = [
     path('coordinator/students/<int:student_id>/mark-photographed/', mark_photographed, name='mark-photographed'),
 
     path('orders/<int:order_id>/generate-test-photos/', generate_test_photos, name='generate-test-photos'),
+
+    path('auth/invite/validate/', validate_account_invite, name='validate-invite'),
+    path('auth/invite/accept/', accept_account_invite, name='accept-invite'),
 ]       
