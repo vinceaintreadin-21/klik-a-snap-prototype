@@ -8,10 +8,10 @@ interface Props {
 
 const CreateInstitutionModal = ({onClose, onSuccess}: Props) => {
     const { createInstitution, loading, error } = useCreateInstitution()
-    const [tempPassword, setTempPassword] = useState<string | null>(null)
     const [form, setForm] = useState({
         name: '', email: '', address: '',
-        contact_person: '', contact_phone: ''
+        contact_person: '', contact_phone: '',
+        order_quota: '', contract_ends_at: ''
     })
 
     const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -25,37 +25,20 @@ const CreateInstitutionModal = ({onClose, onSuccess}: Props) => {
     }
 
     const handleSubmit = async () => {
-        const result = await createInstitution({ ...form, logo: logoFile ?? undefined })
+        const result = await createInstitution({ 
+            ...form, 
+            logo: logoFile ?? undefined,
+            order_quota: form.order_quota ? parseInt(form.order_quota) : null, 
+            contract_ends_at: form.contract_ends_at || null
+        })
 
         if (result) {
-            setTempPassword(result.institution.temp_password)
+           onSuccess()
+           onClose()
         }
     }
 
-    if (tempPassword) {
-        return (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Institution Created</h3>
-                    <p className="text-sm text-gray-500 mb-4">
-                        Save this temporary password - it won't be shown again.
-                    </p>
-                    <div className="bg-gray-100 rounded-lg px-4 py-3 font-mono text-sm text-gray-800 tracking-wider">
-                        {tempPassword}
-                    </div>
-                    <button
-                        onClick={() => {
-                            onSuccess()
-                            onClose()
-                        }}
-                        className="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                    >
-                        Done
-                    </button>
-                </div>
-            </div>
-        )
-    }
+
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -104,6 +87,34 @@ const CreateInstitutionModal = ({onClose, onSuccess}: Props) => {
                             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Order Quota <span className="text-gray-400">(leave blank for unlimited)</span>
+                    </label>
+                    <input
+                        name="order_quota"
+                        type="number"
+                        min="1"
+                        value={form.order_quota}
+                        onChange={handleChange}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. 5"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Contract End Date <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <input
+                        name="contract_ends_at"
+                        type="date"
+                        value={form.contract_ends_at}
+                        onChange={handleChange}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                 </div>
                 
                 {error && <p className="mt-3 text-sm text-red-500">{error}</p>}

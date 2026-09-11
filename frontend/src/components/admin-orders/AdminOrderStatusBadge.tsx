@@ -1,29 +1,25 @@
-interface Config {
-  bg: string; border: string; text: string; dot: string
-}
-
-const statusConfig: Record<string, Config> = {
-  PENDING:    { bg: '#1a1a2e', border: '#6366f1', text: '#818cf8', dot: '#6366f1' },
-  PROCESSING: { bg: '#1a1a2e', border: '#a855f7', text: '#c084fc', dot: '#a855f7' },
-  PROOFING:   { bg: '#1e1a2e', border: '#8b5cf6', text: '#a78bfa', dot: '#8b5cf6' },
-  APPROVED:   { bg: '#0d2218', border: '#22c55e', text: '#4ade80', dot: '#22c55e' },
-  PRINTING:   { bg: '#1f1a0d', border: '#f97316', text: '#fb923c', dot: '#f97316' },
-  COMPLETED:  { bg: '#0d2218', border: '#22c55e', text: '#4ade80', dot: '#22c55e' },
-  CANCELLED:  { bg: '#2d1515', border: '#ef4444', text: '#f87171', dot: '#ef4444' },
+const STATUS_CFG: Record<string, { bg: string; dot: string; text: string }> = {
+  PENDING:    { bg: '#f1f5f9', dot: '#64748b', text: '#475569' },
+  PROCESSING: { bg: '#e0f2fe', dot: '#0369a1', text: '#0369a1' },
+  PROOFING:   { bg: '#fff7ed', dot: '#c2410c', text: '#c2410c' },
+  APPROVED:   { bg: '#dcfce7', dot: '#166534', text: '#166534' },
+  PRINTING:   { bg: '#ede9fe', dot: '#6d28d9', text: '#6d28d9' },
+  COMPLETED:  { bg: '#dcfce7', dot: '#166534', text: '#166534' },
+  CANCELLED:  { bg: '#fee2e2', dot: '#b91c1c', text: '#b91c1c' },
 }
 
 const AdminOrderStatusBadge = ({ status }: { status: string }) => {
-  const cfg = statusConfig[status] ?? { bg: '#1e1e2e', border: '#4b5563', text: '#9ca3af', dot: '#4b5563' }
+  const cfg = STATUS_CFG[status] ?? STATUS_CFG['PENDING']
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      background: cfg.bg, border: `1px solid ${cfg.border}`,
-      borderRadius: 20, padding: '3px 10px', fontSize: 11, color: cfg.text, fontWeight: 600,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, display: 'inline-block' }} />
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold whitespace-nowrap"
+      style={{ background: cfg.bg, color: cfg.text }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: cfg.dot }} />
       {status}
     </span>
   )
 }
 
 export default AdminOrderStatusBadge
+export { STATUS_CFG }
