@@ -6,7 +6,8 @@ from api.views.order_views import order_controller, start_processing, complete_o
 from api.views.student_views import (
     student_detail_controller, search_students, 
     quick_add_student, manual_link_photo, approve_order,
-    approve_student, request_revision
+    approve_student, request_revision, reprocess_student,
+    process_linked_photo
 )
 from api.views.layout_views import create_layout, get_layout, preview_layout
 from api.views.auth_views import register_user, get_user_profile, login_user, logout_user, accept_account_invite, validate_account_invite
@@ -133,6 +134,10 @@ urlpatterns = [
 
     path('orders/<int:order_id>/generate-test-photos/', generate_test_photos, name='generate-test-photos'),
 
-    path('auth/invite/validate/', validate_account_invite, name='validate-invite'),
-    path('auth/invite/accept/', accept_account_invite, name='accept-invite'),
+    path('auth/invite/<uuid:token>/', validate_account_invite, name='validate-account-invite'),
+    path('auth/invite/<uuid:token>/accept/', accept_account_invite, name='accept-account-invite'),
+
+    path('students/<int:student_id>/reprocess/', reprocess_student, name='reprocess-student'),
+
+    path('students/<int:student_id>/process-linked/', process_linked_photo, name='process-linked-photo'),
 ]       

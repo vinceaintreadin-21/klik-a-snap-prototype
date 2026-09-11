@@ -4,6 +4,9 @@ from api.models.user_profile import UserProfile
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from api.models.coordinator_invite import CoordinatorInvite
+from api.models.account_invite import AccountInvite
+from django.core.mail import send_mail
+from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 import cloudinary.uploader
@@ -54,6 +57,16 @@ def create_institution(request):
         contact_person = request.data.get('contact_person', '').strip()
         contact_phone = request.data.get('contact_phone', '').strip()
         logo_file = request.FILES.get('logo')
+        order_quota = request.data.get('order_quota', None)
+        contract_ends_at = request.data.get('contract_ends_at', None)
+
+        if order_quota is not None: 
+            try: 
+                order_quota = int(order_quota)
+            except (ValueError, TypeError):
+                return Response({
+                    'error': 'order_quota must be an integer'
+                }, status=400)
         
         if Institution.objects.filter(name=name).exists():
             return Response({
@@ -81,15 +94,10 @@ def create_institution(request):
             return Response({'error': 'Email already in use'}, status=400)
 
         # Create user account
-        temp_password = get_random_string(
-            length=12,
-            allowed_chars='abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%'
-        )
-
         user = User.objects.create_user(
             username=email,  # Use email as username
             email=email,
-            password=temp_password,
+            password=None,
             is_staff=False,
             is_superuser=False
         )
@@ -102,12 +110,39 @@ def create_institution(request):
             contact_person = contact_person,
             contact_email = email,
             contact_phone = contact_phone,
-            logo_url = photo_url
+            logo_url = photo_url,
+            order_quota=order_quota,
+            contract_ends_at=contract_ends_at
         )
         profile = user.profile
         profile.role = UserProfile.Role.INSTITUTION
         profile.institution = institution
+        profile.is_active = False
         profile.save()
+
+        #Create invite token
+        invite = AccountInvite.objects.create(
+            user=user,
+            invite_type='INSTITUTION',
+            expires_at=timezone.now() + timedelta(hours=72)
+        )
+
+        base_url = request.data.get('base_url', settings.FRONTEND_BASE_URL)
+
+        send_mail(
+            subject='Your QueueBits Institution Account',
+            message=(
+                f"Hello,\n\n"
+                f"You have been registered as an institution on QueueBits.\n\n"
+                f"Please click the link below to set your password and activate your account:\n"
+                f"{base_url}/activate/{invite.token}\n\n"
+                f"This link will expire in 72 hours.\n\n"
+                f"Best regards,\nThe QueueBits Team"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
         
         return Response({
             'message': 'Institution successfully created',
@@ -118,7 +153,8 @@ def create_institution(request):
                 'contact_person': institution.contact_person,
                 'contact_phone': institution.contact_phone,
                 'logo_url': institution.logo_url,
-                'temp_password': temp_password
+                'order_quota': institution.order_quota,
+                'contract_ends_at': institution.contract_ends_at
             }
         }, status=201)
     except Exception as e:
@@ -169,18 +205,56 @@ def update_institution(request, id):
     institution.status = new_status
         
     if new_status == Institution.Status.SUSPENDED:
-            institution.suspended_at = timezone.now()
-            institution.suspended_by = request.user
-            institution.suspended_reason = request.data.get('suspended_reason', '')
-    else:
+        institution.suspended_at = timezone.now()
+        institution.suspended_by = request.user
+        institution.suspended_reason = request.data.get('suspended_reason', '')
+        institution.save()
+
+        #Asset cleanup
+        import cloudinary.api 
+        from api.models.students import Student 
+        from api.models.orders import Order
+
+        orders = Order.objects.filter(institution=institution)
+
+        
+        for order in orders:
+            #Deletes cloudinary assets per order
+            try:
+                cloudinary.api.delete_resources_by_prefix(
+                    f'student_photos/order_{order.id}/'
+                )
+            except Exception as e:
+                print(f'Cloudinary cleanup failed for student_photos/order_{order.id}/: {e}')
+            
+            try:
+                cloudinary.api.delete_resources_by_prefix(
+                    f"final_ids/order_{order.id}/"
+                )
+            except Exception as e:
+                print(f'Cloudinary cleanup failed for final_ids/order_{order.id}/: {e}')
+            
+            try:
+                cloudinary.api.delete_resources_by_prefix(
+                    f'qr_codes/order_{order.id}' 
+                )
+            except Exception:
+                pass
+        
+        Student.objects.filter(order__institution=institution).delete()
+        return Response({
+            'message': 'Institution suspended and assets purged'
+        })
+
+    elif new_status in ['ACTIVE', 'INACTIVE']:
+        institution.status = new_status
         institution.suspended_at = None
         institution.suspended_by = None
         institution.suspended_reason = ''
-    
-    institution.save()
-    
-    return Response({'message': f'Institution status updated to {new_status}'})
+        institution.save()
         
+        return Response({'message': f'Institution status updated to {new_status}'})
+            
         
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -313,7 +387,7 @@ def invite_coordinator(request):
         email=email,    
         password=None,           
         first_name=name,    
-        is_active=True, 
+        is_active=False, 
     )
     user.set_unusable_password()
     user.save()

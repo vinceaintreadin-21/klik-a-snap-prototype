@@ -1,10 +1,12 @@
-#operator management under admin
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.core.mail import send_mail
 from django.contrib.auth.models import User
+from api.models.account_invite import AccountInvite
+from datetime import timedelta
+from django.conf import settings
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from api.models.user_profile import UserProfile
@@ -56,30 +58,45 @@ def create_operator(request):
 
     if User.objects.filter(email=email).exists():
         return Response({'error': 'Email already in use'}, status=400)
-    
-    temp_password = get_random_string(
-        length = 12,
-        allowed_chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%'
-    )
-    
+
+
+    #New implementation: Creates user with unusable password, they set it via invite link
     user = User.objects.create_user(
         username = username,
         email = email,
-        password = temp_password,
-        is_staff = False,
-        is_superuser = False,
+        password=None,
+        is_active=False
     )
     
     profile = user.profile
     profile.role = UserProfile.Role.OPERATOR
+    profile.is_active = False
     profile.save()
+
+    #Create invite token
+    invite = AccountInvite.objects.create(
+        user=user,
+        invite_type='OPERATOR',
+        expires_at=timezone.now() + timedelta(hours=72)
+    )
+
+    base_url = settings.FRONTEND_BASE_URL
+
+    invite_url = f"{base_url}/activate/{invite.token}/"
+
+    send_mail(
+        subject='Your QueueBits Operator Account',
+        message=f'Hi {username},\n\nYour operator account has been created.\n\nSet your password here:\n{invite_url}\n\nThis link expires in 72 hours.',
+        from_email='noreply@klik-a-snap.com',
+        recipient_list=[email],
+        fail_silently=False,
+    )
     
     return Response({
-        'message': 'Operator created successfully',
+        'message': 'Operator created. Activation email sent.',
         'operator_id': profile.id,
         'username': user.username,
         'email': user.email,
-        'temp_password': temp_password,
     }, status = 201)
 
 @api_view(['GET'])
@@ -217,7 +234,7 @@ def delete_operator(request, id):
 def get_all_orders(request):
     if not is_admin(request.user):
         return Response({
-            'error': 'Access admin required'
+            'error': 'Admin access required'
         }, status=403)
     
     orders = Order.objects.select_related('institution', 'assigned_operator').values(

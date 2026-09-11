@@ -6,3 +6,4 @@ from .id_layout import IDLayout
 from .processing_log import ProcessingLog
 from .admin_audit_log import AdminAuditLog
 from .coordinator_invite import CoordinatorInvite
+from .account_invite import AccountInvite

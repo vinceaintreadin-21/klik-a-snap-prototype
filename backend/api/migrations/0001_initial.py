@@ -114,7 +114,7 @@ class Migration(migrations.Migration):
                 ('full_name', models.CharField(max_length=255)),
                 ('grade_level', models.CharField(max_length=50)),
                 ('section', models.CharField(blank=True, max_length=100)),
-                ('photo', models.ImageField(blank=True, null=True, upload_to=api.models.students.Student.student_photo_path)),
+                ('photo', models.ImageField(blank=True, null=True, upload_to=api.models.students.student_photo_path)),
                 ('processed_photo', models.ImageField(blank=True, null=True, upload_to='processed_photos/')),
                 ('qr_code_data', models.CharField(blank=True, editable=False, max_length=255, null=True, unique=True)),
                 ('qr_code_url', models.URLField(blank=True, help_text='Cloudinary URL for QR code', max_length=500, null=True)),

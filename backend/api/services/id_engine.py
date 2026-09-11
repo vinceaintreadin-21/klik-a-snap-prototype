@@ -2,11 +2,11 @@ import cv2
 import numpy as np
 import requests
 import os
-import requests
 from django.conf import settings
 from django.http import JsonResponse
 from io import BytesIO
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from api.models.students import Student
@@ -109,9 +109,15 @@ def process_single_photo(image_path, order_id):
     Logic Loop with distinct tracking for fail_reason:
     'no_qr', 'qr_not_found', 'no_face', 'no_layout', 'error'
     """
-    filename = os.path.basename(image_path.split('?')[0])
-    possible_student_id = os.path.splitext(filename)[0].replace("cropped_", "")
+    from api.services.processing_service import broadcast_stage
 
+    filename = os.path.basename(image_path.split('?')[0])
+
+    raw_id = os.path.splitext(filename)[0].replace("cropped_", "")
+    possible_student_id = raw_id.split('_')[0] if '_' in raw_id else raw_id
+
+    # Download and decode
+    broadcast_stage(order_id, "read-qr")
     try:
         response = requests.get(image_path, timeout=15)
         img_array = np.frombuffer(response.content, np.uint8)
@@ -144,6 +150,8 @@ def process_single_photo(image_path, order_id):
         print(f"DEBUG: No QR code found in photo {filename}.")
         student = Student.objects.filter(order_id=order_id, student_id=possible_student_id).first()
         if student:
+            if not student.original_photo_url:
+                student.original_photo_url = image_path
             student.photo_status = Student.PhotoStatus.MANUAL_REVIEW
             student.fail_reason = 'no_qr'
             student.save()
@@ -151,12 +159,15 @@ def process_single_photo(image_path, order_id):
         return None, 'manual_review'
 
     # --- Step 2: Match to DB ---
+    broadcast_stage(order_id, "match-student")
     try:
         student = Student.objects.get(qr_code_data=data, order_id=order_id)
     except Student.DoesNotExist:
         print(f"DEBUG: No student found with qr_code_data='{data}' in order {order_id}")
         student = Student.objects.filter(order_id=order_id, student_id=possible_student_id).first()
         if student:
+            if not student.original_photo_url:
+                student.original_photo_url = image_path
             student.photo_status = Student.PhotoStatus.MANUAL_REVIEW
             student.fail_reason = 'qr_not_found'
             student.save()
@@ -169,7 +180,7 @@ def process_single_photo(image_path, order_id):
 
     # --- Step 3: Crop face ---
     # Captures boolean success status to see if it fell back to default guess template boundaries
-    cropped_path, face_found = _crop_face(img, image_path)
+    cropped_path, face_found = _crop_face(order_id, img, image_path)
     
     if not cropped_path or not face_found:
         student.photo_status = Student.PhotoStatus.MANUAL_REVIEW
@@ -178,8 +189,14 @@ def process_single_photo(image_path, order_id):
         return student, 'manual_review'
 
     # --- Step 4: Render ID card ---
+    broadcast_stage(order_id, "confidence")
     try:
-        layout = student.order.layout
+        layouts = student.order.layouts.all()
+        if not layouts.exists():
+            student.photo_status = Student.PhotoStatus.MANUAL_REVIEW
+            student.fail_reason = 'no_layout'
+            student.save()
+            return student, 'manual_review'
     except Exception:
         student.photo_status = Student.PhotoStatus.MANUAL_REVIEW
         student.fail_reason = 'no_layout'
@@ -187,10 +204,15 @@ def process_single_photo(image_path, order_id):
         return student, 'manual_review'
 
     # --- Step 5: Save Production Card Layout ---
+    broadcast_stage(order_id, "generate-id")
     try:
-        output = _render_id_card(cropped_path, student, layout)
+        outputs = {}
+        for layout in layouts:
+            output = _render_id_card(cropped_path, student, layout)
+            outputs[layout.side] = output
 
-        student.processed_photo = output
+        student.processed_photo = outputs.get('FRONT') or list(outputs.values())[0]
+        student.processed_photo_back = outputs.get('BACK')
         student.photo_status = Student.PhotoStatus.PROCESSED
         student.fail_reason = ''
         student.save()
@@ -204,13 +226,16 @@ def process_single_photo(image_path, order_id):
         return student, 'manual_review'
 
 
-def _crop_face(img, image_path):
+def _crop_face(order_id, img, image_path):
     """MediaPipe face detection with deep torso/QR code pattern skip filtering"""
+    from api.services.processing_service import broadcast_stage
+    broadcast_stage(order_id, "extract-face")
     import urllib.request
     
     model_dir = os.path.join(settings.MEDIA_ROOT, 'models')
     os.makedirs(model_dir, exist_ok=True)
     model_path = os.path.join(model_dir, 'blaze_face_short_range.tflite')
+    
     
     if not os.path.exists(model_path):
         url = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
@@ -396,7 +421,7 @@ def _render_id_card(cropped_path_or_bytes, student, layout):
         buf.seek(0)
         result = cloudinary.uploader.upload(
             buf,
-            folder='final_ids',
+            folder=f'final_ids/order_{student.order_id}',
             public_id=f"{student.student_id}_id",
             resource_type='image',
             format='png',
@@ -423,6 +448,7 @@ def finalize_order_production(order_id):
 
     if order.status == Order.Status.PRINTING:
         order.status = Order.Status.COMPLETED
+        order.completed_at = timezone.now()
         order.save()
         from api.services.processing_service import broadcast_status
         broadcast_status(order.id, Order.Status.COMPLETED)
