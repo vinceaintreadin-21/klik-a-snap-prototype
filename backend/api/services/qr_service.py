@@ -29,7 +29,7 @@ def upload_qr_to_cloudinary(qr_data, student_id):
 
     upload_result = cloudinary.uploader.upload(
         buffer,
-        folder="qr_codes",
+        folder="qr_codes/order_{order_id}",
         public_id=f"student_{student_id}_{qr_data}",
         resource_type="image",
         format="png"

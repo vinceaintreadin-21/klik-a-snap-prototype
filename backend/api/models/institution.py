@@ -33,6 +33,17 @@ class Institution(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE
     )
+
+    order_quota = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        help_text='Maximum numbers allowed; null means unlimited'
+    )
+
+    contract_ends_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Date when the contract ends. Used to trigger asset cleanup.'
+    )
     
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='suspended_institutions')

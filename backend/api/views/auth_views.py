@@ -55,7 +55,7 @@ def validate_account_invite(request, token):
     except AccountInvite.DoesNotExist:
         return Response({'error': 'Invalid activation link'}, status=404)
     
-    if not invite.is_valid:
+    if not invite.is_valid():
         return Response({'error': 'This link has expired or already been used'}, status=410)
 
     return Response({
@@ -71,29 +71,30 @@ def accept_account_invite(request, token):
         invite = AccountInvite.objects.select_related('user').get(token=token)
     except AccountInvite.DoesNotExist:
         return Response({'error': 'Invalid activation link'}, status=404)
-    
+
     if not invite.is_valid():
-        return Response({'error': 'Thislink has expred or already been used'}, status=410)
-    
+        return Response({'error': 'This link has expired or already been used'}, status=410)
+
     password = request.data.get('password', '')
     if len(password) < 8:
-        return Response({'error', 'Password must be at least 8 characters'}, status=400)
+        return Response({'error': 'Password must be at least 8 characters'}, status=400)
 
-    user = invite.user 
-    user.set_password(password)     
-    user.is_active = True 
+    user = invite.user
+    user.set_password(password)
+    user.is_active = True
     user.save()
 
-    profile = user.profile 
-    profile.is_active = True 
+    profile = user.profile
+    profile.is_active = True
     profile.save()
 
-    invite.is_used = True 
+    invite.is_used = True
     invite.save()
 
     refresh = RefreshToken.for_user(user)
-    return Respone({
+    return Response({
         'message': 'Account activated.',
+        'invite_type': invite.invite_type,
         'tokens': {
             'access': str(refresh.access_token),
             'refresh': str(refresh),
@@ -103,6 +104,7 @@ def accept_account_invite(request, token):
 
 
 @api_view(['POST'])
+@throttle_classes([AuthRateThrottle])
 @permission_classes([AllowAny])
 def login_user(request):
     username = request.data.get('username')
@@ -123,9 +125,12 @@ def login_user(request):
     user = authenticate(request, username=username, password=password)
     
     if user is None:
-        return Response({
-            'error': 'Wrong password'
-        }, status=status.HTTP_401_UNAUTHORIZED)
+        if not user_obj.is_active:
+            return Response(
+                {'error': 'Account not yet activated. Please check your email for the activation link.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return Response({'error': 'Wrong password'}, status=status.HTTP_401_UNAUTHORIZED)
 
     try:
         profile = user.profile
@@ -149,6 +154,7 @@ def login_user(request):
 
 login_user.cls.throttle_classes = [AuthRateThrottle]
 
+@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_user(request):
     try:

@@ -40,6 +40,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-build-placeholder-change-i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG') == 'True'
 
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:5173')
+
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -50,8 +52,14 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     hosts_string = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
     ALLOWED_HOSTS = [host.strip() for host in hosts_string.split(',') if host.strip()]
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.getenv('EMAIL_HOST')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@klik-a-snap.com')
 else:
     ALLOWED_HOSTS = ['*']
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     
 
 CORS_ALLOW_HEADERS = [
@@ -71,14 +79,10 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated', # Protects all routes by default
     ],
     'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.ScopedRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-        'user': '1000/day',
-        'auth': '100/minute'
+        'auth': '5/minute'
     }
 }
 
@@ -142,6 +146,10 @@ CHANNEL_LAYERS = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
     }
 }
 

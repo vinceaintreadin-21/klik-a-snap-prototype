@@ -2,10 +2,21 @@ from django.db import models
 from django.utils import timezone
 
 class IDLayout(models.Model):
-    order = models.OneToOneField(
+
+    class Side(models.TextChoices):
+        FRONT = 'FRONT', 'Front',
+        BACK = 'BACK', 'Back'
+
+    order = models.ForeignKey(
         'Order', 
         on_delete=models.CASCADE, 
-        related_name='layout'
+        related_name='layouts'
+    )
+
+    side = models.CharField(
+        max_length=5,
+        choices=Side.choices,
+        default=Side.FRONT
     )
     
     # Background
@@ -41,6 +52,7 @@ class IDLayout(models.Model):
 
     class Meta:
         db_table = 'id_layouts'
+        unique_together = ('order', 'side')
 
     def __str__(self):
         return f"Layout for Order #{self.order_id}"

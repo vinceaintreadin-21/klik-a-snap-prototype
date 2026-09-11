@@ -69,14 +69,19 @@ def search_students(request, order_id):
 @permission_classes([IsAuthenticated])
 def quick_add_student(request, order_id):
     """Fail-Safe C: Walk-in student — create instantly and return student_id for QR display"""
+    
+    order, err = check_order_access(request, order_id)
+    if err:
+        return err 
     try:
-        order = Order.objects.get(id=order_id)
+        order = order
         data = request.data
 
         student = Student.objects.create(
             order=order,
             full_name=data['full_name'],
             grade_level=data.get('grade_level', ''),
+            section=data.get('section', ''),
             student_id=_generate_student_id(order),
             is_walk_in=True
         )
@@ -183,3 +188,99 @@ def request_revision(request, student_id):
 
     return Response({'id': student.id, 'photo_status': student.photo_status})
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reprocess_student(request, student_id):
+    """Reprocess a single student through the AI pipeline.
+    If the photo was manually linked (/manual/ path), bypass QR detection
+    and go straight to face crop + ID card render.
+    """
+    student, err = check_student_access(request, student_id)
+    if err:
+        return err
+
+    if not student.original_photo_url:
+        return Response({'error': 'No photo available to reprocess'}, status=400)
+
+    # Manually linked photos have no QR code — route to the bypass path
+    if '/manual/' in student.original_photo_url:
+        return _process_linked_photo(student) 
+        
+    import threading
+    from api.services.id_engine import process_single_photo
+
+    def run():
+        process_single_photo(student.original_photo_url, student.order_id)
+
+    thread = threading.Thread(target=run)
+    thread.daemon = True
+    thread.start()
+
+    return Response({'message': f'Reprocessing started for {student.full_name}'})
+
+def _process_linked_photo(student):
+    """
+    Process a student whose photo was manually linked.
+    Skips QR detection — goes straight to face crop + ID card render.
+    """
+    if not student.original_photo_url:
+        return Response({'error': 'No photo linked to this student'}, status=400)
+
+    import threading
+    from api.services.id_engine import _crop_face, _render_id_card
+    import requests as req
+    import numpy as np
+    import cv2
+
+    def run():
+        try:
+            response = req.get(student.original_photo_url, timeout=15)
+            img_array = np.frombuffer(response.content, np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+            if img is None:
+                student.fail_reason = 'error'
+                student.photo_status = 'MANUAL_REVIEW'
+                student.save()
+                return
+
+            cropped_path, face_found = _crop_face(student.order_id, img, student.original_photo_url)
+
+            layouts = student.order.layouts.all()
+            if not layouts.exists():
+                student.fail_reason = 'no_layout'
+                student.photo_status = 'MANUAL_REVIEW'
+                student.save()
+                return
+
+            outputs = {}
+            for layout in layouts:
+                output = _render_id_card(cropped_path, student, layout)
+                outputs[layout.side] = output
+
+            student.processed_photo = outputs.get('FRONT') or list(outputs.values())[0]
+            student.processed_photo_back = outputs.get('BACK')
+            student.photo_status = 'PROCESSED'
+            student.fail_reason = ''
+            student.save()
+        except Exception as e:
+            print(f"process_linked_photo error for student {student.id}: {e}")
+            student.fail_reason = 'error'
+            student.photo_status = 'MANUAL_REVIEW'
+            student.save()
+
+    thread = threading.Thread(target=run)
+    thread.daemon = True
+    thread.start()
+
+    return Response({'message': f'Processing started for {student.full_name}'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def process_linked_photo(request, student_id):
+    """API endpoint: POST /students/<student_id>/process-linked/"""
+    student, err = check_student_access(request, student_id)
+    if err:
+        return err
+    return _process_linked_photo(student)

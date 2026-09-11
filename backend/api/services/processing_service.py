@@ -18,6 +18,20 @@ def broadcast_status(order_id, status, extra=None):
         {"type": "post_update", "message": message}
     )
 
+def broadcast_stage(order_id, stage_key):
+    """Broadcast the current AI pipeline stage for a given order."""
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"order_{order_id}",
+        {
+            "type": "post_update",
+            "message": {
+                "action": "stage_update",
+                "stage": stage_key,   # one of: read-qr | crop | extract-face | match-student | confidence | generate-id
+            }
+        }
+    )
+
 
 def start_processing_queue(order_id):
     try:
@@ -52,6 +66,29 @@ def start_processing_queue(order_id):
             Order.objects.filter(id=order_id).update(status="FAILED")
             broadcast_status(order_id, "FAILED", {"error": str(e)})
             return
+        
+        already_linked_urls = set(
+            Student.objects.filter(
+                order_id=order_id, 
+                original_photo_url__isnull=False
+            ).exclude(original_photo_url='')
+            .values_list('original_photo_url', flat=True)
+        )
+
+        image_files = [url for url in image_files if url not in already_linked_urls]
+
+        manually_linked_urls = list(
+            Student.objects.filter(
+                order_id=order_id,
+                photo_status=Student.PhotoStatus.PENDING,
+                original_photo_url__isnull=False
+            ).exclude(original_photo_url='')
+            .exclude(original_photo_url__contains='/manual/')
+            .values_list('original_photo_url', flat=True)
+        )
+        if manually_linked_urls:
+            print(f"Found {len(manually_linked_urls)} manually linked photo(s) to process")
+            image_files.extend(manually_linked_urls)
 
         if not image_files:
             print(f"No photos found in Cloudinary for order {order_id}")
@@ -61,17 +98,6 @@ def start_processing_queue(order_id):
 
         # Also process students who were manually linked (original_photo_url set, still PENDING).
         # These were uploaded to /manual/ and excluded from the Cloudinary scan above.
-        manually_linked_urls = list(
-            Student.objects.filter(
-                order_id=order_id,
-                photo_status=Student.PhotoStatus.PENDING,
-                original_photo_url__isnull=False
-            ).exclude(original_photo_url='')
-            .values_list('original_photo_url', flat=True)
-        )
-        if manually_linked_urls:
-            print(f"Found {len(manually_linked_urls)} manually linked photo(s) to process")
-            image_files.extend(manually_linked_urls)
 
         total = len(image_files)
         processed = 0
