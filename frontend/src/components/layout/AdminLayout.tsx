@@ -14,7 +14,7 @@ export default function AdminLayout({ children }: Props) {
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
         @keyframes kas-pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: Props) {
 
       <div style={{
         display: 'flex', minHeight: '100vh',
-        background: '#0f0f1a', fontFamily: "'DM Sans', sans-serif",
+        background: '#F7F8FA', fontFamily: "'DM Sans', sans-serif",
       }}>
         <AdminSidebar />
 

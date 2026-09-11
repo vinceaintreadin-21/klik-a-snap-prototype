@@ -24,6 +24,8 @@ interface CreateInstitutionPayload {
     contact_person: string 
     contact_phone?: string 
     logo?: File
+    order_quota?: number | null
+    contract_ends_at?: string | null
 }
 
 interface UpdateInstitutionPayload {
@@ -87,6 +89,12 @@ export const useCreateInstitution = () => {
             formData.append('address', payload.address)
             formData.append('contact_person', payload.contact_person)
             if (payload.contact_phone) formData.append('contact_phone', payload.contact_phone)
+            if (payload.order_quota != null) {
+                formData.append('order_quota', String(payload.order_quota))
+            }
+            if (payload.contract_ends_at) {
+                formData.append('contract_ends_at', payload.contract_ends_at)
+            }
             if (payload.logo) formData.append('logo', payload.logo)
         
                 const res = await api.post('/admin/create-institution/', formData, {

@@ -12,8 +12,8 @@ interface AnalyticsOverview {
 }
 
 interface OrdersPerMonth {
-    month: string,
-    orders: number
+    month: string
+    count: number
 }
 
 interface ManualReviewRate {
@@ -102,4 +102,32 @@ export const useManualReviewRate = () => {
     return {
         data, loading, error, refetch: fetchManualReviewRate
     }
+}
+
+interface AvgTurnaround {
+    avg_turnaround_days: number | null
+    avg_turnaround_hours: number | null
+    completed_order_count: number
+}
+
+export const useAvgTurnaround = () => {
+    const [data, setData] = useState<AvgTurnaround | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const fetch = async () => {
+        setLoading(true)
+        setError(null)
+        try {
+            const res = await api.get('/admin/analytics/avg-turnaround/')
+            setData(res.data)
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to fetch turnaround data')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => { fetch() }, [])
+    return { data, loading, error, refetch: fetch }
 }

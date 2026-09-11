@@ -9,6 +9,7 @@ interface OrderContextType {
   updateStatus: (id: number, status: string) => void;
   connectOrderSocket: (orderId: number) => void;
   clearOrders: () => void;
+  currentStage: Record<number, string>
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -53,6 +54,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     manual_review: number;
     total: number;
   }>>({});
+  const [currentStage, setCurrentStage] = useState<Record<number, string>>({});
 
   const orderSockets = useRef<Record<number, WebSocket>>({});
 
@@ -72,6 +74,10 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      
+      if (data.action === 'stage_update') {
+        setCurrentStage(prev => ({...prev, [orderId]: data.stage}))
+      }
 
       if (data.action === 'status_update') {
         updateOrder({ id: data.id, status: data.status });
@@ -195,12 +201,14 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     orderSockets.current = {};
     setOrders([]);
     setProgress({});
+    setCurrentStage({});
   };
 
   return (
     <OrderContext.Provider value={{
       orders,
       progress,
+      currentStage,
       addOrder,
       updateOrder,
       updateStatus,

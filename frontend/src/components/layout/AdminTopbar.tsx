@@ -1,88 +1,59 @@
 import { useAuth } from '../../context/AuthContext'
-
-function BellIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  )
-}
-function GearIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  )
-}
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  )
-}
+import { Bell, Settings, Search } from 'lucide-react'
 
 export default function AdminTopbar() {
   const { user } = useAuth()
 
-  // Generate initials from username
   const initials = user?.username
     ? user.username.slice(0, 2).toUpperCase()
     : 'AD'
 
   return (
-    <header style={{
-      position: 'fixed', top: 0, left: 230, right: 0, zIndex: 9,
-      height: 60, background: '#13131f', borderBottom: '1px solid #1e1e2e',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 28px',
-    }}>
-      {/* Search */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        background: '#1a1a2a', border: '1px solid #2a2a3a', borderRadius: 10,
-        padding: '8px 14px', width: 300, color: '#6b7280',
-      }}>
-        <SearchIcon />
-        <input
-          placeholder="Search orders or batches..."
-          style={{
-            background: 'transparent', border: 'none', outline: 'none',
-            color: '#9ca3af', fontSize: 13, width: '100%',
-          }}
-        />
+    <header className="fixed top-0 left-[220px] right-0 z-9 h-[60px] bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-8">
+      {/* Left: page context */}
+      <div className="flex items-center gap-4">
+        <div>
+          <h2 className="text-[15px] font-semibold text-gray-900 leading-none">Operations Dashboard</h2>
+          <p className="text-[12px] text-gray-400 mt-0.5">Real-time status of ID production across all institutions.</p>
+        </div>
       </div>
 
-      {/* Right side */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        {[<BellIcon />, <GearIcon />].map((icon, i) => (
-          <button key={i} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            color: '#6b7280', padding: 6, borderRadius: 8, transition: 'color 0.15s',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#a855f7')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#6b7280')}
-          >
-            {icon}
-          </button>
-        ))}
+      {/* Right */}
+      <div className="flex items-center gap-2">
+        {/* Search */}
+        <div className="relative mr-2">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search orders, institutions..."
+            className="pl-8 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 placeholder:text-gray-400 transition-all w-64"
+          />
+        </div>
 
-        <div style={{ width: 1, height: 24, background: '#2a2a3a' }} />
+        {/* Bell */}
+        <button className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors border border-gray-100">
+          <Bell size={16} />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
+        </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%', background: '#7c3aed',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12, fontWeight: 700, color: '#fff',
-          }}>
-            {initials}
+        {/* Settings */}
+        <button className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors border border-gray-100">
+          <Settings size={16} />
+        </button>
+
+        <div className="w-px h-6 bg-gray-200 mx-1" />
+
+        {/* User */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+              {initials}
+            </div>
+            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-400 rounded-full border border-white" />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>
-              {user?.username ?? 'Admin'}
-            </div>
-            <div style={{ fontSize: 10, color: '#7c3aed', fontWeight: 600, letterSpacing: '0.5px' }}>
+            <div className="text-[13px] font-medium text-gray-900 leading-none">{user?.username ?? 'Admin'}</div>
+            <div className="text-[10px] font-semibold text-purple-500 tracking-widest uppercase leading-none mt-0.5">
               {user?.role ?? 'ADMIN'}
             </div>
           </div>

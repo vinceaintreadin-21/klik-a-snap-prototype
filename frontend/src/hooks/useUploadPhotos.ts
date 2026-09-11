@@ -58,7 +58,7 @@ export const useBulkUpload = () => {
 
 export const useStudentsForOrder = (orderId: number) => {
     const [students, setStudents] = useState<StudentForOrder[]>([])
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     const fetchStudents = async () => {
