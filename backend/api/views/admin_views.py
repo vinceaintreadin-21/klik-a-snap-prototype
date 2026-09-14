@@ -12,6 +12,7 @@ from django.utils.crypto import get_random_string
 from api.models.user_profile import UserProfile
 from api.models.orders import Order
 from api.models.admin_audit_log import AdminAuditLog 
+from api.utils.emails import send_transactional_email
 
 def is_admin(user): 
     try:
@@ -84,12 +85,10 @@ def create_operator(request):
 
     invite_url = f"{base_url}/activate/{invite.token}/"
 
-    send_mail(
+    send_transactional_email(
         subject='Your QueueBits Operator Account',
         message=f'Hi {username},\n\nYour operator account has been created.\n\nSet your password here:\n{invite_url}\n\nThis link expires in 72 hours.',
-        from_email='noreply@klik-a-snap.com',
         recipient_list=[email],
-        fail_silently=False,
     )
     
     return Response({
