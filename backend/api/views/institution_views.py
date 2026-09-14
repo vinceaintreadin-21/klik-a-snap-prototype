@@ -13,6 +13,7 @@ import cloudinary.uploader
 from django.contrib.auth.models import User 
 from django.utils.crypto import get_random_string
 from rest_framework.parsers import MultiPartParser, FormParser
+from api.utils.emails import send_transactional_email 
 
 
 def is_admin(user): 
@@ -129,7 +130,7 @@ def create_institution(request):
 
         base_url = request.data.get('base_url', settings.FRONTEND_BASE_URL)
 
-        send_mail(
+        send_transactional_email(
             subject='Your QueueBits Institution Account',
             message=(
                 f"Hello,\n\n"
@@ -139,9 +140,7 @@ def create_institution(request):
                 f"This link will expire in 72 hours.\n\n"
                 f"Best regards,\nThe QueueBits Team"
             ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[email],
-            fail_silently=False,
         )
         
         return Response({
