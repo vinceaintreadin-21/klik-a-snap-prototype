@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { FileImage } from "lucide-react";
 
 interface MiniCardProps {
     processedPhoto?: string | null; 
