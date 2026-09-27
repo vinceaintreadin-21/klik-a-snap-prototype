@@ -48,81 +48,83 @@ export default function OrderQueue({ onSelect }: OrderQueueProps) {
             </header>
 
             <main className="flex-1 overflow-y-auto px-8 py-7">
-                <div className="max-w-3xl space-y-3">
-                    {filtered.length === 0 && <div className="py-16 text-center text-sm text-gray-400">No orders in proofing</div>}
+                <div className="max-w-6xl mx-auto w-full">
+                    {filtered.length === 0 ? (
+                        <div className="py-16 text-center text-sm text-gray-400">No orders in proofing</div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {filtered.map(order => {
+                                const cfg = STATUS_CONFIG[order.status as OperatorOrderStatus] ?? STATUS_CONFIG.PROOFING;
+                                const revisionCount = progress[order.id]?.manual_review ?? 0;
+                                const needsRevision = revisionCount > 0;
 
-                    {filtered.map(order => {
-                        const cfg = STATUS_CONFIG[order.status as OperatorOrderStatus] ?? STATUS_CONFIG.PROOFING;
-                        const revisionCount = progress[order.id]?.manual_review ?? 0;
-                        const needsRevision = revisionCount > 0;
-
-                        return (
-                            <div
-                                key={order.id}
-                                className={cn(
-                                    "bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all duration-200 p-5",
-                                    needsRevision ? "border-red-100 hover:border-red-200" : "border-gray-100 hover:border-blue-100",
-                                )}
-                            >
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                                #{order.id}
-                                            </span>
-                                            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                                {order.batch_name}
-                                            </span>
-                                            <span className={cn("flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border", cfg.color, cfg.bg)}>
-                                                <cfg.icon size={9} />
-                                                {cfg.label}
-                                            </span>
-                                            {needsRevision && (
-                                                <span className="text-[10px] font-semibold text-red-600">
-                                                    {revisionCount} card{revisionCount > 1 ? "s" : ""} to fix
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <h3 className="text-base font-semibold text-gray-900 mb-1">{order.school_name}</h3>
-
-                                        <div className="flex items-center gap-4 text-[12px] text-gray-400">
-                                            <span className="flex items-center gap-1">
-                                                <Users size={11} />
-                                                {order.student_count.toLocaleString()} IDs
-                                            </span>
-                                            {order.deadline && (
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar size={10} />
-                                                    Due {new Date(order.deadline).toLocaleDateString()}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col items-end gap-2 shrink-0">
-                                        {needsRevision && (
-                                            <span className="flex items-center gap-1 text-[11px] font-semibold text-red-600">
-                                                <AlertTriangle size={11} />
-                                                Needs revision
-                                            </span>
+                                return (
+                                    <div
+                                        key={order.id}
+                                        className={cn(
+                                            "bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all duration-200 p-5 flex flex-col justify-between",
+                                            needsRevision ? "border-red-100 hover:border-red-200" : "border-gray-100 hover:border-blue-100",
                                         )}
-                                        <button
-                                            onClick={() => onSelect(order)}
-                                            className={cn(
-                                                "flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm",
-                                                needsRevision
-                                                    ? "bg-red-600 hover:bg-red-700 text-white"
-                                                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200",
-                                            )}
-                                        >
-                                            Open Proofing <ChevronRight size={14} />
-                                        </button>
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                                <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                                    #{order.id}
+                                                </span>
+                                                <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                    {order.batch_name}
+                                                </span>
+                                                <span className={cn("flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border", cfg.color, cfg.bg)}>
+                                                    <cfg.icon size={9} />
+                                                    {cfg.label}
+                                                </span>
+                                                {needsRevision && (
+                                                    <span className="text-[10px] font-semibold text-red-600">
+                                                        {revisionCount} card{revisionCount > 1 ? "s" : ""} to fix
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <h3 className="text-base font-semibold text-gray-900 mb-1">{order.school_name}</h3>
+
+                                            <div className="flex items-center gap-4 text-[12px] text-gray-400 mb-4">
+                                                <span className="flex items-center gap-1">
+                                                    <Users size={11} />
+                                                    {order.student_count.toLocaleString()} IDs
+                                                </span>
+                                                {order.deadline && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar size={10} />
+                                                        Due {new Date(order.deadline).toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+                                            {needsRevision ? (
+                                                <span className="flex items-center gap-1 text-[11px] font-semibold text-red-600">
+                                                    <AlertTriangle size={11} />
+                                                    Needs revision
+                                                </span>
+                                            ) : <div />}
+                                            <button
+                                                onClick={() => onSelect(order)}
+                                                className={cn(
+                                                    "flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm shrink-0",
+                                                    needsRevision
+                                                        ? "bg-red-600 hover:bg-red-700 text-white"
+                                                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200",
+                                                )}
+                                            >
+                                                Open Proofing <ChevronRight size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

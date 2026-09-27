@@ -229,7 +229,7 @@ const OperatorDashboard = () => {
           icon={<AlertTriangle size={18} className="text-amber-500" />}
           iconBg="bg-amber-50"
           label="Pending Manual Reviews"
-          value={String(needsReview).padStart(2, '0')}
+          value={String(needsReview)}
           highlight={needsReview > 0}
         />
         <StatCard

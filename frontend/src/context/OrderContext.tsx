@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import api from '../utils/api';
+import api, { refreshAccessToken } from '../utils/api';
+import { clearAccessToken, getAccessToken, getRefreshToken, isTokenExpired } from '../utils/jwt';
+
+const MAX_AUTH_RETRIES = 3;
 
 interface OrderContextType {
   orders: any[];
@@ -14,35 +17,21 @@ interface OrderContextType {
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
-// Decode a JWT's exp claim without verifying signature (client-side check only)
-const isTokenExpired = (token: string, skewSeconds = 10): boolean => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const nowSeconds = Date.now() / 1000;
-    return payload.exp < nowSeconds + skewSeconds; // treat as expired slightly early
-  } catch {
-    return true; // unparseable token = treat as expired
-  }
-};
-
-// Ensures we have a valid access token, refreshing if needed
+// Ensures we have a valid access token, refreshing if needed. The socket
+// handshake authenticates via query param, so it can't rely on the axios
+// interceptor and has to renew the token itself.
 const getValidAccessToken = async (): Promise<string | null> => {
-  const accessToken = localStorage.getItem('access_token');
-  const refreshToken = localStorage.getItem('refresh_token');
-
+  const accessToken = getAccessToken();
   if (accessToken && !isTokenExpired(accessToken)) {
     return accessToken;
   }
 
-  if (!refreshToken) return null;
+  if (!getRefreshToken()) return null;
 
   try {
-    const res = await api.post('/token/refresh/', { refresh: refreshToken });
-    const newAccessToken = res.data.access;
-    localStorage.setItem('access_token', newAccessToken);
-    return newAccessToken;
-  } catch (err) {
-    console.error('Failed to refresh access token', err);
+    return await refreshAccessToken();
+  } catch {
+    console.error('Failed to refresh access token');
     return null;
   }
 };
@@ -57,6 +46,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentStage, setCurrentStage] = useState<Record<number, string>>({});
 
   const orderSockets = useRef<Record<number, WebSocket>>({});
+  const authRetries = useRef<Record<number, number>>({});
 
   const connectOrderSocket = async (orderId: number) => {
     if (orderSockets.current[orderId]) {
@@ -74,7 +64,11 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      
+
+      // A delivered message proves the token was accepted, so clear the
+      // auth-failure budget.
+      authRetries.current[orderId] = 0;
+
       if (data.action === 'stage_update') {
         setCurrentStage(prev => ({...prev, [orderId]: data.stage}))
       }
@@ -110,10 +104,29 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       delete orderSockets.current[orderId];
 
       // Auth failure — token was invalid/expired despite our check, or got
-      // revoked mid-flight. Refresh and retry immediately, once.
+      // revoked mid-flight. Force a renewal and retry, but only a few times:
+      // if the server keeps rejecting a genuinely refreshed token (revoked
+      // user, changed permissions) retrying forever is a hot loop.
       if (event.code === 4001) {
-        console.warn(`Auth failed for order ${orderId} socket, retrying with fresh token`);
-        setTimeout(() => connectOrderSocket(orderId), 500);
+        const attempts = (authRetries.current[orderId] ?? 0) + 1;
+        authRetries.current[orderId] = attempts;
+
+        if (attempts > MAX_AUTH_RETRIES) {
+          console.error(
+            `Giving up on order ${orderId} socket after ${MAX_AUTH_RETRIES} auth failures`,
+          );
+          return;
+        }
+
+        console.warn(
+          `Auth failed for order ${orderId} socket, retrying with fresh token (${attempts}/${MAX_AUTH_RETRIES})`,
+        );
+        setTimeout(async () => {
+          // Evict the cached access token so getValidAccessToken must renew.
+          // The refresh token stays — the session is still recoverable.
+          clearAccessToken();
+          await connectOrderSocket(orderId);
+        }, 500);
         return;
       }
 
@@ -199,6 +212,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const clearOrders = () => {
     Object.values(orderSockets.current).forEach(ws => ws.close());
     orderSockets.current = {};
+    authRetries.current = {};
     setOrders([]);
     setProgress({});
     setCurrentStage({});

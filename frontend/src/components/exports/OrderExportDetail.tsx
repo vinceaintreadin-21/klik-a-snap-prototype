@@ -1,7 +1,15 @@
-import { useState } from "react";
-import { ChevronLeft, Package, Download, Lock, AlertTriangle, Users, Calendar, CheckCircle2, Eye, Clock } from "lucide-react";
-import { type ExportOrder, isExportEnabled, getDisabledReason } from "./exportTypes";
-import { downloadOrderZip } from "../../utils/exportApi";
+import { useState, useEffect } from "react";
+import { ChevronLeft, Package, Download, Lock, AlertTriangle, Users, Calendar, CheckCircle2, Eye, Clock, Loader2 } from "lucide-react";
+import {
+  type ExportOrder,
+  type ExportStudent,
+  isExportEnabled,
+  getDisabledReason,
+  getOrderStatus,
+  getInstitutionName,
+  getStudentTotalCount,
+} from "./exportTypes";
+import { downloadOrderZip, fetchOrderStudents } from "../../utils/exportApi";
 import { StudentTable } from "./StudentTable";
 import { cn } from "../../lib/utils";
 
@@ -18,20 +26,45 @@ const APPROVAL_CONFIG = {
 };
 
 export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
+  const [students, setStudents] = useState<ExportStudent[]>(order.students || []);
+  const [loadingStudents, setLoadingStudents] = useState<boolean>(!order.students?.length);
+  const [studentError, setStudentError] = useState<string | null>(null);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  const enabled = isExportEnabled(order.approvalStatus);
-  const cfg = APPROVAL_CONFIG[order.approvalStatus];
+  const status = getOrderStatus(order);
+  const enabled = isExportEnabled(status);
+  const cfg = APPROVAL_CONFIG[status as keyof typeof APPROVAL_CONFIG] || APPROVAL_CONFIG.reviewing;
 
-  const processed = order.students.filter((s) => s.photo_status === "PROCESSED");
-  const manualCount = order.students.filter((s) => s.photo_status === "MANUAL_REVIEW").length;
+  const schoolName = getInstitutionName(order);
+  const totalStudents = getStudentTotalCount(order);
+
+  // Fetch students from backend on component mount
+  useEffect(() => {
+    if (order.id) {
+      setLoadingStudents(true);
+      fetchOrderStudents(order.id)
+        .then((data) => {
+          setStudents(data);
+          setStudentError(null);
+        })
+        .catch((err) => {
+          setStudentError(err.message || "Failed to load students");
+        })
+        .finally(() => setLoadingStudents(false));
+    }
+  }, [order.id]);
+
+  const processed = students.filter((s) => s.photo_status === "PROCESSED");
+  const manualCount = students.filter((s) => s.photo_status === "MANUAL_REVIEW").length;
+  const approvedBy = order.approved_by || order.approvedBy;
 
   const handleDownloadZip = async () => {
     setIsDownloading(true);
     setDownloadError(null);
     try {
-      await downloadOrderZip(order.id);
+      await downloadOrderZip(String(order.id));
     } catch (err: any) {
       setDownloadError(err.message || "Failed to download ZIP archive");
     } finally {
@@ -51,19 +84,19 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[15px] font-semibold text-gray-900">{order.institution}</h1>
-              <span className="text-[11px] font-medium text-gray-400">{order.id}</span>
+              <h1 className="text-[15px] font-semibold text-gray-900">{schoolName}</h1>
+              <span className="text-[11px] font-medium text-gray-400">#{order.id}</span>
               <span className={cn("flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border", cfg.color, cfg.bg)}>
                 <cfg.icon size={9} />
                 {cfg.label}
               </span>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5">
-              <span className="flex items-center gap-1"><Users size={10} />{order.students.length} students</span>
-              <span className="flex items-center gap-1"><Calendar size={10} />Due {order.deadline || "Hotfix coming soon after the Export Page"}</span>
-              {order.approvedBy && (
+              <span className="flex items-center gap-1"><Users size={10} />{totalStudents} students</span>
+              {order.deadline && <span className="flex items-center gap-1"><Calendar size={10} />Due {order.deadline}</span>}
+              {approvedBy && (
                 <span className="flex items-center gap-1 text-emerald-600">
-                  <CheckCircle2 size={10} />Approved by {order.approvedBy}
+                  <CheckCircle2 size={10} />Approved by {approvedBy}
                 </span>
               )}
             </div>
@@ -82,7 +115,7 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
                 <div>
                   <h2 className={cn("text-[15px] font-semibold", enabled ? "text-gray-900" : "text-gray-500")}>Final ID Cards ZIP</h2>
                   <p className={cn("text-[12px] mt-0.5", enabled ? "text-gray-500" : "text-gray-400")}>
-                    {enabled ? `${processed.length} processed student${processed.length !== 1 ? "s" : ""} will be bundled into the archive` : getDisabledReason(order.approvalStatus)}
+                    {enabled ? `${processed.length} processed student${processed.length !== 1 ? "s" : ""} will be bundled into the archive` : getDisabledReason(status)}
                   </p>
                 </div>
                 <button
@@ -117,7 +150,16 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
             </div>
           </div>
 
-          <StudentTable students={order.students} />
+          {loadingStudents ? (
+            <div className="py-16 flex flex-col items-center justify-center gap-2 text-sm text-gray-400">
+              <Loader2 size={20} className="animate-spin text-blue-600" />
+              Loading student records...
+            </div>
+          ) : studentError ? (
+            <div className="py-16 text-center text-sm text-red-500">{studentError}</div>
+          ) : (
+            <StudentTable students={students} />
+          )}
         </div>
 
         <div className="w-[240px] shrink-0 border-l border-gray-100 bg-white overflow-y-auto px-5 py-5 space-y-5">
@@ -125,7 +167,7 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Export Summary</div>
             <div className="space-y-2.5">
               {[
-                { label: "Total students", value: String(order.students.length), color: "text-gray-900" },
+                { label: "Total students", value: String(totalStudents), color: "text-gray-900" },
                 { label: "Processed", value: String(processed.length), color: "text-emerald-600" },
                 { label: "Manual Review", value: String(manualCount), color: manualCount > 0 ? "text-amber-600" : "text-gray-400" },
                 { label: "In ZIP", value: enabled ? String(processed.length) : "—", color: enabled ? "text-blue-700 font-bold" : "text-gray-400" },
