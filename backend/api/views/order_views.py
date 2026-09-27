@@ -632,22 +632,44 @@ def download_id_cards(request, order_id):
         return Response({'error': 'No processed ID cards found for this order'}, status=404)
 
     zip_buffer = BytesIO()
-    added += 1
+    added = 0
 
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for student in students:
-            if student.processed_photo:
-                try:
-                    res = requests.get(student.processed_photo, timeout=10)
+            val = student.processed_photo
+            if not val:
+                continue
+
+            clean_name = student.full_name.replace(' ', '_')
+            filename = f"{student.student_id}_{clean_name}.png"
+
+            try:
+                # Case 1: External Cloudinary / HTTP URL
+                if val.startswith('http://') or val.startswith('https://'):
+                    res = requests.get(val, timeout=10)
                     if res.status_code == 200:
-                        clean_name = student.full_name.replace(' ', '_')
-                        filename = f"{student.student_id}_{clean_name}.png"
                         zip_file.writestr(filename, res.content)
-                except Exception as e:
-                    print(f"Skipping student {student.student_id}: {e}")
+                        added += 1  # Increment counter
+
+                # Case 2: Local Development Media Storage
+                else:
+                    file_path = os.path.join(settings.MEDIA_ROOT, val.lstrip('/'))
+                    if os.path.exists(file_path):
+                        zip_file.write(file_path, arcname=filename)
+                        added += 1  # Increment counter
+                    else:
+                        # Fallback to absolute local URI request
+                        full_url = request.build_absolute_uri(settings.MEDIA_URL + val.lstrip('/'))
+                        res = requests.get(full_url, timeout=10)
+                        if res.status_code == 200:
+                            zip_file.writestr(filename, res.content)
+                            added += 1  # Increment counter
+
+            except Exception as e:
+                print(f"Skipping student {student.student_id}: {e}")
 
     if added == 0:
-        return Response({'error': 'No ID card files found on disk'}, status=404)
+        return Response({'error': 'No ID card files found on disk or remote storage'}, status=404)
 
     zip_buffer.seek(0)
     response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
