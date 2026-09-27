@@ -34,7 +34,7 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
   })
 
   return (
-    <div className="px-8 py-7 max-w-3xl">
+    <div className="px-8 py-7 max-w-6xl mx-auto w-full">
       {/* Header */}
       <div className="flex items-end justify-between gap-4 mb-6">
         <div>
@@ -43,7 +43,7 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
             Choose an order to begin designing or continue editing its ID card layout.
           </p>
         </div>
-        <div className="relative shrink-0 w-56">
+        <div className="relative shrink-0 w-64">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             type="text"
@@ -61,15 +61,16 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
         </div>
       )}
 
-      <div className="space-y-3">
+      {/* Responsive 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {filtered.map((order) => (
           <div
             key={order.id}
-            className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 p-5"
+            className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 p-5 flex flex-col justify-between"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
                     #{order.id}
                   </span>
@@ -82,8 +83,8 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
                     {order.status}
                   </span>
                 </div>
-                <h3 className="text-[15px] font-semibold text-gray-900 mb-1">{order.school_name}</h3>
-                <div className="flex items-center gap-4 text-[12px] text-gray-400">
+                <h3 className="text-[15px] font-semibold text-gray-900 mb-1 truncate">{order.school_name}</h3>
+                <div className="flex items-center gap-3 text-[12px] text-gray-400 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Users size={11} />
                     {order.student_count?.toLocaleString()} students
@@ -100,10 +101,12 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
                   )}
                 </div>
               </div>
+            </div>
 
+            <div className="pt-3 border-t border-gray-50 flex justify-end">
               <button
                 onClick={() => onSelect(order)}
-                className="shrink-0 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-200 hover:shadow-md group-hover:scale-105 duration-200"
+                className="shrink-0 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm shadow-blue-200 hover:shadow-md group-hover:scale-105 duration-200"
               >
                 Open Layout
                 <ChevronRight size={14} />

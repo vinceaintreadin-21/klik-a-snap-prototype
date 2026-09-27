@@ -1179,7 +1179,7 @@ function OrderQueue({ onSelect }: { onSelect: (order: any) => void }) {
       </header>
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
-        <div className="max-w-3xl">
+        <div className="max-w-6xl w-full mx-auto">
           <div className="flex items-end justify-between gap-4 mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1">Review Queue</h2>

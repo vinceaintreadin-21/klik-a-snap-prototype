@@ -1,15 +1,34 @@
 import api from "./api";
 import axios from "axios";
-import type { ExportOrder } from "../components/exports/exportTypes";
+import type { ExportOrder, ExportStudent } from "../components/exports/exportTypes";
 
 export async function fetchExportOrders(): Promise<ExportOrder[]> {
-  const response = await api.get<ExportOrder[]>('/api/orders/');
+  const response = await api.get<ExportOrder[]>('/orders/');
   return response.data;
+}
+
+export async function fetchOrderStudents(orderId: string | number): Promise<ExportStudent[]> {
+  // Use existing client so auth headers and base URLs are applied automatically
+  const response = await api.get(`/orders/${orderId}/students/`); 
+  const data = response.data;
+
+  return data.map((student: any) => ({
+    ...student,
+    processed_photo: student.processed_photo_url || student.processed_photo || null,
+    section: student.section || "",
+    processed_photo_back: student.processed_photo_back || null,
+    qr_code_data: student.qr_code_data || null,
+    qr_code_url: student.qr_code_url || null,
+    is_photographed: student.is_photographed ?? true,
+    created_at: student.created_at || "",
+    updated_at: student.updated_at || "",
+    extra_data: student.extra_data || {},
+  }));
 }
 
 export async function downloadOrderZip(orderId: string): Promise<void> {
   try {
-    const response = await api.get(`/api/orders/${orderId}/download-id-cards/`, {
+    const response = await api.get(`orders/${orderId}/id-cards/download/`, {
       responseType: 'blob',
     });
 

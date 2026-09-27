@@ -9,7 +9,7 @@ import OperatorDashboard from './pages/OperatorDashboard';
 import LayoutBuilderPage from './pages/LayoutBuilderPage';
 import BatchUploadPage from './pages/operator/BatchUploadPage';
 import PipelinePage from './pages/operator/PipelinePage';
-import ManualReviewPage from './pages/operator/ManualReviewPage';
+import ManualReviewPage from './pages/ManualReviewPage';
 import OperatorLayout from './components/layout/OperatorLayout';
 import CoordinatorJoin from './pages/CoordinatorJoin';
 import Operators from './pages/Operators';
@@ -24,6 +24,7 @@ import KlikASnapRoadmap from './pages/RoadMap';
 import AdminLayout from './components/layout/AdminLayout';
 import AccountActivate from './pages/AccountActivate';
 import ProofingPage from './pages/ProofingPage';
+import { ExportView } from './pages/ExportView';
 
 import './App.css';
 
@@ -74,19 +75,19 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-      <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-      </div>
-      <p className="text-[16px] font-semibold text-gray-700">{label}</p>
-      <p className="text-[13px] text-gray-400">This page is coming soon.</p>
-    </div>
-  )
-}
+// function ComingSoon({ label }: { label: string }) {
+//   return (
+//     <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
+//       <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+//         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
+//           <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+//         </svg>
+//       </div>
+//       <p className="text-[16px] font-semibold text-gray-700">{label}</p>
+//       <p className="text-[13px] text-gray-400">This page is coming soon.</p>
+//     </div>
+//   )
+// }
 
 function App() {
   return (
@@ -134,7 +135,7 @@ function App() {
                       <Route path="pipeline"       element={<PipelinePage />} />
                       <Route path="manual-review"  element={<ManualReviewPage />} />
                       <Route path="proofing"       element={<ProofingPage />} />
-                      <Route path="export"         element={<ComingSoon label="Export" />} />
+                      <Route path="export"         element={<ExportView />} />
                       <Route path="*"              element={<Navigate to="/operator/dashboard" replace />} />
                     </Routes>
                   </OperatorLayout>
