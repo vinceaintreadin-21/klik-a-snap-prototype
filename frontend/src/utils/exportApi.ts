@@ -1,6 +1,6 @@
 import api from "./api";
 import axios from "axios";
-import type { ExportOrder, ExportStudent } from "../components/exports/exportTypes";
+import type { ExportOrder, ExportStudent } from "../components/operator/exports/exportTypes";
 
 export async function fetchExportOrders(): Promise<ExportOrder[]> {
   const response = await api.get<ExportOrder[]>('/orders/');
@@ -9,7 +9,7 @@ export async function fetchExportOrders(): Promise<ExportOrder[]> {
 
 export async function fetchOrderStudents(orderId: string | number): Promise<ExportStudent[]> {
   // Use existing client so auth headers and base URLs are applied automatically
-  const response = await api.get(`/orders/${orderId}/students/`); 
+  const response = await api.get(`/orders/${orderId}/students/`);
   const data = response.data;
 
   return data.map((student: any) => ({

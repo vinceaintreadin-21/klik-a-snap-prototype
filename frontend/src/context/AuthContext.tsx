@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from '../utils/api';
 import { clearTokens, getAccessToken, getRefreshToken, storeTokens } from '../utils/jwt';
 import { useIdleLogout } from '../hooks/useIdleLogout';
-import SessionTimeoutModal from '../components/SessionTimeoutModal';
+import SessionTimeoutModal from '../components/shared/SessionTimeoutModal';
 
 interface User {
   id: number;
