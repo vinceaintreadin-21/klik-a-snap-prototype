@@ -1,9 +1,8 @@
 {
-    "workbench.colorTheme": "Monospace IDX Dark",
+    "workbench.colorTheme": "Dark (Molokai)",
     "python.defaultInterpreterPath": "./backend/venv/bin/python",
     "python.analysis.extraPaths": [
         "./backend"
     ],
     "files.autoSave": "afterDelay"
-    
 }
