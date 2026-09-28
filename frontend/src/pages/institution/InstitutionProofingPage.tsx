@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
     ChevronRight, CreditCard, CheckCircle2, RotateCcw,
     ArrowLeft, Check,
@@ -23,7 +22,6 @@ interface ProofStudent {
 }
 
 export default function InstitutionProofingPage() {
-    const navigate = useNavigate()
     const { orders } = useOrders()
 
     // Proofing orders = those in PROOFING status
