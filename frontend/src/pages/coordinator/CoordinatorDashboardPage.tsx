@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, Clock, UserPlus, Search, Camera, Check } from 'lucide-react'
-import { cn } from '../../lib/utils'
 import api from '../../utils/api'
 import toast from 'react-hot-toast'
-import { useAuth } from '../../context/AuthContext'
 import CoordQRModal from '../../components/coordinator/CoordQRModal'
 import type { CoordStudent, CoordOrder } from '../../components/coordinator/coordinatorTypes'
 import { getInitials, getHue } from '../../components/coordinator/coordinatorTypes'
@@ -21,7 +19,6 @@ function Avatar({ name, id, size = 36 }: { name: string; id: number; size?: numb
 
 export default function CoordinatorDashboardPage() {
     const navigate = useNavigate()
-    const { user } = useAuth()
     const [orders, setOrders] = useState<CoordOrder[]>([])
     const [selectedOrder, setSelectedOrder] = useState<number | null>(null)
     const [students, setStudents] = useState<CoordStudent[]>([])
