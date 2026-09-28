@@ -5,6 +5,12 @@ import { OrderProvider } from './context/OrderContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ClientDashboard from './pages/ClientDashboard';
+import InstitutionLayout from './components/layout/InstitutionLayout';
+import InstitutionDashboardPage from './pages/institution/InstitutionDashboardPage';
+import InstitutionOrdersPage from './pages/institution/InstitutionOrdersPage';
+import InstitutionCoordinatorsPage from './pages/institution/InstitutionCoordinatorsPage';
+import InstitutionProofingPage from './pages/institution/InstitutionProofingPage';
+import NewOrderPage from './pages/institution/NewOrderPage';
 import OperatorDashboard from './pages/OperatorDashboard';
 import LayoutBuilderPage from './pages/LayoutBuilderPage';
 import BatchUploadPage from './pages/operator/BatchUploadPage';
@@ -30,7 +36,7 @@ import './App.css';
 
 const RootRedirect = () => {
   const { user } = useAuth();
-  if (user?.role === 'ADMIN')    return <Navigate to="/admin/dashboard" replace />;
+  if (user?.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
   if (user?.role === 'OPERATOR') return <Navigate to="/operator/dashboard" replace />;
   return <Navigate to="/client/dashboard" replace />;
 };
@@ -89,13 +95,42 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 //   )
 // }
 
+// Routes INSTITUTION users through the full InstitutionLayout with sub-pages.
+// COORDINATOR users keep their existing lightweight view without the sidebar.
+function ClientLayoutRouter() {
+  const { user } = useAuth()
+
+  if (user?.role === 'COORDINATOR') {
+    return (
+      <Routes>
+        <Route path="dashboard" element={<ClientDashboard />} />
+        <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
+      </Routes>
+    )
+  }
+
+  // INSTITUTION role — full sidebar layout with sub-page routing
+  return (
+    <InstitutionLayout>
+      <Routes>
+        <Route path="dashboard" element={<InstitutionDashboardPage />} />
+        <Route path="orders" element={<InstitutionOrdersPage />} />
+        <Route path="orders/new" element={<NewOrderPage />} />
+        <Route path="coordinators" element={<InstitutionCoordinatorsPage />} />
+        <Route path="proofing" element={<InstitutionProofingPage />} />
+        <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
+      </Routes>
+    </InstitutionLayout>
+  )
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
           {/* Public */}
-          <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
           {/* Coordinator invite — fully public, no auth guard */}
@@ -106,16 +141,13 @@ function App() {
           {/* Root */}
           <Route path="/" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />
 
-          {/* Client (INSTITUTION / COORDINATOR) */}
+          {/* Client — INSTITUTION gets the full InstitutionLayout; COORDINATOR gets its own lightweight view */}
           <Route
             path="/client/*"
             element={
               <ClientRoute>
                 <OrderProvider>
-                  <Routes>
-                    <Route path="dashboard" element={<ClientDashboard />} />
-                    <Route path="*"         element={<Navigate to="/client/dashboard" replace />} />
-                  </Routes>
+                  <ClientLayoutRouter />
                 </OrderProvider>
               </ClientRoute>
             }
@@ -129,14 +161,14 @@ function App() {
                 <OrderProvider>
                   <OperatorLayout>
                     <Routes>
-                      <Route path="dashboard"      element={<OperatorDashboard />} />
+                      <Route path="dashboard" element={<OperatorDashboard />} />
                       <Route path="layout-builder" element={<LayoutBuilderPage />} />
-                      <Route path="batch-upload"   element={<BatchUploadPage />} />
-                      <Route path="pipeline"       element={<PipelinePage />} />
-                      <Route path="manual-review"  element={<ManualReviewPage />} />
-                      <Route path="proofing"       element={<ProofingPage />} />
-                      <Route path="export"         element={<ExportView />} />
-                      <Route path="*"              element={<Navigate to="/operator/dashboard" replace />} />
+                      <Route path="batch-upload" element={<BatchUploadPage />} />
+                      <Route path="pipeline" element={<PipelinePage />} />
+                      <Route path="manual-review" element={<ManualReviewPage />} />
+                      <Route path="proofing" element={<ProofingPage />} />
+                      <Route path="export" element={<ExportView />} />
+                      <Route path="*" element={<Navigate to="/operator/dashboard" replace />} />
                     </Routes>
                   </OperatorLayout>
                 </OrderProvider>
@@ -151,15 +183,15 @@ function App() {
               <AdminRoute>
                 <AdminLayout>
                   <Routes>
-                    <Route path="dashboard"    element={<AdminDashboard />} />
-                    <Route path="orders"       element={<AdminOrders />} />
+                    <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="orders" element={<AdminOrders />} />
                     <Route path="institutions" element={<InstitutionsPage />} />
-                    <Route path="operators"    element={<Operators />} />
-                    <Route path="analytics"        element={<Analytics />} />
-                    <Route path="logs/processing"  element={<ProcessingLogsPage />} />
-                    <Route path="logs/audit"       element={<AuditLogPage />} />
-                    <Route path="logs"             element={<Navigate to="/admin/logs/processing" replace />} />
-                    <Route path="*"            element={<Navigate to="/admin/dashboard" replace />} />
+                    <Route path="operators" element={<Operators />} />
+                    <Route path="analytics" element={<Analytics />} />
+                    <Route path="logs/processing" element={<ProcessingLogsPage />} />
+                    <Route path="logs/audit" element={<AuditLogPage />} />
+                    <Route path="logs" element={<Navigate to="/admin/logs/processing" replace />} />
+                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                   </Routes>
                 </AdminLayout>
               </AdminRoute>
@@ -168,7 +200,7 @@ function App() {
 
           {/* Misc */}
           <Route path="/operator/dashboard/reference" element={<DashboardReference />} />
-          <Route path="/dashboard/roadmap"            element={<KlikASnapRoadmap />} />
+          <Route path="/dashboard/roadmap" element={<KlikASnapRoadmap />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
