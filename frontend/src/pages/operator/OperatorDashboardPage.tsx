@@ -9,12 +9,12 @@ import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../context/OrderContext'
 import api from '../../utils/api'
 import {
-  CheckCircle2,  AlertTriangle, Loader2,
+  CheckCircle2, AlertTriangle, Loader2,
   LayoutTemplate, Upload, GitBranch, ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import LayoutConfigModal from '../../components/LayoutConfigModal'
-import UploadPhotosModal from '../../components/UploadPhotosModal'
+import LayoutConfigModal from '../../components/operator/LayoutConfigModal'
+import UploadPhotosModal from '../../components/operator/UploadPhotosModal'
 import ManualReviewQueueModal from '../../components/ManualReviewQueueModal'
 import GenerateTestPhotosButton from '../../components/GenerateTestPhotosButton'
 
@@ -52,13 +52,13 @@ function StatCard({
 // ── Status badge ──────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  PENDING:    { bg: 'bg-amber-50',   text: 'text-amber-700'   },
-  PROCESSING: { bg: 'bg-blue-50',    text: 'text-blue-700'    },
-  PROOFING:   { bg: 'bg-purple-50',  text: 'text-purple-700'  },
-  APPROVED:   { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  PRINTING:   { bg: 'bg-orange-50',  text: 'text-orange-700'  },
-  COMPLETED:  { bg: 'bg-green-50',   text: 'text-green-700'   },
-  FAILED:     { bg: 'bg-red-50',     text: 'text-red-700'     },
+  PENDING: { bg: 'bg-amber-50', text: 'text-amber-700' },
+  PROCESSING: { bg: 'bg-blue-50', text: 'text-blue-700' },
+  PROOFING: { bg: 'bg-purple-50', text: 'text-purple-700' },
+  APPROVED: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  PRINTING: { bg: 'bg-orange-50', text: 'text-orange-700' },
+  COMPLETED: { bg: 'bg-green-50', text: 'text-green-700' },
+  FAILED: { bg: 'bg-red-50', text: 'text-red-700' },
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -77,11 +77,11 @@ export default function OperatorDashboardPage() {
   const { user } = useAuth()
   const { orders, progress, updateStatus, connectOrderSocket } = useOrders()
 
-  const [selectedOrderId,  setSelectedOrderId]  = useState<number | null>(null)
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false)
-  const [uploadModalOrder,  setUploadModalOrder]  = useState<any | null>(null)
-  const [reviewOrder,       setReviewOrder]       = useState<any | null>(null)
-  const [ordersWithLayout,  setOrdersWithLayout]  = useState<Set<number>>(new Set())
+  const [uploadModalOrder, setUploadModalOrder] = useState<any | null>(null)
+  const [reviewOrder, setReviewOrder] = useState<any | null>(null)
+  const [ordersWithLayout, setOrdersWithLayout] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     orders.forEach(async (order) => {
@@ -146,10 +146,10 @@ export default function OperatorDashboardPage() {
   }
 
   // Stats derived from live orders
-  const totalOrders     = orders.length
-  const inProgress      = orders.filter(o => o.status === 'PROCESSING').length
+  const totalOrders = orders.length
+  const inProgress = orders.filter(o => o.status === 'PROCESSING').length
   const needsReviewTotal = Object.values(progress).reduce((sum, p) => sum + (p.manual_review || 0), 0)
-  const completed       = orders.filter(o => o.status === 'COMPLETED').length
+  const completed = orders.filter(o => o.status === 'COMPLETED').length
 
   return (
     <div className="p-8 space-y-6 max-w-[1400px]">
@@ -196,10 +196,10 @@ export default function OperatorDashboardPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { icon: LayoutTemplate, label: 'Layout Builder',  path: '/operator/layout-builder', color: 'text-blue-600',   bg: 'bg-blue-50'   },
-          { icon: Upload,         label: 'Batch Upload',    path: '/operator/batch-upload',   color: 'text-green-600',  bg: 'bg-green-50'  },
-          { icon: GitBranch,      label: 'View Pipeline',   path: '/operator/pipeline',       color: 'text-purple-600', bg: 'bg-purple-50' },
-          { icon: ClipboardCheck, label: 'Manual Review',   path: '/operator/manual-review',  color: 'text-red-600',    bg: 'bg-red-50'    },
+          { icon: LayoutTemplate, label: 'Layout Builder', path: '/operator/layout-builder', color: 'text-blue-600', bg: 'bg-blue-50' },
+          { icon: Upload, label: 'Batch Upload', path: '/operator/batch-upload', color: 'text-green-600', bg: 'bg-green-50' },
+          { icon: GitBranch, label: 'View Pipeline', path: '/operator/pipeline', color: 'text-purple-600', bg: 'bg-purple-50' },
+          { icon: ClipboardCheck, label: 'Manual Review', path: '/operator/manual-review', color: 'text-red-600', bg: 'bg-red-50' },
         ].map(item => (
           <button
             key={item.label}
@@ -352,7 +352,7 @@ export default function OperatorDashboardPage() {
         <ManualReviewQueueModal
           order={reviewOrder}
           onClose={() => setReviewOrder(null)}
-          onSuccess={() => {}}
+          onSuccess={() => { }}
         />
       )}
     </div>

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import api from "../utils/api";
-import { DEFAULT_CROP } from "../components/proofing/StatusConfig";
-import type { CropBox, RevisionStudent } from "../components/proofing/proofingTypes";
+import { DEFAULT_CROP } from "../components/operator/proofing/StatusConfig";
+import type { CropBox, RevisionStudent } from "../components/operator/proofing/proofingTypes";
 
 export function useRevisionQueue(orderId: number) {
     const [loading, setLoading] = useState(true);

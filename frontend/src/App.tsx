@@ -19,26 +19,26 @@ import CoordinatorStudentsPage from './pages/coordinator/CoordinatorStudentsPage
 import CoordinatorQuickAddPage from './pages/coordinator/CoordinatorQuickAddPage';
 import CoordinatorProofingPage from './pages/coordinator/CoordinatorProofingPage';
 // Operator
-import OperatorDashboard from './pages/OperatorDashboard';
-import LayoutBuilderPage from './pages/LayoutBuilderPage';
+import OperatorDashboard from './pages/operator/OperatorDashboard';
+import LayoutBuilderPage from './pages/operator/LayoutBuilderPage';
 import BatchUploadPage from './pages/operator/BatchUploadPage';
 import PipelinePage from './pages/operator/PipelinePage';
-import ManualReviewPage from './pages/ManualReviewPage';
+import ManualReviewPage from './pages/operator/ManualReviewPage';
 import OperatorLayout from './components/layout/OperatorLayout';
 import CoordinatorJoin from './pages/CoordinatorJoin';
-import Operators from './pages/Operators';
-import InstitutionsPage from './pages/InstitutionsPage';
-import DashboardReference from './pages/DashboardReference';
-import Analytics from './pages/Analytics';
-import ProcessingLogsPage from './pages/ProcessingLogsPage';
-import AuditLogPage from './pages/AuditLogPage';
-import AdminOrders from './pages/AdminOrders';
-import AdminDashboard from './pages/AdminDashboard';
-import KlikASnapRoadmap from './pages/RoadMap';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminOrders from './pages/admin/AdminOrders';
+import InstitutionsPage from './pages/admin/InstitutionsPage';
+import Operators from './pages/admin/Operators';
+import Analytics from './pages/admin/Analytics';
+import ProcessingLogsPage from './pages/admin/ProcessingLogsPage';
+import AuditLogPage from './pages/admin/AuditLogPage';
+import DashboardReference from './pages/_unused/DashboardReference';
+import KlikASnapRoadmap from './pages/_unused/RoadMap';
 import AdminLayout from './components/layout/AdminLayout';
 import AccountActivate from './pages/AccountActivate';
-import ProofingPage from './pages/ProofingPage';
-import { ExportView } from './pages/ExportView';
+import ProofingPage from './pages/operator/ProofingPage';
+import { ExportView } from './pages/operator/ExportView';
 
 import './App.css';
 
