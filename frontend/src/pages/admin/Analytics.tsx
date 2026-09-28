@@ -12,10 +12,10 @@ import {
   useOrdersPerMonth,
   useManualReviewRate,
   useAvgTurnaround,
-} from '../hooks/useAnalytics'
-import { useAdminOrders } from '../hooks/useAdminOrders'
-import { useOperators } from '../hooks/useOperators'
-import { cn } from '../lib/utils'
+} from '../../hooks/useAnalytics'
+import { useAdminOrders } from '../../hooks/useAdminOrders'
+import { useOperators } from '../../hooks/useOperators'
+import { cn } from '../../lib/utils'
 
 // ── Stat card ──────────────────────────────────────────────────────────────────
 

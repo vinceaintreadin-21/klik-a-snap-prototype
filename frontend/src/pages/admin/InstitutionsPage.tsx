@@ -10,8 +10,8 @@ import {
   useInstitutions,
   useCreateInstitution,
   useUpdateInstitution,
-} from '../hooks/useInstitutions'
-import { cn } from '../lib/utils'
+} from '../../hooks/useInstitutions'
+import { cn } from '../../lib/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

@@ -4,12 +4,9 @@ import {
   ChevronRight, ChevronLeft, SlidersHorizontal,
   ChevronDown, CalendarDays, RefreshCw,
 } from 'lucide-react'
-import { useAuditLogs } from '../hooks/useLogs'
-import { cn } from '../lib/utils'
-import {
-  logInitials, logAvatarStyle, fmtDate,
-  actionColor, moduleBadge, LOG_PER_PAGE,
-} from '../lib/logUtils'
+import { useAuditLogs } from '../../hooks/useLogs'
+import { cn } from '../../lib/utils'
+import { logInitials, logAvatarStyle, fmtDate,actionColor, moduleBadge, LOG_PER_PAGE, } from '../../lib/logUtils'
 
 // ── Pager ──────────────────────────────────────────────────────────────────────
 

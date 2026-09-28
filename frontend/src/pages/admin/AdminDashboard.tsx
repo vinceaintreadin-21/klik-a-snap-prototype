@@ -8,9 +8,9 @@ import {
   ComposedChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts'
-import { useAnalyticsOverview, useOrdersPerMonth, useManualReviewRate } from '../hooks/useAnalytics'
-import { useAdminOrders } from '../hooks/useAdminOrders'
-import { cn } from '../lib/utils'
+import { useAnalyticsOverview, useOrdersPerMonth, useManualReviewRate } from '../../hooks/useAnalytics'
+import { useAdminOrders } from '../../hooks/useAdminOrders'
+import { cn } from '../../lib/utils'
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
