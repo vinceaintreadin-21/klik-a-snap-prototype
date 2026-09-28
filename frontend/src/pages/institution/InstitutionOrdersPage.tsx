@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
     ChevronRight, ChevronDown, ChevronLeft, Search,
-    Filter, Eye, Pencil, QrCode, ClipboardList,
+     Eye, QrCode, ClipboardList,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useOrders } from '../../context/OrderContext'
@@ -27,7 +26,6 @@ function ProgressBar({ pct, label }: { pct: number; label: string }) {
 }
 
 export default function InstitutionOrdersPage() {
-    const navigate = useNavigate()
     const { orders, progress } = useOrders()
     const [statusFilter, setStatusFilter] = useState('All Statuses')
     const [search, setSearch] = useState('')

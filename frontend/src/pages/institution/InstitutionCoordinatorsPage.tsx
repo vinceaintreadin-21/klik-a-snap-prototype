@@ -3,7 +3,6 @@ import {
     ChevronRight, ChevronDown, Search, Plus, Eye, Send,
     MoreVertical, Users,
 } from 'lucide-react'
-import { cn } from '../../lib/utils'
 import { LINK_STATUS_CFG } from '../../components/institutions/institutionTypes'
 import GenerateCoordinatorModal from '../../components/institutions/GenerateCoordinatorModal'
 import api from '../../utils/api'

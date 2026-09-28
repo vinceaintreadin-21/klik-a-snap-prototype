@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-    ChevronRight, ChevronLeft, ArrowLeft, Upload, CheckCircle2,
+    ChevronRight, ArrowLeft, Upload, CheckCircle2,
     FileText, Info, AlertCircle, Check, QrCode, Download,
     Loader2, X,
 } from 'lucide-react'
