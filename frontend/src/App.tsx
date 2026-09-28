@@ -4,13 +4,21 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { OrderProvider } from './context/OrderContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ClientDashboard from './pages/ClientDashboard';
+// Institution
 import InstitutionLayout from './components/layout/InstitutionLayout';
 import InstitutionDashboardPage from './pages/institution/InstitutionDashboardPage';
 import InstitutionOrdersPage from './pages/institution/InstitutionOrdersPage';
 import InstitutionCoordinatorsPage from './pages/institution/InstitutionCoordinatorsPage';
 import InstitutionProofingPage from './pages/institution/InstitutionProofingPage';
 import NewOrderPage from './pages/institution/NewOrderPage';
+// Coordinator
+import CoordinatorLayout from './components/layout/CoordinatorLayout';
+import CoordinatorDashboardPage from './pages/coordinator/CoordinatorDashboardPage';
+import CoordinatorLookupPage from './pages/coordinator/CoordinatorLookupPage';
+import CoordinatorStudentsPage from './pages/coordinator/CoordinatorStudentsPage';
+import CoordinatorQuickAddPage from './pages/coordinator/CoordinatorQuickAddPage';
+import CoordinatorProofingPage from './pages/coordinator/CoordinatorProofingPage';
+// Operator
 import OperatorDashboard from './pages/OperatorDashboard';
 import LayoutBuilderPage from './pages/LayoutBuilderPage';
 import BatchUploadPage from './pages/operator/BatchUploadPage';
@@ -38,6 +46,7 @@ const RootRedirect = () => {
   const { user } = useAuth();
   if (user?.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
   if (user?.role === 'OPERATOR') return <Navigate to="/operator/dashboard" replace />;
+  if (user?.role === 'COORDINATOR') return <Navigate to="/coordinator/dashboard" replace />;
   return <Navigate to="/client/dashboard" replace />;
 };
 
@@ -81,6 +90,14 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const CoordinatorRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading session...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'COORDINATOR') return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 // function ComingSoon({ label }: { label: string }) {
 //   return (
 //     <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
@@ -96,17 +113,14 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 // }
 
 // Routes INSTITUTION users through the full InstitutionLayout with sub-pages.
-// COORDINATOR users keep their existing lightweight view without the sidebar.
+// COORDINATOR users now have their own /coordinator/* route tree, so this
+// router only needs to handle the INSTITUTION role.
 function ClientLayoutRouter() {
   const { user } = useAuth()
 
   if (user?.role === 'COORDINATOR') {
-    return (
-      <Routes>
-        <Route path="dashboard" element={<ClientDashboard />} />
-        <Route path="*" element={<Navigate to="/client/dashboard" replace />} />
-      </Routes>
-    )
+    // COORDINATOR landed at /client/* — redirect to their canonical space
+    return <Navigate to="/coordinator/dashboard" replace />
   }
 
   // INSTITUTION role — full sidebar layout with sub-page routing
@@ -141,7 +155,7 @@ function App() {
           {/* Root */}
           <Route path="/" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />
 
-          {/* Client — INSTITUTION gets the full InstitutionLayout; COORDINATOR gets its own lightweight view */}
+          {/* Client — INSTITUTION gets the full InstitutionLayout; COORDINATOR redirects to /coordinator/* */}
           <Route
             path="/client/*"
             element={
@@ -150,6 +164,27 @@ function App() {
                   <ClientLayoutRouter />
                 </OrderProvider>
               </ClientRoute>
+            }
+          />
+
+          {/* Coordinator — full sidebar layout with its own route tree */}
+          <Route
+            path="/coordinator/*"
+            element={
+              <CoordinatorRoute>
+                <OrderProvider>
+                  <CoordinatorLayout>
+                    <Routes>
+                      <Route path="dashboard" element={<CoordinatorDashboardPage />} />
+                      <Route path="lookup" element={<CoordinatorLookupPage />} />
+                      <Route path="students" element={<CoordinatorStudentsPage />} />
+                      <Route path="quick-add" element={<CoordinatorQuickAddPage />} />
+                      <Route path="proofing" element={<CoordinatorProofingPage />} />
+                      <Route path="*" element={<Navigate to="/coordinator/dashboard" replace />} />
+                    </Routes>
+                  </CoordinatorLayout>
+                </OrderProvider>
+              </CoordinatorRoute>
             }
           />
 
