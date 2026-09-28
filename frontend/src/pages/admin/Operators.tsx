@@ -11,9 +11,9 @@ import {
   useDeleteOperator,
   useCreateOperator,
   useResetPassword,
-} from '../hooks/useOperators'
-import type { Operator } from '../hooks/useOperators'
-import { cn } from '../lib/utils'
+} from '../../hooks/useOperators'
+import type { Operator } from '../../hooks/useOperators'
+import { cn } from '../../lib/utils'
 
 // ── Status config ──────────────────────────────────────────────────────────────
 

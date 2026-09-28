@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStudentsForOrder, useManualLinkPhoto } from '../hooks/useUploadPhotos'
+import { useStudentsForOrder, useManualLinkPhoto } from '../../hooks/useUploadPhotos';
 
 interface Props {
     order: { id: number; school_name: string; batch_name: string }

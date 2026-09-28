@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { ChevronRight, Users, Calendar, Search, AlertTriangle } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { useOrders } from "../../context/OrderContext";
+import { cn } from "../../../lib/utils";
+import { useOrders } from "../../../context/OrderContext";
 import { STATUS_CONFIG } from "./StatusConfig";
 import type { OperatorOrder, OperatorOrderStatus } from "./proofingTypes";
 

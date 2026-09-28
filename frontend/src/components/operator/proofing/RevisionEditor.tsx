@@ -1,6 +1,6 @@
 import { ChevronLeft, AlertTriangle, MessageSquare, Crop as CropIcon, Upload, Check, Loader2 } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { useRevisionQueue } from "../../hooks/useRevisionQueue";
+import { cn } from "../../../lib/utils";
+import { useRevisionQueue } from "../../../hooks/useRevisionQueue";
 import RevisionCropOverlay from "./RevisionCropOverlay";
 import { HUES } from "./StatusConfig";
 import type { OperatorOrder } from "./proofingTypes";

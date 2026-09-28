@@ -4,15 +4,15 @@ import {
   Search, ChevronDown, ChevronRight, List, LayoutGrid,
   CalendarDays, RefreshCw,
 } from 'lucide-react'
-import { useAdminOrders } from '../hooks/useAdminOrders'
-import { useInstitutions } from '../hooks/useInstitutions'
-import type { OrderFilters } from '../hooks/useAdminOrders'
-import AdminOrderTable from '../components/admin-orders/AdminOrderTable'
-import AdminOrderStatusBadge from '../components/admin-orders/AdminOrderStatusBadge'
-import AssignOperatorModal from '../components/admin-orders/AssignOperatorModal'
-import OverrideStatusModal from '../components/admin-orders/OverrideStatusModal'
-import { cn } from '../lib/utils'
-import type { AdminOrder } from '../hooks/useAdminOrders'
+import { useAdminOrders } from '../../hooks/useAdminOrders'
+import { useInstitutions } from '../../hooks/useInstitutions'
+import type { OrderFilters } from '../../hooks/useAdminOrders'
+import AdminOrderTable from '../../components/admin-orders/AdminOrderTable'
+import AdminOrderStatusBadge from '../../components/admin-orders/AdminOrderStatusBadge'
+import AssignOperatorModal from '../../components/admin-orders/AssignOperatorModal'
+import OverrideStatusModal from '../../components/admin-orders/OverrideStatusModal'
+import { cn } from '../../lib/utils'
+import type { AdminOrder } from '../../hooks/useAdminOrders'
 
 const ORDER_STATUSES = ['PENDING', 'PROCESSING', 'PROOFING', 'APPROVED', 'PRINTING', 'COMPLETED', 'CANCELLED']
 

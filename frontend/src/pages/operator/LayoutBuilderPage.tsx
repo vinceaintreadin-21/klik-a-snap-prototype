@@ -8,10 +8,10 @@ import {
   ChevronUp, ChevronDown, Lock, Layers,
   LayoutTemplate, ArrowLeft,
 } from 'lucide-react'
-import { useOrders } from '../context/OrderContext'
-import { useLayoutConfig } from '../hooks/useLayoutConfig'
-import type { ElementKey } from '../hooks/useLayoutConfig'
-import { cn } from '../lib/utils'
+import { useOrders } from '../../context/OrderContext'
+import { useLayoutConfig } from '../../hooks/useLayoutConfig'
+import type { ElementKey } from '../../hooks/useLayoutConfig'
+import { cn } from '../../lib/utils'
 
 // ── Order selection ────────────────────────────────────────────────────────────
 

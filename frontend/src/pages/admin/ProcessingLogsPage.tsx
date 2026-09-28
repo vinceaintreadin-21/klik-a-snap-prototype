@@ -4,12 +4,12 @@ import {
   ChevronRight, ChevronLeft, SlidersHorizontal,
   ChevronDown, CalendarDays, RefreshCw,
 } from 'lucide-react'
-import { useProcessingLogs } from '../hooks/useLogs'
-import { cn } from '../lib/utils'
+import { useProcessingLogs } from '../../hooks/useLogs'
+import { cn } from '../../lib/utils'
 import {
   logInitials, logAvatarStyle, fmtDate,
   LEVEL_CFG, LOG_PER_PAGE,
-} from '../lib/logUtils'
+} from '../../lib/logUtils'
 
 // ── Pager ──────────────────────────────────────────────────────────────────────
 
