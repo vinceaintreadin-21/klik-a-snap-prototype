@@ -15,8 +15,8 @@ import {
 import { cn } from '../../lib/utils'
 import LayoutConfigModal from '../../components/operator/LayoutConfigModal'
 import UploadPhotosModal from '../../components/operator/UploadPhotosModal'
-import ManualReviewQueueModal from '../../components/ManualReviewQueueModal'
-import GenerateTestPhotosButton from '../../components/GenerateTestPhotosButton'
+import ManualReviewQueueModal from '../../components/operator/ManualReviewQueueModal'
+import GenerateTestPhotosButton from '../../components/operator/GenerateTestPhotosButton'
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 

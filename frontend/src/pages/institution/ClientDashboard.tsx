@@ -6,9 +6,9 @@
  * so this component only needs to dispatch to CoordinatorDashboard.
  * The institution routing is done fully in App.tsx via <InstitutionLayout>.
  */
-import { useAuth } from '../context/AuthContext'
-import CoordinatorDashboard from './CoordinatorDashboard'
-import InstitutionDashboardPage from './institution/InstitutionDashboardPage'
+import { useAuth } from '../../context/AuthContext'
+import CoordinatorDashboard from '../coordinator/CoordinatorDashboard'
+import InstitutionDashboardPage from './InstitutionDashboardPage'
 
 const ClientDashboard = () => {
   const { user } = useAuth()
