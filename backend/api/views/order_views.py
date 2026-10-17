@@ -141,12 +141,17 @@ def _create_order(request):
         except json.JSONDecodeError:
             return Response({'error': 'Invalid JSON format'}, status=400)
 
-        school_name = data.get('school_name')
-        batch_name = data.get('batch_name')
-        students = data.get('students', [])
+        # Accept both field name conventions
+        school_name = data.get('school_name') or data.get('batch_name', '')
+        batch_name  = data.get('batch_name', '')
+        students    = data.get('students', [])
 
-        if not school_name or not batch_name:
-            return Response({'error': 'Missing school/batch name'}, status=400)
+        if not batch_name:
+            return Response({'error': 'Missing batch name'}, status=400)
+
+        # Fall back to batch_name when school_name is absent
+        if not school_name:
+            school_name = batch_name
 
         if not isinstance(students, list) or len(students) == 0:
             return Response({'error': 'Student list is empty'}, status=400)
