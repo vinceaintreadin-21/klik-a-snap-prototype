@@ -88,8 +88,32 @@ export default function NewOrderPage() {
             const res = await api.post('/orders/parse-file/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             })
-            const rows: ParsedStudent[] = res.data?.students ?? res.data ?? []
-            setParsedRows(rows)
+
+            // 1. Extract array from res.data.rows
+            const rawRows: any[] = res.data?.rows ?? []
+
+            // 2. Map and generate validation errors for each student row
+            const mappedRows: ParsedStudent[] = rawRows.map((item, index) => {
+                const errors: string[] = []
+
+                if (!item.name || item.name.trim() === '') {
+                    errors.push('Missing student name')
+                }
+                if (!item.student_id || item.student_id.trim() === '') {
+                    errors.push('Missing student ID')
+                }
+
+                return {
+                    row: index + 1,
+                    student_id: item.student_id || '',
+                    name: item.name || '',
+                    grade: item.grade || '',
+                    extra: item.extra_fields || {},
+                    errors: errors,
+                }
+            })
+
+            setParsedRows(mappedRows)
             setStep(2)
         } catch (err: any) {
             setParseError(err.response?.data?.error || 'Failed to parse file. Please check the format.')
@@ -97,18 +121,25 @@ export default function NewOrderPage() {
             setParsing(false)
         }
     }
-
     // ── Step 2: create order ──────────────────────────────────────────────────
 
     const handleCreateOrder = async () => {
-        if (!file || !batchName.trim() || errorRows.length > 0) return
+        if (!batchName.trim() || errorRows.length > 0 || validRows.length === 0) return
         setCreatingOrder(true)
         try {
-            const formData = new FormData()
-            formData.append('batch_name', batchName.trim())
-            formData.append('file', file)
-            const res = await api.post('/orders/', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+            // Send the already-parsed student list as JSON — the file was
+            // already decoded in step 1 via /orders/parse-file/, so we don't
+            // need to re-upload it here. Sending raw binary multipart to a
+            // JSON-parsing endpoint causes the utf-8 codec error.
+            const res = await api.post('/orders/', {
+                batch_name: batchName.trim(),
+                school_name: batchName.trim(),   // institution's name is resolved server-side
+                students: validRows.map((r) => ({
+                    name: r.name,
+                    student_id: r.student_id,
+                    grade: r.grade ?? '',
+                    section: '',
+                })),
             })
             const order = res.data?.order ?? res.data
             setCreatedOrder(order)
