@@ -1,5 +1,5 @@
 import { Download, Eye, ChevronRight, Users, CheckCircle2, AlertTriangle, Calendar, Lock } from "lucide-react";
-import { type ExportOrder, isExportEnabled, getDisabledReason, getOrderStatus, getInstitutionName, getBatchRef, getStudentTotalCount, } from "./exportTypes";
+import { type ExportOrder, isExportEnabled, getDisabledReason, getOrderStatus, getInstitutionName, getBatchRef, getSubjectTotalCount, } from "./exportTypes";
 import { cn } from "../../../lib/utils";
 
 interface OrderCardProps {
@@ -21,11 +21,11 @@ export function OrderCard({ order, onSelect }: OrderCardProps) {
 
   const schoolName = getInstitutionName(order);
   const batchRef = getBatchRef(order);
-  const totalStudents = getStudentTotalCount(order);
+  const totalSubjects = getSubjectTotalCount(order);
 
-  const students = order.students || [];
-  const processedCount = students.filter((s) => s.photo_status === "PROCESSED").length;
-  const manualCount = students.filter((s) => s.photo_status === "MANUAL_REVIEW").length;
+  const subjects = order.students || [];
+  const processedCount = subjects.filter((s) => s.photo_status === "PROCESSED").length;
+  const manualCount = subjects.filter((s) => s.photo_status === "MANUAL_REVIEW").length;
   const disabledReason = getDisabledReason(status);
 
   return (
@@ -50,8 +50,8 @@ export function OrderCard({ order, onSelect }: OrderCardProps) {
 
           <h3 className="text-base font-semibold text-gray-900 mb-1">{schoolName}</h3>
           <div className="flex items-center gap-4 text-[12px] text-gray-400 flex-wrap">
-            <span className="flex items-center gap-1"><Users size={11} />{totalStudents} students</span>
-            {students.length > 0 && (
+            <span className="flex items-center gap-1"><Users size={11} />{totalSubjects} subjects</span>
+            {subjects.length > 0 && (
               <>
                 <span className="flex items-center gap-1 text-emerald-600 font-medium"><CheckCircle2 size={10} />{processedCount} processed</span>
                 {manualCount > 0 && <span className="flex items-center gap-1 text-amber-600 font-medium"><AlertTriangle size={10} />{manualCount} manual review</span>}

@@ -16,7 +16,7 @@ export default function InstitutionTopbar() {
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ba3af] pointer-events-none" />
                 <input
                     type="text"
-                    placeholder="Search orders, students…"
+                    placeholder="Search orders, subjects…"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     className="w-full bg-[#f8fafc] rounded-lg pl-9 pr-4 py-[6px] text-[13px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] border border-[#e2e8f0] transition-colors"

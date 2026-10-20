@@ -1,7 +1,7 @@
 import { X, QrCode } from 'lucide-react'
 import { getInitials, getHue } from './coordinatorTypes'
 
-interface QRStudent {
+interface QRSubject {
     id: number
     full_name: string
     student_id: string
@@ -10,7 +10,7 @@ interface QRStudent {
 }
 
 interface CoordQRModalProps {
-    student: QRStudent
+    subject: QRSubject
     onClose: () => void
 }
 
@@ -30,8 +30,8 @@ function Avatar({ name, id, size = 36 }: { name: string; id: number; size?: numb
     )
 }
 
-export default function CoordQRModal({ student, onClose }: CoordQRModalProps) {
-    const hue = getHue(student.id)
+export default function CoordQRModal({ subject, onClose }: CoordQRModalProps) {
+    const hue = getHue(subject.id)
     const borderColor = `hsl(${hue}, 55%, 48%)`
 
     return (
@@ -44,7 +44,7 @@ export default function CoordQRModal({ student, onClose }: CoordQRModalProps) {
                         <div className="w-7 h-7 rounded-lg bg-[#e8eeff] flex items-center justify-center">
                             <QrCode size={14} className="text-[#004ac6]" />
                         </div>
-                        <h3 className="text-[15px] font-bold text-[#0b1c30]">Student QR Code</h3>
+                        <h3 className="text-[15px] font-bold text-[#0b1c30]">Subject QR Code</h3>
                     </div>
                     <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f1f5f9] transition-colors">
                         <X size={16} className="text-[#64748b]" />
@@ -52,12 +52,12 @@ export default function CoordQRModal({ student, onClose }: CoordQRModalProps) {
                 </div>
 
                 <div className="flex flex-col items-center gap-5 px-6 py-7">
-                    {/* Student info strip */}
+                    {/* Subject info strip */}
                     <div className="flex items-center gap-3 self-start w-full bg-[#f8fafc] rounded-xl px-4 py-3 border border-[#f1f5f9]">
-                        <Avatar name={student.full_name} id={student.id} size={44} />
+                        <Avatar name={subject.full_name} id={subject.id} size={44} />
                         <div>
-                            <div className="text-[15px] font-bold text-[#0b1c30]">{student.full_name}</div>
-                            <div className="text-[12px] text-[#9ba3af]">{student.student_id} · {student.grade_level}</div>
+                            <div className="text-[15px] font-bold text-[#0b1c30]">{subject.full_name}</div>
+                            <div className="text-[12px] text-[#9ba3af]">{subject.student_id} · {subject.grade_level}</div>
                         </div>
                     </div>
 
@@ -65,10 +65,10 @@ export default function CoordQRModal({ student, onClose }: CoordQRModalProps) {
                     <div
                         className="bg-white rounded-2xl border-[3px] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.08)] flex items-center justify-center"
                         style={{ borderColor }}>
-                        {student.qr_code_url ? (
+                        {subject.qr_code_url ? (
                             <img
-                                src={student.qr_code_url}
-                                alt={`QR code for ${student.full_name}`}
+                                src={subject.qr_code_url}
+                                alt={`QR code for ${subject.full_name}`}
                                 className="w-[180px] h-[180px] object-contain"
                             />
                         ) : (
@@ -81,7 +81,7 @@ export default function CoordQRModal({ student, onClose }: CoordQRModalProps) {
 
                     <div className="flex flex-col items-center gap-1">
                         <p className="text-[13px] font-semibold text-[#374151]">Show this screen to the photographer</p>
-                        <p className="text-[12px] text-[#9ba3af]">Scan QR to auto-attach student record</p>
+                        <p className="text-[12px] text-[#9ba3af]">Scan QR to auto-attach subject record</p>
                     </div>
 
                     <button onClick={onClose}

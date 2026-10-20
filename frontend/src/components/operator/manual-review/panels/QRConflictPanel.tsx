@@ -3,35 +3,35 @@ import { Search, Check, X, QrCode, ArrowRight, Loader2 } from 'lucide-react'
 import api from "../../../../utils/api";
 import { cn } from "../../../../lib/utils";
 import { Avatar } from "../Avatar";
-import { type ReviewStudent, HUES } from "../types";
+import { type ReviewSubject, HUES } from "../types";
 
 interface QRConflictPanelProps {
   orderId: number
-  student: ReviewStudent
+  subject: ReviewSubject
   onResolved: () => void
   onReject: () => void
 }
 
-export function QRConflictPanel({ orderId, student, onResolved, onReject }: QRConflictPanelProps) {
-  const [allStudents, setAllStudents] = useState<any[]>([])
+export function QRConflictPanel({ orderId, subject, onResolved, onReject }: QRConflictPanelProps) {
+  const [allSubjects, setAllSubjects] = useState<any[]>([])
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.get(`/orders/${orderId}/students/`).then(r => setAllStudents(r.data)).catch(() => { })
+    api.get(`/orders/${orderId}/students/`).then(r => setAllSubjects(r.data)).catch(() => { })
   }, [orderId])
 
   const pending = useMemo(() => {
     const q = query.toLowerCase()
-    if (!q) return allStudents
-    return allStudents.filter(s =>
+    if (!q) return allSubjects
+    return allSubjects.filter(s =>
       s.full_name.toLowerCase().includes(q) || s.student_id.toLowerCase().includes(q)
     )
-  }, [allStudents, query])
+  }, [allSubjects, query])
 
-  const selected = allStudents.find(s => s.id === selectedId)
+  const selected = allSubjects.find(s => s.id === selectedId)
 
   const handleResolve = async () => {
     if (!selectedId) return
@@ -40,9 +40,9 @@ export function QRConflictPanel({ orderId, student, onResolved, onReject }: QRCo
     try {
       const formData = new FormData()
       formData.append('student_id', String(selectedId))
-      if (student.original_photo_url) {
-        const blob = await fetch(student.original_photo_url).then(r => r.blob())
-        formData.append('photo', blob, `${student.student_id}.jpg`)
+      if (subject.original_photo_url) {
+        const blob = await fetch(subject.original_photo_url).then(r => r.blob())
+        formData.append('photo', blob, `${subject.student_id}.jpg`)
       }
       await api.post(`/orders/${orderId}/students/manual-link/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -64,7 +64,7 @@ export function QRConflictPanel({ orderId, student, onResolved, onReject }: QRCo
           <span className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">QR Conflict Resolver</span>
         </div>
         <p className="text-[12px] text-gray-400 leading-snug">
-          QR was decoded but matched no student in this order.
+          QR was decoded but matched no subject in this order.
         </p>
       </div>
 
@@ -74,19 +74,19 @@ export function QRConflictPanel({ orderId, student, onResolved, onReject }: QRCo
           <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Decoded QR Value</span>
         </div>
         <code className="text-sm font-mono font-bold text-orange-900 break-all">
-          {student.fail_reason === 'qr_not_found' ? 'QR data not in order' : student.student_id}
+          {subject.fail_reason === 'qr_not_found' ? 'QR data not in order' : subject.student_id}
         </code>
-        <p className="text-[11px] text-orange-500 mt-1">No student record matches this code.</p>
+        <p className="text-[11px] text-orange-500 mt-1">No subject record matches this code.</p>
       </div>
 
       <div className="px-5 py-4 flex-1 flex flex-col gap-2 overflow-hidden">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assign to student</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assign to subject</span>
           <span className="text-[10px] text-gray-400">{pending.length} available</span>
         </div>
         <div className="relative">
           <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input type="text" placeholder="Filter students…" value={query}
+          <input type="text" placeholder="Filter subjects…" value={query}
             onChange={e => setQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-[12px] bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-100 focus:border-orange-300 placeholder:text-gray-400" />
         </div>

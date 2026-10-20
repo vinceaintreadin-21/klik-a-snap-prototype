@@ -7,7 +7,7 @@ import { cn } from '../../lib/utils'
 const NAV_ITEMS = [
     { key: 'dashboard', icon: LayoutDashboard, label: 'Home', path: '/coordinator/dashboard' },
     { key: 'lookup', icon: Search, label: 'Lookup', path: '/coordinator/lookup' },
-    { key: 'students', icon: Users, label: 'Students', path: '/coordinator/students' },
+    { key: 'students', icon: Users, label: 'Subjects', path: '/coordinator/students' },
     { key: 'quick-add', icon: UserPlus, label: 'Add', path: '/coordinator/quick-add' },
     { key: 'proofing', icon: CheckSquare, label: 'Proofing', path: '/coordinator/proofing' },
 ]

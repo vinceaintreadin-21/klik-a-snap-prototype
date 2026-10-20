@@ -6,9 +6,9 @@ import { useAuth } from '../../context/AuthContext'
 const ROUTE_META: Record<string, { title: string; subtitle: string }> = {
   '/operator/dashboard':     { title: 'Operator Workspace',  subtitle: 'Manage your production queue.'         },
   '/operator/layout-builder':{ title: 'Layout Builder',      subtitle: 'Configure ID card layouts for orders.' },
-  '/operator/batch-upload':  { title: 'Batch Upload',        subtitle: 'Upload student photos in bulk.'        },
+  '/operator/batch-upload':  { title: 'Batch Upload',        subtitle: 'Upload subject photos in bulk.'        },
   '/operator/pipeline':      { title: 'Pipeline',            subtitle: 'Live status of your active batches.'   },
-  '/operator/manual-review': { title: 'Manual Review',       subtitle: 'Inspect and resolve flagged students.' },
+  '/operator/manual-review': { title: 'Manual Review',       subtitle: 'Inspect and resolve flagged subjects.' },
   '/operator/proofing':      { title: 'Proofing',            subtitle: 'Review and approve ID card proofs.'    },
   '/operator/export':        { title: 'Export',              subtitle: 'Print and export completed ID cards.'  },
 }

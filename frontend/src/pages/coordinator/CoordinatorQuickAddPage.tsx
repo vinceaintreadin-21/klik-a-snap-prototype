@@ -5,7 +5,7 @@ import {
 import api from '../../utils/api'
 import toast from 'react-hot-toast'
 import CoordQRModal from '../../components/coordinator/CoordQRModal'
-import type { CoordOrder, CoordStudent } from '../../components/coordinator/coordinatorTypes'
+import type { CoordOrder, CoordSubject } from '../../components/coordinator/coordinatorTypes'
 import { getInitials, getHue } from '../../components/coordinator/coordinatorTypes'
 
 function Avatar({ name, id, size = 36 }: { name: string; id: number; size?: number }) {
@@ -32,7 +32,7 @@ export default function CoordinatorQuickAddPage() {
     const [name, setName] = useState('')
     const [grade, setGrade] = useState('')
     const [loading, setLoading] = useState(false)
-    const [added, setAdded] = useState<CoordStudent | null>(null)
+    const [added, setAdded] = useState<CoordSubject | null>(null)
     const [qrOpen, setQrOpen] = useState(false)
 
     useEffect(() => {
@@ -71,7 +71,7 @@ export default function CoordinatorQuickAddPage() {
     return (
         <div className="flex flex-col gap-0">
             {qrOpen && added && (
-                <CoordQRModal student={added} onClose={() => setQrOpen(false)} />
+                <CoordQRModal subject={added} onClose={() => setQrOpen(false)} />
             )}
 
             {/* Header */}

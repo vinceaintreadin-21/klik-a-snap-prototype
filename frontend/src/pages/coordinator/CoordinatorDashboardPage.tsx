@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, UserPlus, Search, Camera, Check } from 'lucide-rea
 import api from '../../utils/api'
 import toast from 'react-hot-toast'
 import CoordQRModal from '../../components/coordinator/CoordQRModal'
-import type { CoordStudent, CoordOrder } from '../../components/coordinator/coordinatorTypes'
+import type { CoordSubject, CoordOrder } from '../../components/coordinator/coordinatorTypes'
 import { getInitials, getHue } from '../../components/coordinator/coordinatorTypes'
 
 function Avatar({ name, id, size = 36 }: { name: string; id: number; size?: number }) {
@@ -21,17 +21,17 @@ export default function CoordinatorDashboardPage() {
     const navigate = useNavigate()
     const [orders, setOrders] = useState<CoordOrder[]>([])
     const [selectedOrder, setSelectedOrder] = useState<number | null>(null)
-    const [students, setStudents] = useState<CoordStudent[]>([])
+    const [subjects, setSubjects] = useState<CoordSubject[]>([])
     const [loadingList, setLoadingList] = useState(false)
-    const [qrStudent, setQrStudent] = useState<CoordStudent | null>(null)
+    const [qrStudent, setQrStudent] = useState<CoordSubject | null>(null)
 
-    const fetchStudents = useCallback(async (orderId: number) => {
+    const fetchSubjects = useCallback(async (orderId: number) => {
         setLoadingList(true)
         try {
             const res = await api.get(`/coordinator/orders/${orderId}/students/`)
-            setStudents(res.data)
+            setSubjects(res.data)
         } catch {
-            toast.error('Failed to load students')
+            toast.error("Failed to load subjects")
         } finally {
             setLoadingList(false)
         }
@@ -49,40 +49,40 @@ export default function CoordinatorDashboardPage() {
     }, [])
 
     useEffect(() => {
-        if (selectedOrder) fetchStudents(selectedOrder)
-    }, [selectedOrder, fetchStudents])
+        if (selectedOrder) fetchSubjects(selectedOrder)
+    }, [selectedOrder, fetchSubjects])
 
     // Poll every 10s
     useEffect(() => {
         if (!selectedOrder) return
-        const interval = setInterval(() => fetchStudents(selectedOrder), 10000)
+        const interval = setInterval(() => fetchSubjects(selectedOrder), 10000)
         return () => clearInterval(interval)
-    }, [selectedOrder, fetchStudents])
+    }, [selectedOrder, fetchSubjects])
 
-    const handleMarkPhotographed = async (studentId: number) => {
+    const handleMarkPhotographed = async (subjectId: number) => {
         try {
-            const res = await api.post(`/coordinator/students/${studentId}/mark-photographed/`)
-            setStudents((prev) =>
-                prev.map((s) => s.id === studentId ? { ...s, is_photographed: res.data.is_photographed } : s)
+            const res = await api.post(`/coordinator/students/${subjectId}/mark-photographed/`)
+            setSubjects((prev) =>
+                prev.map((s) => s.id === subjectId ? { ...s, is_photographed: res.data.is_photographed } : s)
             )
         } catch {
             toast.error('Failed to update status')
         }
     }
 
-    const photographed = students.filter((s) => s.is_photographed).length
-    const total = students.length
-    const pending = students.filter((s) => !s.is_photographed).length
-    const walkIns = students.filter((s) => s.is_walk_in).length
+    const photographed = subjects.filter((s) => s.is_photographed).length
+    const total = subjects.length
+    const pending = subjects.filter((s) => !s.is_photographed).length
+    const walkIns = subjects.filter((s) => s.is_walk_in).length
     const pct = total > 0 ? Math.round((photographed / total) * 100) : 0
 
-    const nextUp = students.filter((s) => !s.is_photographed).slice(0, 3)
-    const recent = students.filter((s) => s.is_photographed).slice(0, 4)
+    const nextUp = subjects.filter((s) => !s.is_photographed).slice(0, 3)
+    const recent = subjects.filter((s) => s.is_photographed).slice(0, 4)
     const activeOrder = orders.find((o) => o.id === selectedOrder)
 
     return (
         <div className="flex flex-col gap-0">
-            {qrStudent && <CoordQRModal student={qrStudent} onClose={() => setQrStudent(null)} />}
+            {qrStudent && <CoordQRModal subject={qrStudent} onClose={() => setQrStudent(null)} />}
 
             {/* Page header */}
             <div className="px-4 md:px-8 pt-6 pb-4 border-b border-[#eceef0] bg-white">
@@ -169,7 +169,7 @@ export default function CoordinatorDashboardPage() {
                     className="w-full flex items-center gap-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 hover:border-[#004ac6] hover:bg-[#f0f4ff] transition-all group">
                     <Search size={16} className="text-[#9ba3af] group-hover:text-[#004ac6] transition-colors" />
                     <span className="text-[14px] text-[#9ba3af] group-hover:text-[#64748b] transition-colors">
-                        Search a student to show QR code...
+                        Search a subject to show QR code...
                     </span>
                     <div className="ml-auto flex items-center gap-1 text-[11px] text-[#9ba3af] bg-white border border-[#e2e8f0] rounded-md px-2 py-0.5 font-mono shrink-0">⌘F</div>
                 </button>
@@ -237,9 +237,9 @@ export default function CoordinatorDashboardPage() {
                 {total === 0 && !loadingList && (
                     <div className="flex flex-col items-center justify-center py-12 gap-3 bg-white border border-[#e2e8f0] rounded-2xl">
                         <Camera size={28} className="text-[#c8cbd9]" />
-                        <p className="text-[14px] font-semibold text-[#9ba3af]">No students yet</p>
+                        <p className="text-[14px] font-semibold text-[#9ba3af]">No subjects yet</p>
                         <p className="text-[12px] text-[#c8cbd9] text-center max-w-[200px]">
-                            Students will appear here once the order is created
+                            Subjects will appear here once the order is created
                         </p>
                     </div>
                 )}

@@ -1,6 +1,6 @@
 export type IssueType = 'no_qr' | 'qr_not_found' | 'no_face' | 'no_layout' | 'error'
 
-export interface ReviewStudent {
+export interface ReviewSubject {
   id: number
   student_id: string
   full_name: string
@@ -44,7 +44,7 @@ export const ISSUE_STRIP: Record<IssueType, string> = {
 
 export const HUES = [210, 350, 160, 40, 270, 15, 195, 310, 55, 130, 240, 180, 320, 95]
 
-export function issueType(s: ReviewStudent): IssueType {
+export function issueType(s: ReviewSubject): IssueType {
   if (s.photo_status === 'PENDING' && !s.original_photo_url) return 'no_qr'
   const r = s.fail_reason as IssueType
   if (['no_qr', 'qr_not_found', 'no_face', 'no_layout', 'error'].includes(r)) return r

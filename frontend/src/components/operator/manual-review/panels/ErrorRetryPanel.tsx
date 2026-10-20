@@ -2,16 +2,16 @@ import { useState, useRef } from 'react'
 import { Bug, ChevronDown, RefreshCw, Upload, X, Loader2 } from 'lucide-react'
 import api from '../../../../utils/api'
 import { cn } from '../../../../lib/utils'
-import { type ReviewStudent } from '../types'
+import { type ReviewSubject } from '../types'
 
 interface ErrorRetryPanelProps {
   orderId: number
-  student: ReviewStudent
+  subject: ReviewSubject
   onResolved: () => void
   onReject: () => void
 }
 
-export function ErrorRetryPanel({ orderId, student, onResolved, onReject }: ErrorRetryPanelProps) {
+export function ErrorRetryPanel({ orderId, subject, onResolved, onReject }: ErrorRetryPanelProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +21,7 @@ export function ErrorRetryPanel({ orderId, student, onResolved, onReject }: Erro
     setLoading(true)
     setError(null)
     try {
-      await api.post(`/students/${student.id}/reprocess/`)
+      await api.post(`/students/${subject.id}/reprocess/`)
       onResolved()
     } catch (err: any) {
       setError(err.response?.data?.error || 'Retry failed')
@@ -37,7 +37,7 @@ export function ErrorRetryPanel({ orderId, student, onResolved, onReject }: Erro
     setError(null)
     try {
       const formData = new FormData()
-      formData.append('student_id', String(student.id))
+      formData.append('student_id', String(subject.id))
       formData.append('photo', file)
       await api.post(`/orders/${orderId}/students/manual-link/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -75,12 +75,12 @@ export function ErrorRetryPanel({ orderId, student, onResolved, onReject }: Erro
           <div className="space-y-1.5">
             <div className="flex justify-between gap-2">
               <span className="text-[11px] text-rose-500 shrink-0">File</span>
-              <span className="text-[11px] font-mono text-rose-900 text-right">{student.student_id}</span>
+              <span className="text-[11px] font-mono text-rose-900 text-right">{subject.student_id}</span>
             </div>
             {showDetail && (
               <div className="pt-2 border-t border-rose-100">
                 <div className="text-[10px] text-rose-500 mb-1">Fail reason</div>
-                <div className="text-[11px] font-mono text-rose-800 break-all">{student.fail_reason}</div>
+                <div className="text-[11px] font-mono text-rose-800 break-all">{subject.fail_reason}</div>
               </div>
             )}
           </div>
