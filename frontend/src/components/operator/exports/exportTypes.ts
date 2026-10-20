@@ -2,7 +2,7 @@ export type OrderApprovalStatus = "approved" | "completed" | "awaiting_approval"
 export type PhotoStatus = "PENDING" | "PROCESSED" | "MANUAL_REVIEW";
 export type FailReason = "no_qr" | "qr_not_found" | "no_face" | "no_layout" | "error" | string;
 
-export interface ExportStudent {
+export interface ExportSubject {
   id: number | string;
   order: number | string;
 
@@ -40,7 +40,7 @@ export interface ExportStudent {
 
 export interface ExportOrder {
   id: number | string;
-  
+
   // Backend payload fields
   school_name?: string;
   batch_name?: string;
@@ -59,7 +59,7 @@ export interface ExportOrder {
   approvedOn?: string;
   deadline?: string;
 
-  students?: ExportStudent[];
+  students?: ExportSubject[];
   hue?: number;
 }
 
@@ -107,7 +107,7 @@ export function getBatchRef(order: ExportOrder): string {
   return order.batch_name || order.ref || "";
 }
 
-export function getStudentTotalCount(order: ExportOrder): number {
+export function getSubjectTotalCount(order: ExportOrder): number {
   if (typeof order.student_count === "number") return order.student_count;
   return order.students?.length || 0;
 }

@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, Package, Download, Lock, AlertTriangle, Users, Calendar, CheckCircle2, Eye, Clock, Loader2 } from "lucide-react";
 import {
   type ExportOrder,
-  type ExportStudent,
+  type ExportSubject,
   isExportEnabled,
   getDisabledReason,
   getOrderStatus,
   getInstitutionName,
-  getStudentTotalCount,
+  getSubjectTotalCount,
 } from "./exportTypes";
-import { downloadOrderZip, fetchOrderStudents } from "../../../utils/exportApi";
+import { downloadOrderZip, fetchOrderSubjects } from "../../../utils/exportApi";
 import { StudentTable } from "./StudentTable";
 import { cn } from "../../../lib/utils";
 
@@ -26,9 +26,9 @@ const APPROVAL_CONFIG = {
 };
 
 export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
-  const [students, setStudents] = useState<ExportStudent[]>(order.students || []);
-  const [loadingStudents, setLoadingStudents] = useState<boolean>(!order.students?.length);
-  const [studentError, setStudentError] = useState<string | null>(null);
+  const [subjects, setSubjects] = useState<ExportSubject[]>(order.students || []);
+  const [loadingSubjects, setLoadingSubjects] = useState<boolean>(!order.students?.length);
+  const [subjectError, setSubjectError] = useState<string | null>(null);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -38,26 +38,26 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
   const cfg = APPROVAL_CONFIG[status as keyof typeof APPROVAL_CONFIG] || APPROVAL_CONFIG.reviewing;
 
   const schoolName = getInstitutionName(order);
-  const totalStudents = getStudentTotalCount(order);
+  const totalSubjects = getSubjectTotalCount(order);
 
-  // Fetch students from backend on component mount
+  // Fetch subjects from backend on component mount
   useEffect(() => {
     if (order.id) {
-      setLoadingStudents(true);
-      fetchOrderStudents(order.id)
+      setLoadingSubjects(true);
+      fetchOrderSubjects(order.id)
         .then((data) => {
-          setStudents(data);
-          setStudentError(null);
+          setSubjects(data);
+          setSubjectError(null);
         })
-        .catch((err) => {
-          setStudentError(err.message || "Failed to load students");
+        .catch((err: any) => {
+          setSubjectError(err.message || "Failed to load subjects");
         })
-        .finally(() => setLoadingStudents(false));
+        .finally(() => setLoadingSubjects(false));
     }
   }, [order.id]);
 
-  const processed = students.filter((s) => s.photo_status === "PROCESSED");
-  const manualCount = students.filter((s) => s.photo_status === "MANUAL_REVIEW").length;
+  const processed = subjects.filter((s) => s.photo_status === "PROCESSED");
+  const manualCount = subjects.filter((s) => s.photo_status === "MANUAL_REVIEW").length;
   const approvedBy = order.approved_by || order.approvedBy;
 
   const handleDownloadZip = async () => {
@@ -92,7 +92,7 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
               </span>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-0.5">
-              <span className="flex items-center gap-1"><Users size={10} />{totalStudents} students</span>
+              <span className="flex items-center gap-1"><Users size={10} />{totalSubjects} subjects</span>
               {order.deadline && <span className="flex items-center gap-1"><Calendar size={10} />Due {order.deadline}</span>}
               {approvedBy && (
                 <span className="flex items-center gap-1 text-emerald-600">
@@ -115,7 +115,7 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
                 <div>
                   <h2 className={cn("text-[15px] font-semibold", enabled ? "text-gray-900" : "text-gray-500")}>Final ID Cards ZIP</h2>
                   <p className={cn("text-[12px] mt-0.5", enabled ? "text-gray-500" : "text-gray-400")}>
-                    {enabled ? `${processed.length} processed student${processed.length !== 1 ? "s" : ""} will be bundled into the archive` : getDisabledReason(status)}
+                    {enabled ? `${processed.length} processed subject${processed.length !== 1 ? "s" : ""} will be bundled into the archive` : getDisabledReason(status)}
                   </p>
                 </div>
                 <button
@@ -143,22 +143,22 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
                 <div className="mt-3 flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-xl">
                   <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-[12px] text-amber-800">
-                    <strong>{manualCount} student{manualCount > 1 ? "s" : ""}</strong> {manualCount > 1 ? "are" : "is"} in Manual Review and will not be included in the ZIP.
+                    <strong>{manualCount} subject{manualCount > 1 ? "s" : ""}</strong> {manualCount > 1 ? "are" : "is"} in Manual Review and will not be included in the ZIP.
                   </p>
                 </div>
               )}
             </div>
           </div>
 
-          {loadingStudents ? (
+          {loadingSubjects ? (
             <div className="py-16 flex flex-col items-center justify-center gap-2 text-sm text-gray-400">
               <Loader2 size={20} className="animate-spin text-blue-600" />
-              Loading student records...
+              Loading subject records...
             </div>
-          ) : studentError ? (
-            <div className="py-16 text-center text-sm text-red-500">{studentError}</div>
+          ) : subjectError ? (
+            <div className="py-16 text-center text-sm text-red-500">{subjectError}</div>
           ) : (
-            <StudentTable students={students} />
+            <StudentTable subjects={subjects} />
           )}
         </div>
 
@@ -167,7 +167,7 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Export Summary</div>
             <div className="space-y-2.5">
               {[
-                { label: "Total students", value: String(totalStudents), color: "text-gray-900" },
+                { label: "Total subjects", value: String(totalSubjects), color: "text-gray-900" },
                 { label: "Processed", value: String(processed.length), color: "text-emerald-600" },
                 { label: "Manual Review", value: String(manualCount), color: manualCount > 0 ? "text-amber-600" : "text-gray-400" },
                 { label: "In ZIP", value: enabled ? String(processed.length) : "—", color: enabled ? "text-blue-700 font-bold" : "text-gray-400" },

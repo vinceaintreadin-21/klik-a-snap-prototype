@@ -17,8 +17,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/coordinator/dashboard' },
-    { key: 'lookup', icon: Search, label: 'Student Lookup', path: '/coordinator/lookup' },
-    { key: 'students', icon: Users, label: 'Students', path: '/coordinator/students' },
+    { key: 'lookup', icon: Search, label: 'Subject Lookup', path: '/coordinator/lookup' },
+    { key: 'students', icon: Users, label: 'Subjects', path: '/coordinator/students' },
     { key: 'quick-add', icon: UserPlus, label: 'Quick Add', path: '/coordinator/quick-add' },
     { key: 'proofing', icon: CheckSquare, label: 'Proofing', path: '/coordinator/proofing' },
 ]

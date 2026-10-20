@@ -15,7 +15,7 @@ export function NoLayoutPanel({ onReject }: NoLayoutPanelProps) {
           <span className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">No Layout Configured</span>
         </div>
         <p className="text-[12px] text-gray-400 leading-snug">
-          This is an order-level issue, not specific to this photo. Fix the layout to unblock all affected students.
+          This is an order-level issue, not specific to this photo. Fix the layout to unblock all affected subjects.
         </p>
       </div>
       <div className="px-5 py-5 flex-1 flex flex-col gap-4">

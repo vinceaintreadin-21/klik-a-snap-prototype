@@ -1,8 +1,8 @@
 import { cn } from '../../../lib/utils'
-import { type ReviewStudent, issueType, ISSUE_LABELS, ISSUE_STRIP, HUES } from './types'
+import { type ReviewSubject, issueType, ISSUE_LABELS, ISSUE_STRIP, HUES } from './types'
 
 interface FilmstripProps {
-  students: ReviewStudent[]
+  subjects: ReviewSubject[]
   resolvedIds: Set<number>
   rejectedIds: Set<number>
   currentIdx: number
@@ -10,7 +10,7 @@ interface FilmstripProps {
 }
 
 export function Filmstrip({
-  students,
+  subjects,
   resolvedIds,
   rejectedIds,
   currentIdx,
@@ -18,7 +18,7 @@ export function Filmstrip({
 }: FilmstripProps) {
   return (
     <div className="h-[72px] bg-[#0a0c10] border-t border-white/8 flex items-center gap-1.5 px-4 overflow-x-auto shrink-0">
-      {students.map((s, i) => {
+      {subjects.map((s, i) => {
         const issue = issueType(s)
         const done = resolvedIds.has(s.id)
         const rejected = rejectedIds.has(s.id)

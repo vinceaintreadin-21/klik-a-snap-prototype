@@ -102,7 +102,7 @@ export function OrderQueue({ onSelect }: OrderQueueProps) {
                         </div>
                         <h3 className="text-base font-semibold text-gray-900 mb-1">{order.school_name}</h3>
                         <div className="flex items-center gap-4 text-[12px] text-gray-400 mb-3">
-                          <span className="flex items-center gap-1"><Users size={11} />{order.student_count.toLocaleString()} students</span>
+                          <span className="flex items-center gap-1"><Users size={11} />{order.student_count.toLocaleString()} subjects</span>
                           {order.deadline && (
                             <span className="flex items-center gap-1">
                               <Clock size={11} />

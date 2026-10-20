@@ -208,24 +208,24 @@ export function ReviewInterface({ order, onBack }: ReviewInterfaceProps) {
         />
 
         {issue === 'no_qr' && (
-          <QRLinkPanel key={`panel-${current.id}`} orderId={order.id} student={current} onResolved={handleResolved} onReject={handleReject} />
+          <QRLinkPanel key={`panel-${current.id}`} orderId={order.id} subject={current} onResolved={handleResolved} onReject={handleReject} />
         )}
         {issue === 'qr_not_found' && (
-          <QRConflictPanel key={`panel-${current.id}`} orderId={order.id} student={current} onResolved={handleResolved} onReject={handleReject} />
+          <QRConflictPanel key={`panel-${current.id}`} orderId={order.id} subject={current} onResolved={handleResolved} onReject={handleReject} />
         )}
         {issue === 'no_face' && (
-          <CropPanel key={`panel-${current.id}`} orderId={order.id} student={current} crop={crop} onResolved={handleResolved} onReject={handleReject} />
+          <CropPanel key={`panel-${current.id}`} orderId={order.id} subject={current} crop={crop} onResolved={handleResolved} onReject={handleReject} />
         )}
         {issue === 'no_layout' && (
           <NoLayoutPanel key={`panel-${current.id}`} onReject={handleReject} />
         )}
         {issue === 'error' && (
-          <ErrorRetryPanel key={`panel-${current.id}`} orderId={order.id} student={current} onResolved={handleResolved} onReject={handleReject} />
+          <ErrorRetryPanel key={`panel-${current.id}`} orderId={order.id} subject={current} onResolved={handleResolved} onReject={handleReject} />
         )}
       </div>
 
       <Filmstrip
-        students={filtered}
+        subjects={filtered}
         resolvedIds={resolvedIds}
         rejectedIds={rejectedIds}
         currentIdx={currentIdx}

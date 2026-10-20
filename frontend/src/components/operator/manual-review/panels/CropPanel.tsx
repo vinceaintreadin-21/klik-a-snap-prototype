@@ -1,22 +1,22 @@
 import { useState } from 'react'
 import { ScanFace, Info, Check, X, Loader2 } from 'lucide-react'
 import api from '../../../../utils/api'
-import { type ReviewStudent, type CropBox } from '../types'
+import { type ReviewSubject, type CropBox } from '../types'
 
 interface CropPanelProps {
   orderId: number
-  student: ReviewStudent
+  subject: ReviewSubject
   crop: CropBox
   onResolved: () => void
   onReject: () => void
 }
 
-export function CropPanel({ orderId, student, crop, onResolved, onReject }: CropPanelProps) {
+export function CropPanel({ orderId, subject, crop, onResolved, onReject }: CropPanelProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleApply = async () => {
-    if (!student.original_photo_url) {
+    if (!subject.original_photo_url) {
       setError('No original photo available to crop.')
       return
     }
@@ -24,7 +24,7 @@ export function CropPanel({ orderId, student, crop, onResolved, onReject }: Crop
     setError(null)
     try {
       const img = new Image()
-      img.src = student.original_photo_url
+      img.src = subject.original_photo_url
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve()
         img.onerror = () => reject()
@@ -39,7 +39,7 @@ export function CropPanel({ orderId, student, crop, onResolved, onReject }: Crop
       formData.append('crop_height', String(Math.round((crop.h / 100) * H)))
 
       await api.post(
-        `/orders/${orderId}/students/${student.id}/manual-crop/`,
+        `/orders/${orderId}/students/${subject.id}/manual-crop/`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } },
       )
@@ -59,7 +59,7 @@ export function CropPanel({ orderId, student, crop, onResolved, onReject }: Crop
           <span className="text-[11px] font-bold text-gray-900 uppercase tracking-widest">Manual Crop Editor</span>
         </div>
         <p className="text-[12px] text-gray-400 leading-snug">
-          Face detection failed. Drag the crop box on the photo to frame the student's face manually.
+          Face detection failed. Drag the crop box on the photo to frame the subject's face manually.
         </p>
       </div>
 

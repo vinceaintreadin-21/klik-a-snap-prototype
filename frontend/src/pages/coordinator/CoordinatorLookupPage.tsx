@@ -3,7 +3,7 @@ import { Search, X, QrCode, CheckCircle2, Clock, Camera } from 'lucide-react'
 import api from '../../utils/api'
 import toast from 'react-hot-toast'
 import CoordQRModal from '../../components/coordinator/CoordQRModal'
-import type { CoordStudent } from '../../components/coordinator/coordinatorTypes'
+import type { CoordSubject } from '../../components/coordinator/coordinatorTypes'
 import { getInitials, getHue } from '../../components/coordinator/coordinatorTypes'
 
 function Avatar({ name, id, size = 36 }: { name: string; id: number; size?: number }) {
@@ -18,9 +18,9 @@ function Avatar({ name, id, size = 36 }: { name: string; id: number; size?: numb
 
 export default function CoordinatorLookupPage() {
     const [query, setQuery] = useState('')
-    const [results, setResults] = useState<CoordStudent[]>([])
+    const [results, setResults] = useState<CoordSubject[]>([])
     const [searching, setSearching] = useState(false)
-    const [qrStudent, setQrStudent] = useState<CoordStudent | null>(null)
+    const [qrStudent, setQrStudent] = useState<CoordSubject | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -39,7 +39,7 @@ export default function CoordinatorLookupPage() {
         return () => clearTimeout(t)
     }, [query])
 
-    const handleMarkPhotographed = async (student: CoordStudent) => {
+    const handleMarkPhotographed = async (student: CoordSubject) => {
         try {
             const res = await api.post(`/coordinator/students/${student.id}/mark-photographed/`)
             setResults((prev) =>
@@ -52,7 +52,7 @@ export default function CoordinatorLookupPage() {
 
     return (
         <div className="flex flex-col gap-0">
-            {qrStudent && <CoordQRModal student={qrStudent} onClose={() => setQrStudent(null)} />}
+            {qrStudent && <CoordQRModal subject={qrStudent} onClose={() => setQrStudent(null)} />}
 
             {/* Header */}
             <div className="px-4 md:px-8 pt-6 pb-4 border-b border-[#eceef0] bg-white">

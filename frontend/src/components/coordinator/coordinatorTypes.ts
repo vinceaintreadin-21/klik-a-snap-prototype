@@ -1,6 +1,6 @@
 // ── Coordinator shared types ──────────────────────────────────────────────────
 
-export interface CoordStudent {
+export interface CoordSubject {
     id: number
     full_name: string
     student_id: string
@@ -29,10 +29,10 @@ export const PHOTO_STATUS_CFG = {
 } as const
 
 export const REVISION_REASONS = [
-    'Wrong student',
+    'Wrong subject',
     'Duplicate face detected',
     'Poor photo quality',
-    'Incorrect student data',
+    'Incorrect subject data',
     'Incorrect department',
     'Other',
 ] as const

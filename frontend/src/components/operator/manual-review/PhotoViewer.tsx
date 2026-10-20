@@ -2,10 +2,10 @@ import { useState } from "react";
 import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Maximize2, AlertTriangle, ScanFace } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { CropOverlay } from "./CropOverlay";
-import { type ReviewStudent, type CropBox, issueType, ISSUE_COLORS, ISSUE_LABELS } from "./types";
+import { type ReviewSubject, type CropBox, issueType, ISSUE_COLORS, ISSUE_LABELS } from "./types";
 
 interface PhotoViewerProps {
-  student: ReviewStudent
+  student: ReviewSubject
   hue: number
   cropEnabled?: boolean
   crop?: CropBox
