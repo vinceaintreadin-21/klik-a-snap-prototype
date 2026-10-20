@@ -2,7 +2,7 @@
 
 from rest_framework.response import Response
 from api.models.orders import Order
-from api.models.students import Student
+from api.models.subjects import Subject
 from api.models.user_profile import UserProfile
 
 

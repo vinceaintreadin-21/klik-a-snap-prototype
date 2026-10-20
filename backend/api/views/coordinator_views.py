@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from api.models.orders import Order
-from api.models.students import Student
+from api.models.subjects import Subject
 from api.models.user_profile import UserProfile
 from django.db.models import Count
 from api.models.coordinator_invite import CoordinatorInvite

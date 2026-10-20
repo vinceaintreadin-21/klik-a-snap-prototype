@@ -3,7 +3,7 @@ import os
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from api.models.students import Student
+from api.models.subjects import Subject
 from api.models.orders import Order
 from api.services.id_engine import process_single_photo
 import cloudinary.api
