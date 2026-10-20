@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from api.models.students import Student
+from api.models.subjects import Subject
 from api.models.orders import Order
 
 from PIL import Image, ImageDraw, ImageFont

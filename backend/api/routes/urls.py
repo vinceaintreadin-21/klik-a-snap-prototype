@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from api.views.order_views import order_controller, start_processing, complete_order, download_qr_codes, get_student_qr, upload_photos, parse_order_file, update_order, check_duplicate_order, download_id_cards, generate_test_photos
 
-from api.views.student_views import (
+from api.views.subject_views import (
     student_detail_controller, search_students, 
     quick_add_student, manual_link_photo, approve_order,
     approve_student, request_revision, reprocess_student,

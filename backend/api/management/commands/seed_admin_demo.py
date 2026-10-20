@@ -2,6 +2,10 @@
 Management command: seed_admin_demo
 Creates realistic demo data for the admin panel.
 
+The Subject model replaced the old Student model (migration 0023).
+Subjects are generic ID-card recipients — could be students, employees,
+members, or any other type depending on the institution's use case.
+
 Usage:
     python manage.py seed_admin_demo
     python manage.py seed_admin_demo --clear   # wipes existing demo data first
@@ -14,8 +18,10 @@ from datetime import timedelta
 from api.models.user_profile import UserProfile
 from api.models.institution import Institution
 from api.models.orders import Order
-from api.models.students import Student
+from api.models.subjects import Subject   # ← Subject, not Student
 
+
+# ── Institutions ───────────────────────────────────────────────────────────────
 
 INSTITUTIONS = [
     {
@@ -70,85 +76,154 @@ INSTITUTIONS = [
     },
 ]
 
+# ── Operators ──────────────────────────────────────────────────────────────────
+
 OPERATORS = [
     {"username": "op_miguel", "email": "miguel@klik-a-snap.com"},
     {"username": "op_sarah",  "email": "sarah@klik-a-snap.com"},
     {"username": "op_james",  "email": "james@klik-a-snap.com"},
 ]
 
+# ── Orders ─────────────────────────────────────────────────────────────────────
+
 ORDERS = [
     {
         "institution_idx": 0, "operator_idx": 0,
         "school_name": "Green Valley College",
         "batch_name": "SY 2025-2026 First Batch",
-        "student_count": 280, "status": "PROCESSING", "deadline_days": 7,
+        "subject_count": 280, "status": "PROCESSING", "deadline_days": 7,
     },
     {
         "institution_idx": 0, "operator_idx": 1,
         "school_name": "Green Valley College",
         "batch_name": "SY 2024-2025 Second Batch",
-        "student_count": 245, "status": "COMPLETED", "deadline_days": -30,
+        "subject_count": 245, "status": "COMPLETED", "deadline_days": -30,
     },
     {
         "institution_idx": 1, "operator_idx": 0,
         "school_name": "Northside Prep School",
         "batch_name": "SY 2025-2026 Grades 7-10",
-        "student_count": 640, "status": "PROOFING", "deadline_days": 3,
+        "subject_count": 640, "status": "PROOFING", "deadline_days": 3,
     },
     {
         "institution_idx": 1, "operator_idx": 2,
         "school_name": "Northside Prep School",
         "batch_name": "SY 2024-2025 Grades 11-12",
-        "student_count": 198, "status": "COMPLETED", "deadline_days": -60,
+        "subject_count": 198, "status": "COMPLETED", "deadline_days": -60,
     },
     {
         "institution_idx": 2, "operator_idx": 1,
         "school_name": "Maplewood High School",
         "batch_name": "SY 2025-2026 Main Batch",
-        "student_count": 1150, "status": "PENDING", "deadline_days": 14,
+        "subject_count": 1150, "status": "PENDING", "deadline_days": 14,
     },
     {
         "institution_idx": 2, "operator_idx": None,
         "school_name": "Maplewood High School",
         "batch_name": "SY 2025-2026 Transferees",
-        "student_count": 42, "status": "PENDING", "deadline_days": 21,
+        "subject_count": 42, "status": "PENDING", "deadline_days": 21,
     },
     {
         "institution_idx": 3, "operator_idx": 2,
         "school_name": "Riverside Middle School",
         "batch_name": "SY 2024-2025 Full Batch",
-        "student_count": 310, "status": "CANCELLED", "deadline_days": -15,
+        "subject_count": 310, "status": "CANCELLED", "deadline_days": -15,
     },
     {
         "institution_idx": 4, "operator_idx": 0,
         "school_name": "Westbrook Academy",
         "batch_name": "SY 2025-2026 K-5 Batch",
-        "student_count": 890, "status": "APPROVED", "deadline_days": 5,
+        "subject_count": 890, "status": "APPROVED", "deadline_days": 5,
     },
     {
         "institution_idx": 4, "operator_idx": 1,
         "school_name": "Westbrook Academy",
         "batch_name": "SY 2024-2025 K-5 Batch",
-        "student_count": 845, "status": "PRINTING", "deadline_days": 2,
+        "subject_count": 845, "status": "PRINTING", "deadline_days": 2,
     },
 ]
 
-SAMPLE_STUDENTS = [
-    {"student_id": "STU-001", "full_name": "Aiden Walsh",   "grade_level": "Grade 9",  "section": "9-A"},
-    {"student_id": "STU-002", "full_name": "Brianna Cole",  "grade_level": "Grade 10", "section": "10-B"},
-    {"student_id": "STU-003", "full_name": "Carlos Reyes",  "grade_level": "Grade 11", "section": "11-A"},
-    {"student_id": "STU-004", "full_name": "Diana Park",    "grade_level": "Grade 9",  "section": "9-C"},
-    {"student_id": "STU-005", "full_name": "Evan Torres",   "grade_level": "Grade 12", "section": "12-A"},
-    {"student_id": "STU-006", "full_name": "Fiona Nash",    "grade_level": "Grade 10", "section": "10-A"},
-    {"student_id": "STU-007", "full_name": "Gabriel Kim",   "grade_level": "Grade 11", "section": "11-B"},
-    {"student_id": "STU-008", "full_name": "Hannah Bell",   "grade_level": "Grade 9",  "section": "9-B"},
-    {"student_id": "STU-009", "full_name": "Isaac Cruz",    "grade_level": "Grade 12", "section": "12-C"},
-    {"student_id": "STU-010", "full_name": "Julia Voss",    "grade_level": "Grade 10", "section": "10-C"},
+# ── Sample subjects for the PROOFING order ─────────────────────────────────────
+# These represent the flexible "subject" concept — could be any type of ID
+# recipient: students, faculty, employees, members, etc.
+# The extra_data JSONField captures any domain-specific attributes.
+
+SAMPLE_SUBJECTS = [
+    {
+        "student_id": "SUB-001",
+        "full_name": "Aiden Walsh",
+        "grade_level": "Grade 9",
+        "section": "9-A",
+        "extra_data": {"department": "General Education", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-002",
+        "full_name": "Brianna Cole",
+        "grade_level": "Grade 10",
+        "section": "10-B",
+        "extra_data": {"department": "Science & Technology", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-003",
+        "full_name": "Carlos Reyes",
+        "grade_level": "Grade 11",
+        "section": "11-A",
+        "extra_data": {"department": "STEM", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-004",
+        "full_name": "Diana Park",
+        "grade_level": "Grade 9",
+        "section": "9-C",
+        "extra_data": {"department": "Arts & Humanities", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-005",
+        "full_name": "Evan Torres",
+        "grade_level": "Grade 12",
+        "section": "12-A",
+        "extra_data": {"department": "STEM", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-006",
+        "full_name": "Fiona Nash",
+        "grade_level": "Faculty",
+        "section": "Administration",
+        "extra_data": {"position": "Math Teacher", "type": "Faculty"},
+    },
+    {
+        "student_id": "SUB-007",
+        "full_name": "Gabriel Kim",
+        "grade_level": "Grade 11",
+        "section": "11-B",
+        "extra_data": {"department": "Business & Entrepreneurship", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-008",
+        "full_name": "Hannah Bell",
+        "grade_level": "Grade 9",
+        "section": "9-B",
+        "extra_data": {"department": "General Education", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-009",
+        "full_name": "Isaac Cruz",
+        "grade_level": "Grade 12",
+        "section": "12-C",
+        "extra_data": {"department": "HUMSS", "type": "Student"},
+    },
+    {
+        "student_id": "SUB-010",
+        "full_name": "Julia Voss",
+        "grade_level": "Staff",
+        "section": "Registrar",
+        "extra_data": {"position": "Records Officer", "type": "Staff"},
+    },
 ]
 
 
 class Command(BaseCommand):
-    help = "Seeds realistic demo data for the admin panel."
+    help = "Seeds realistic demo data for the admin panel (Subject schema)."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -241,6 +316,8 @@ class Command(BaseCommand):
                 ))
 
         # ── 4. Orders ──────────────────────────────────────────────────────────
+        # Note: Order.student_count field keeps its DB column name for
+        # backwards compatibility; it now represents the generic subject count.
         created_orders = []
         for order_data in ORDERS:
             inst   = institution_objects[order_data["institution_idx"]]
@@ -254,7 +331,7 @@ class Command(BaseCommand):
                 batch_name=order_data["batch_name"],
                 defaults={
                     "assigned_operator": op,
-                    "student_count":     order_data["student_count"],
+                    "student_count":     order_data["subject_count"],   # DB column name unchanged
                     "status":            order_data["status"],
                     "deadline":          deadline,
                     "completed_at": (
@@ -269,29 +346,32 @@ class Command(BaseCommand):
                     f"{order_data['school_name']} / {order_data['batch_name']}"
                 )
 
-        # ── 5. Sample students on the first PROOFING order ────────────────────
+        # ── 5. Sample subjects on the first PROOFING order ─────────────────────
+        # Uses the Subject model (migration 0023). extra_data captures
+        # domain-specific flexible fields (position, department, type, etc.)
         proofing_order = next(
             (o for o in created_orders if o.status == Order.Status.PROOFING), None
         )
-        if proofing_order and not Student.objects.filter(order=proofing_order).exists():
-            for s in SAMPLE_STUDENTS:
-                Student.objects.create(
+        if proofing_order and not Subject.objects.filter(order=proofing_order).exists():
+            for s in SAMPLE_SUBJECTS:
+                Subject.objects.create(
                     order=proofing_order,
-                    student_id=s["student_id"],
+                    student_id=s["student_id"],          # column name kept for FK compatibility
                     full_name=s["full_name"],
                     grade_level=s["grade_level"],
                     section=s.get("section", ""),
-                    photo_status=Student.PhotoStatus.PROCESSED,
+                    extra_data=s.get("extra_data", {}),
+                    photo_status=Subject.PhotoStatus.PROCESSED,
                 )
             self.stdout.write(
-                f"  {len(SAMPLE_STUDENTS)} sample students added to PROOFING order."
+                f"  {len(SAMPLE_SUBJECTS)} sample subjects added to PROOFING order."
             )
 
         # ── Summary ────────────────────────────────────────────────────────────
-        self.stdout.write("\n" + "=" * 55)
+        self.stdout.write("\n" + "=" * 60)
         self.stdout.write(self.style.SUCCESS("  Demo data seeded successfully!"))
-        self.stdout.write("=" * 55)
-        self.stdout.write("  Admin        →  demo_admin      / Admin@2025!")
-        self.stdout.write("  Operators    →  op_miguel etc   / Operator@2025!")
-        self.stdout.write("  Institutions →  greenvalley etc / Institution@2025!")
-        self.stdout.write("=" * 55 + "\n")
+        self.stdout.write("=" * 60)
+        self.stdout.write("  Admin        →  demo_admin       / Admin@2025!")
+        self.stdout.write("  Operators    →  op_miguel etc    / Operator@2025!")
+        self.stdout.write("  Institutions →  greenvalley etc  / Institution@2025!")
+        self.stdout.write("=" * 60 + "\n")

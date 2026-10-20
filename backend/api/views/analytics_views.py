@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from api.models.user_profile import UserProfile
 from api.models.institution import Institution
-from api.models.students import Student
+from api.models.subjects import Subject
 from api.models.orders import Order
 from django.db.models.functions import TruncMonth
 from django.db.models import Count

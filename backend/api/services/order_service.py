@@ -1,6 +1,6 @@
 # api/services/order_service.py
 from api.models.orders import Order
-from api.models.students import Student
+from api.models.subjects import Subject
 from django.db import transaction
 from api.services.qr_service import bulk_generate_qr_codes
 

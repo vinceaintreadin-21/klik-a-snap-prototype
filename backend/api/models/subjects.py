@@ -4,7 +4,7 @@ from django.utils import timezone
 def student_photo_path(instance, filename):
     return f'student_photos/order_{instance.order_id}/{filename}'
 
-class Student(models.Model):
+class Subject(models.Model):
     class PhotoStatus(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
         PROCESSED = 'PROCESSED', 'Processed'
@@ -13,7 +13,7 @@ class Student(models.Model):
     order = models.ForeignKey(
         'Order',
         on_delete=models.CASCADE,
-        related_name='students'
+        related_name='subjects'
     )
 
     # Identity
@@ -89,7 +89,7 @@ class Student(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'students'
+        db_table = 'subjects'
         unique_together = ('order', 'student_id')
         indexes = [
             models.Index(fields=['qr_code_data'])

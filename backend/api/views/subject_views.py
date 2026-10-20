@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from api.services.qr_service import generate_student_qr
-from api.models.students import Student
+from api.models.subjects import Subject
 from api.models.orders import Order
 from api.utils.permissions import check_order_access, check_student_access
 import json

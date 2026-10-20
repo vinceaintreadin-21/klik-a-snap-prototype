@@ -9,7 +9,7 @@ from api.services.id_engine import finalize_order_production
 from api.services.order_service import create_full_order
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from api.models.orders import Order
-from api.models.students import Student
+from api.models.subjects import Subject
 from api.services.processing_service import start_processing_queue
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
