@@ -36,7 +36,7 @@ def download_qr_codes(request, order_id):
         return err
 
     try:
-        students = Student.objects.filter(order=order).exclude(qr_code_url__isnull=True).exclude(qr_code_url='')
+        students = Subject.objects.filter(order=order).exclude(qr_code_url__isnull=True).exclude(qr_code_url='')
         
         if not students.exists():
             return Response({'error': 'No QR codes found'}, status=404)
@@ -98,11 +98,11 @@ def _list_orders(request):
         orders = Order.objects.none()
 
         if profile.role == UserProfile.Role.ADMIN:
-            orders = Order.objects.annotate(total_students=Count('students'))
+            orders = Order.objects.annotate(total_students=Count('subjects'))
 
         elif profile.role == UserProfile.Role.OPERATOR:
             orders = Order.objects.annotate(
-                total_students=Count('students')
+                total_students=Count('subjects')
             ).filter(assigned_operator=request.user)
 
         elif profile.role == UserProfile.Role.INSTITUTION:
@@ -111,7 +111,7 @@ def _list_orders(request):
             except Exception:
                 return Response({'error': 'No institution linked to this account.'}, status=403)
             orders = Order.objects.annotate(
-                total_students=Count('students')
+                total_students=Count('subjects')
             ).filter(institution=institution)
 
         elif profile.role == UserProfile.Role.COORDINATOR:
@@ -603,8 +603,8 @@ def update_order(request, order_id):
             order.save()
 
             # Re-generate QR codes for new students
-            new_students = Student.objects.filter(order=order)
-            qr_result = bulk_generate_qr_codes(new_students, order.id)
+            new_subjects = Subject.objects.filter(order=order)
+            qr_result = bulk_generate_qr_codes(new_subjects, order.id)
             print(f"QR Re-generation: {qr_result['generated']} success, {qr_result['failed']} failed")
 
     except ValueError as e:
@@ -628,9 +628,9 @@ def download_id_cards(request, order_id):
     if err:
         return err
 
-    students = Student.objects.filter(
+    students = Subject.objects.filter(
         order=order,
-        photo_status=Student.PhotoStatus.PROCESSED
+        photo_status=Subject.PhotoStatus.PROCESSED
     ).exclude(processed_photo='').exclude(processed_photo__isnull=True)
 
     if not students.exists():
@@ -702,7 +702,7 @@ def generate_test_photos(request, order_id):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
 
-    students = Student.objects.filter(
+    students = Subject.objects.filter(
         order=order
     ).exclude(qr_code_url__isnull=True).exclude(qr_code_url='')
 
