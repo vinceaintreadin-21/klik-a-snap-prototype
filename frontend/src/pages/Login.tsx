@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -30,10 +30,10 @@ const Login = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
         <div>
           <h2 className="mt-6 text-center text-3xl font-black text-gray-900 tracking-tight">
-            Klik-a-Snap
+            QueueBits
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access your ID production portal
+            Sign in to access your portal
           </p>
         </div>
         
@@ -86,15 +86,6 @@ const Login = () => {
             </button>
           </div>
         </form>
-
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            New here?{' '}
-            <Link to="/register" className="font-bold text-indigo-600 hover:text-indigo-500 transition-colors">
-              Create an account
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );
