@@ -782,3 +782,45 @@ def generate_test_photos(request, order_id):
     response = HttpResponse(content, content_type='application/zip')
     response['Content-Disposition'] = f'attachment; filename="test_photos_order_{order_id}.zip"'
     return response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_print_sheets(request, order_id):
+    """
+    Triggers compose_print_sheet and returns all sheet PNGs as a ZIP.
+    """
+    order, err = check_order_access(request, order_id)
+    if err:
+        return err
+
+    from api.services.id_engine import compose_print_sheet
+
+    try:
+        sheet_paths = compose_print_sheet(order_id)
+    except Exception as e:
+        return Response({'error': f'Print sheet generation failed: {str(e)}'}, status=500)
+
+    if not sheet_paths:
+        return Response({'error': 'No processed subjects found to generate print sheets.'}, status=404)
+
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for path_or_url in sheet_paths:
+            filename = os.path.basename(path_or_url.split('?')[0])
+            try:
+                if path_or_url.startswith('http'):
+                    res = requests.get(path_or_url, timeout=15)
+                    if res.status_code == 200:
+                        zf.writestr(filename, res.content)
+                else:
+                    abs_path = os.path.join(settings.MEDIA_ROOT, path_or_url.lstrip('/'))
+                    if os.path.exists(abs_path):
+                        zf.write(abs_path, arcname=filename)
+            except Exception as e:
+                print(f"Skipping sheet {filename}: {e}")
+
+    zip_buffer.seek(0)
+    response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="print_sheets_order_{order_id}.zip"'
+    return response
+
