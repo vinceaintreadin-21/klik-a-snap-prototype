@@ -80,3 +80,38 @@ export async function downloadSubjectPhoto(photoUrl: string, filename: string): 
     throw new Error(`Failed to download photo: ${filename}`);
   }
 }
+
+export async function downloadPrintSheets(orderId: string): Promise<void> {
+  try {
+    const response = await api.get(`orders/${orderId}/print-sheets/download/`, {
+      responseType: 'blob',
+    });
+
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = `print_sheets_order_${orderId}.zip`;
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^";]+)"?/);
+      if (match?.[1]) fileName = match[1];
+    }
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error: any) {
+    if (error.response?.data instanceof Blob) {
+      const errorText = await error.response.data.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(errorJson.error || 'Failed to download print sheets.');
+      } catch (_) {
+        throw new Error(errorText || 'Failed to download print sheets.');
+      }
+    }
+    throw error;
+  }
+}

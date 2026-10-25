@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Package, Download, Lock, AlertTriangle, Users, Calendar, CheckCircle2, Eye, Clock, Loader2 } from "lucide-react";
+import { ChevronLeft, Package, Download, Lock, AlertTriangle, Users, Calendar, CheckCircle2, Eye, Clock, Loader2, Printer } from "lucide-react";
 import {
   type ExportOrder,
   type ExportSubject,
@@ -9,7 +9,7 @@ import {
   getInstitutionName,
   getSubjectTotalCount,
 } from "./exportTypes";
-import { downloadOrderZip, fetchOrderSubjects } from "../../../utils/exportApi";
+import { downloadOrderZip, fetchOrderSubjects, downloadPrintSheets } from "../../../utils/exportApi";
 import { StudentTable } from "./StudentTable";
 import { cn } from "../../../lib/utils";
 
@@ -32,6 +32,9 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const [isDownloadingSheets, setIsDownloadingSheets] = useState(false);
+  const [sheetDownloadError, setSheetDownloadError] = useState<string | null>(null);
 
   const status = getOrderStatus(order);
   const enabled = isExportEnabled(status);
@@ -69,6 +72,18 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
       setDownloadError(err.message || "Failed to download ZIP archive");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadPrintSheets = async () => {
+    setIsDownloadingSheets(true);
+    setSheetDownloadError(null);
+    try {
+      await downloadPrintSheets(String(order.id));
+    } catch (err: any) {
+      setSheetDownloadError(err.message || "Failed to download print sheets");
+    } finally {
+      setIsDownloadingSheets(false);
     }
   };
 
@@ -149,6 +164,44 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
               )}
             </div>
           </div>
+
+          {/* Print Sheets Download */}
+          <div className={cn("rounded-2xl border p-5 flex items-start gap-5", enabled ? "bg-white border-gray-100 shadow-sm" : "bg-gray-50 border-gray-100")}>
+            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", enabled ? "bg-violet-50" : "bg-gray-100")}>
+              <Printer size={22} className={enabled ? "text-violet-600" : "text-gray-400"} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h2 className={cn("text-[15px] font-semibold", enabled ? "text-gray-900" : "text-gray-500")}>Print-Ready Sheets</h2>
+                  <p className={cn("text-[12px] mt-0.5", enabled ? "text-gray-500" : "text-gray-400")}>
+                    {enabled
+                      ? "5-up layout: front row + back row (rotated 180°) for duplex cut-sheet printing"
+                      : getDisabledReason(status)}
+                  </p>
+                </div>
+                <button
+                  disabled={!enabled || isDownloadingSheets}
+                  onClick={handleDownloadPrintSheets}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0",
+                    enabled && !isDownloadingSheets
+                      ? "bg-violet-600 hover:bg-violet-700 text-white shadow-sm shadow-violet-200 active:scale-95"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  )}
+                >
+                  {enabled ? <Download size={15} /> : <Lock size={14} />}
+                  {isDownloadingSheets ? "Generating Sheets..." : "Download Print Sheets (.zip)"}
+                </button>
+              </div>
+              {sheetDownloadError && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-100 text-red-700 text-[12px] rounded-xl">
+                  {sheetDownloadError}
+                </div>
+              )}
+            </div>
+          </div>
+
 
           {loadingSubjects ? (
             <div className="py-16 flex flex-col items-center justify-center gap-2 text-sm text-gray-400">
