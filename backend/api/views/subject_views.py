@@ -77,7 +77,7 @@ def quick_add_student(request, order_id):
         order = order
         data = request.data
 
-        student = Student.objects.create(
+        student = Subject.objects.create(
             order=order,
             full_name=data['full_name'],
             grade_level=data.get('grade_level', ''),
