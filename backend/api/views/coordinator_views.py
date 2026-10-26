@@ -145,8 +145,8 @@ def coordinator_student_list(request, order_id):
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
 
-    students = Student.objects.filter(order=order).values(
-        'id', 'student_id', 'full_name', 'grade_level',
+    students = Subject.objects.filter(order=order).values(
+        'id', 'student_id', 'full_name', 'grade_level', 'section',
         'photo_status', 'is_photographed', 'is_walk_in', 'qr_code_url'
     ).order_by('full_name')
 
