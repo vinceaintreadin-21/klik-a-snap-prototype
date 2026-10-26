@@ -397,13 +397,29 @@ def invite_coordinator(request):
     profile.is_active = False
     profile.save()
 
+    #expiration 
+    expires_in_hours = int(request.data.get('expires_in_hours', 168))
     invite = CoordinatorInvite.objects.create(
         user=user,
         institution=institution,
-        expires_at=timezone.now() + timedelta(days=7)
+        expires_at=timezone.now() + timedelta(hours=expires_in_hours)
     )
 
-    invite_url = f"{request.data.get('base_url', '')}/coordinator/join/{invite.token}" 
+    base_url = request.data.get('base_url', '').rstrip('/') or settings.FRONTEND_BASE_URL.rstrip('/')
+    invite_url = f"{base_url}/coordinator/join/{invite.token}" 
+
+    send_transactional_email(
+        subject='You have been invited as a Coordinator',
+        message=(
+            f"Hello {name},\n\n"
+            f"You have been invited to join {institution.name} as a Photo Day Coordinator on Klik-a-Snap.\n\n"
+            f"Click the link below to set your password and activate your account:\n"
+            f"{invite_url}\n\n"
+            f"This link expires in 7 days.\n\n"
+            f"Best regards,\nThe Klik-a-Snap Team"
+        ),
+        recipient_list=[email],
+    )
 
     return Response({
         'message':    'Coordinator invite created',

@@ -19,6 +19,7 @@ from api.models.user_profile import UserProfile
 from api.models.institution import Institution
 from api.models.orders import Order
 from api.models.subjects import Subject   # ← Subject, not Student
+from api.models.coordinator_invite import CoordinatorInvite
 
 
 # ── Institutions ───────────────────────────────────────────────────────────────
@@ -76,7 +77,30 @@ INSTITUTIONS = [
     },
 ]
 
-# ── Operators ──────────────────────────────────────────────────────────────────
+# ── Coordinators ──────────────────────────────────────────────────────────────
+# Each coordinator is tied to an institution by index (matches INSTITUTIONS list).
+# No expiry — demo accounts are permanently active.
+
+COORDINATORS = [
+    {
+        "username":          "coord_lena",
+        "email":             "lena.garcia@greenvalley.edu",
+        "first_name":        "Lena Garcia",
+        "institution_idx":   0,   # Green Valley College
+    },
+    {
+        "username":          "coord_marco",
+        "email":             "marco.bautista@northsideprep.edu",
+        "first_name":        "Marco Bautista",
+        "institution_idx":   1,   # Northside Prep School
+    },
+    {
+        "username":          "coord_nina",
+        "email":             "nina.reyes@maplewood.edu",
+        "first_name":        "Nina Reyes",
+        "institution_idx":   2,   # Maplewood High School
+    },
+]
 
 OPERATORS = [
     {"username": "op_miguel", "email": "miguel@klik-a-snap.com"},
@@ -238,6 +262,7 @@ class Command(BaseCommand):
             usernames = (
                 [i["username"] for i in INSTITUTIONS] +
                 [o["username"] for o in OPERATORS] +
+                [c["username"] for c in COORDINATORS] +
                 ["demo_admin"]
             )
             User.objects.filter(username__in=usernames).delete()
@@ -367,6 +392,52 @@ class Command(BaseCommand):
                 f"  {len(SAMPLE_SUBJECTS)} sample subjects added to PROOFING order."
             )
 
+        # ── 6. Coordinators ────────────────────────────────────────────────────
+        # Demo coordinator accounts are fully active with no invite expiry.
+        # A CoordinatorInvite record is still created (marked used) so the
+        # list_coordinators endpoint has something to show — but the account
+        # itself logs in normally with a password.
+        for coord_data in COORDINATORS:
+            inst = institution_objects[coord_data["institution_idx"]]
+
+            user, created = User.objects.get_or_create(
+                username=coord_data["username"],
+                defaults={
+                    "email":      coord_data["email"],
+                    "first_name": coord_data["first_name"],
+                    "is_active":  True,
+                },
+            )
+            if created:
+                user.set_password("Coordinator@2025!")
+                user.save()
+
+                profile = user.profile
+                profile.role        = UserProfile.Role.COORDINATOR
+                profile.institution = inst
+                profile.is_active   = True
+                profile.save()
+
+                # Mark invite as already-used so it doesn't block login
+                CoordinatorInvite.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        "institution": inst,
+                        # Far-future expiry so is_valid() never fails for demo
+                        "expires_at":  timezone.now() + timedelta(days=36500),
+                        "is_used":     True,
+                    },
+                )
+
+                self.stdout.write(self.style.SUCCESS(
+                    f"  Coordinator created  →  {coord_data['username']}  "
+                    f"({inst.name})  |  password: Coordinator@2025!"
+                ))
+            else:
+                self.stdout.write(
+                    f"  Coordinator already exists, skipping  →  {coord_data['username']}"
+                )
+
         # ── Summary ────────────────────────────────────────────────────────────
         self.stdout.write("\n" + "=" * 60)
         self.stdout.write(self.style.SUCCESS("  Demo data seeded successfully!"))
@@ -374,4 +445,5 @@ class Command(BaseCommand):
         self.stdout.write("  Admin        →  demo_admin       / Admin@2025!")
         self.stdout.write("  Operators    →  op_miguel etc    / Operator@2025!")
         self.stdout.write("  Institutions →  greenvalley etc  / Institution@2025!")
+        self.stdout.write("  Coordinators →  coord_lena etc   / Coordinator@2025!")
         self.stdout.write("=" * 60 + "\n")
