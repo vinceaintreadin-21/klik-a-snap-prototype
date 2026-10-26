@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { getInitials } from '../coordinator/coordinatorTypes'
+import type { ActiveBatch } from './CoordinatorLayout'
 
 interface NavItem {
     key: string
@@ -23,7 +24,11 @@ const NAV_ITEMS: NavItem[] = [
     { key: 'proofing', icon: CheckSquare, label: 'Proofing', path: '/coordinator/proofing' },
 ]
 
-export default function CoordinatorSidebar() {
+interface CoordinatorSidebarProps {
+    activeBatch?: ActiveBatch | null
+}
+
+export default function CoordinatorSidebar({ activeBatch }: CoordinatorSidebarProps) {
     const navigate = useNavigate()
     const location = useLocation()
     const { user, logout } = useAuth()
@@ -49,8 +54,19 @@ export default function CoordinatorSidebar() {
                 </div>
             </div>
 
+            {/* Active batch badge */}
+            <div className="mx-3 mt-3 mb-1 bg-[#e8eeff] rounded-xl px-3 py-2.5">
+                <div className="text-[10px] font-bold text-[#004ac6] uppercase tracking-[0.4px] mb-0.5">Active Batch</div>
+                <div className="text-[12px] font-semibold text-[#0b1c30] leading-tight truncate">
+                    {activeBatch?.school_name ?? '—'}
+                </div>
+                <div className="text-[10px] text-[#64748b] mt-0.5 truncate">
+                    {activeBatch?.batch_name ?? 'Loading...'}
+                </div>
+            </div>
+
             {/* Nav */}
-            <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
+            <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
                 {NAV_ITEMS.map((item) => {
                     const active = isActive(item.path)
                     return (
@@ -83,7 +99,9 @@ export default function CoordinatorSidebar() {
                         {initials}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <div className="text-[12px] font-semibold text-[#0b1c30] truncate">{user?.username ?? 'Coordinator'}</div>
+                        <div className="text-[12px] font-semibold text-[#0b1c30] truncate">
+                            {user?.username ?? 'Coordinator'}
+                        </div>
                         <div className="text-[10px] text-[#9ba3af]">Coordinator</div>
                     </div>
                     <button

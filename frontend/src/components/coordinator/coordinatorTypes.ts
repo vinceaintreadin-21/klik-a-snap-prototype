@@ -5,6 +5,7 @@ export interface CoordSubject {
     full_name: string
     student_id: string
     grade_level: string
+    section?: string
     photo_status: 'PENDING' | 'PROCESSED' | 'MANUAL_REVIEW' | 'FAILED'
     is_photographed: boolean
     is_walk_in: boolean
