@@ -9,3 +9,4 @@ general_cli_suggestions/
 README.mdJ
 docs/
 media/
+.env.docker-test
