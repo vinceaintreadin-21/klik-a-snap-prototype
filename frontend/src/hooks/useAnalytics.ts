@@ -19,7 +19,7 @@ interface OrdersPerMonth {
 interface ManualReviewRate {
     rate: number 
     manual_review_count: number 
-    total_students: number
+    total_subjects: number
 }  
 
 // ---Functions
