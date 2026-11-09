@@ -49,7 +49,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    if os.getenv('BEHIND_PROXY', 'FALSE') == True:
+    if os.getenv('BEHIND_PROXY', 'False') == True:
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     hosts_string = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
     ALLOWED_HOSTS = [host.strip() for host in hosts_string.split(',') if host.strip()]
