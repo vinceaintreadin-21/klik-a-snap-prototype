@@ -1,5 +1,7 @@
 # processing_service.py
 import os
+import gc
+import time
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
@@ -7,6 +9,17 @@ from api.models.subjects import Subject
 from api.models.orders import Order
 from api.services.id_engine import process_single_photo
 import cloudinary.api
+import ctypes
+
+def trim_memory():
+    gc.collect()
+    try:
+        libc = ctypes.CDLL('libc.so.6')
+        libc.malloc_trim(0)
+    except Exception:
+        pass
+
+BATCH_SIZE = 25  # pause briefly every N subjects to let memory settle
 
 def broadcast_status(order_id, status, extra=None):
     channel_layer = get_channel_layer()
@@ -68,7 +81,7 @@ def start_processing_queue(order_id):
             return
         
         already_linked_urls = set(
-            Student.objects.filter(
+            Subject.objects.filter(
                 order_id=order_id, 
                 original_photo_url__isnull=False
             ).exclude(original_photo_url='')
@@ -78,9 +91,9 @@ def start_processing_queue(order_id):
         image_files = [url for url in image_files if url not in already_linked_urls]
 
         manually_linked_urls = list(
-            Student.objects.filter(
+            Subject.objects.filter(
                 order_id=order_id,
-                photo_status=Student.PhotoStatus.PENDING,
+                photo_status=Subject.PhotoStatus.PENDING,
                 original_photo_url__isnull=False
             ).exclude(original_photo_url='')
             .exclude(original_photo_url__contains='/manual/')
@@ -103,7 +116,7 @@ def start_processing_queue(order_id):
         processed = 0
         manual_review = 0
 
-        for url in image_files:
+        for i, url in enumerate(image_files):
             print(f"AI Engine working on: {url}")
 
             try: 
@@ -116,6 +129,13 @@ def start_processing_queue(order_id):
             except Exception as e:
                 print(f"Error processing {url}: {str(e)}")
                 manual_review += 1
+            finally:
+                trim_memory()
+
+            # Brief pause every BATCH_SIZE subjects so the OS can reclaim
+            # memory pages — prevents OOM on memory-constrained servers.
+            if (i + 1) % BATCH_SIZE == 0:
+                time.sleep(1)
 
             broadcast_status(order_id, "PROCESSING", {
                 "action": "progress_update",

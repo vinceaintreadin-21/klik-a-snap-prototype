@@ -259,7 +259,10 @@ def upload_photos(request, order_id, student_id=None):
                 folder=f'student_photos/order_{order_id}',
                 resource_type='image',
                 use_filename=True,
-                unique_filename=False
+                unique_filename=False,
+                transformation=[
+                    {'width': 1200, 'height': 1600, 'crop': 'limit', 'quality': 85}
+                ]
             )
             uploaded.append({
                 'file': file.name,

@@ -28,7 +28,7 @@ def get_analytics_overview(request):
             'error': 'Admin access required'
         }, status=403)
     
-    total_ids = Student.objects.filter(order__status='COMPLETED').count()
+    total_ids = Subject.objects.filter(order__status='COMPLETED').count()
     total_orders = Order.objects.count()
     pending_orders = Order.objects.filter(status__in=['PENDING', 'PROCESSING', 'PROOFING', 'PRINTING']).count()
     active_institutions = Institution.objects.filter(status='ACTIVE').count()
@@ -90,21 +90,21 @@ def get_manual_review_rate(request):
             'error': 'Admin access required'
         }, status=403)
 
-    total_students = Student.objects.count()
-    manual_review_students = Student.objects.filter(photo_status=Student.PhotoStatus.MANUAL_REVIEW).count()
+    total_subjects = Subject.objects.count()
+    manual_review_subjects = Subject.objects.filter(photo_status=Subject.PhotoStatus.MANUAL_REVIEW).count()
     
-    if total_students == 0:
+    if total_subjects == 0:
         return Response({
             'rate': 0,
             'manual_review_count': 0,
-            'total_students': 0
+            'total_subjects': 0
         })
     
-    rate = round((manual_review_students / total_students) * 100, 2)
+    rate = round((manual_review_subjects / total_subjects) * 100, 2)
     return Response({
         'rate': rate,
-        'manual_review_count': manual_review_students,
-        'total_students': total_students
+        'manual_review_count': manual_review_subjects,
+        'total_subjects': total_subjects
     })
 
 @api_view(['GET'])
