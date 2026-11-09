@@ -426,7 +426,7 @@ const Analytics = () => {
                 </div>
                 <div className="flex justify-between text-[11px] text-[#94a3b8]">
                   <span>0%</span>
-                  <span>{review.total_students.toLocaleString()} total students</span>
+                  <span>{review.total_subjects.toLocaleString()} total subjects</span>
                 </div>
               </div>
 

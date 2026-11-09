@@ -178,7 +178,7 @@ export default function AdminDashboard() {
         <StatCard
           label="Manual Review Rate"
           value={reviewData?.rate != null ? `${reviewData.rate}%` : '—'}
-          sub={reviewData ? `${reviewData.manual_review_count} of ${reviewData.total_students} flagged` : 'loading...'}
+          sub={reviewData ? `${reviewData.manual_review_count} of ${reviewData.total_subjects} flagged` : 'loading...'}
           icon={AlertTriangle}
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
@@ -392,7 +392,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex justify-between text-[11px] text-gray-400 mt-1">
                   <span>{reviewData.manual_review_count} flagged</span>
-                  <span>{reviewData.total_students} total students</span>
+                  <span>{reviewData.total_subjects} total subjects</span>
                 </div>
               </div>
             )}
