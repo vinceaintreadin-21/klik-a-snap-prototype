@@ -118,7 +118,7 @@ def _list_orders(request):
             if not profile.institution:
                 return Response({'error': 'No institution linked to this account.'}, status=403)
             orders = Order.objects.annotate(
-                total_students=Count('students')
+                total_students=Count('subjects')
             ).filter(institution=profile.institution)
 
         result = orders.values(
@@ -579,15 +579,15 @@ def update_order(request, order_id):
 
     try:
         with transaction.atomic():
-            # Wipe existing students and re-create
-            Student.objects.filter(order=order).delete()
+            # Wipe existing subjects and re-create
+            Subject.objects.filter(order=order).delete()
 
             student_ids = [s['student_id'] for s in students]
             if len(student_ids) != len(set(student_ids)):
                 raise ValueError('Duplicate student_id values in the new student list')
 
-            student_objs = [
-                Student(
+            subject_objs = [
+                Subject(
                     order=order,
                     full_name=s['name'],
                     student_id=s['student_id'],
@@ -595,7 +595,7 @@ def update_order(request, order_id):
                     section=s.get('section', ''),
                 ) for s in students
             ]
-            Student.objects.bulk_create(student_objs)
+            Subject.objects.bulk_create(subject_objs)
 
             # Reset order back to PENDING with new count
             order.student_count = len(students)
@@ -605,7 +605,7 @@ def update_order(request, order_id):
             order.approval_notes = ''
             order.save()
 
-            # Re-generate QR codes for new students
+            # Re-generate QR codes for new subjects
             new_subjects = Subject.objects.filter(order=order)
             qr_result = bulk_generate_qr_codes(new_subjects, order.id)
             print(f"QR Re-generation: {qr_result['generated']} success, {qr_result['failed']} failed")

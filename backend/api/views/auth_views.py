@@ -22,6 +22,7 @@ class AuthRateThrottle(SimpleRateThrottle):
             'ident': ident
         }
 
+#function decomissioned, will not use for production
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):
@@ -107,22 +108,24 @@ def accept_account_invite(request, token):
 @throttle_classes([AuthRateThrottle])
 @permission_classes([AllowAny])
 def login_user(request):
-    username = request.data.get('username')
+    identifier = request.data.get('username') #accepts username or email 
     password = request.data.get('password')
 
-    if not username or not password:
+    if not identifier or not password:
         return Response({
             'error': 'Username and password are required'
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        user_obj = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return Response({
-            'error': 'Invalid credentials'
-        }, status=status.HTTP_401_UNAUTHORIZED)
+    user_obj = None
+    if '@' in identifier:
+        user_obj = User.objects.filter(email=identifier).first()
+    else: 
+        user_obj = User.objects.filter(username=identifier).first()
+    
+    if not user_obj:
+        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    user = authenticate(request, username=username, password=password)
+    user = authenticate(request, username=identifier, password=password)
     
     if user is None:
         if not user_obj.is_active:

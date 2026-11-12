@@ -7,6 +7,14 @@ class Institution(models.Model):
         ACTIVE = 'ACTIVE', 'Active'
         INACTIVE = 'INACTIVE', 'Inactive'
         SUSPENDED = 'SUSPENDED', 'Suspended'
+        DEACTIVATED = 'DEACTIVATED', 'Deactivated'
+
+    class CleanupStatus(models.TextChoices):
+        NOT_STARTED = 'NOT_STARTED', 'Not started'
+        PENDING = 'PENDING', 'Pending'
+        RUNNING = 'RUNNING', 'Running'
+        COMPLETED = 'COMPLETED', 'Completed'
+        FAILED = 'FAILED', 'Failed'
 
     # Linked login account
     user = models.OneToOneField(
@@ -44,6 +52,18 @@ class Institution(models.Model):
         null=True, blank=True,
         help_text='Date when the contract ends. Used to trigger asset cleanup.'
     )
+
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+    deactivated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='deactivated_institutions')
+    deactivated_reason = models.TextField(blank=True)
+
+    cleanup_status = models.CharField(
+        max_length=20,
+        choices=CleanupStatus.choices,
+        default=CleanupStatus.NOT_STARTED,
+    )
+    cleanup_completed_at = models.DateTimeField(null=True, blank=True)
+    cleanup_error = models.TextField(blank=True)
     
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='suspended_institutions')

@@ -6,23 +6,28 @@ from api.services.qr_service import bulk_generate_qr_codes
 
 def create_full_order(school_name, batch_name, student_list, institution=None):
     # We use a transaction (like Laravel's DB::transaction)
-    # This ensures that if one student fails, the whole order isn't created.
+    # This ensures that if one subject fails, the whole order isn't created.
     with transaction.atomic():
+        if institution is not None:
+            from api.models.institution import Institution
+            institution = Institution.objects.select_for_update().get(pk=institution.pk)
+            if institution.status != Institution.Status.ACTIVE:
+                raise ValueError('Only active institutions can create orders')
 
-        student_ids = [s['student_id'] for s in student_list] 
-        if len (student_ids) != len(set(student_ids)):  
+        student_ids = [s['student_id'] for s in student_list]
+        if len(student_ids) != len(set(student_ids)):
             raise ValueError("Duplicate student_id values found in the student list")
-            
+
         new_order = Order.objects.create(
             school_name=school_name,
             batch_name=batch_name,
             student_count=len(student_list),
             institution=institution
         )
-        
+
         # Bulk create for performance
-        student_objs = [
-            Student(
+        subject_objs = [
+            Subject(
                 order=new_order,
                 full_name=s['name'],
                 student_id=s['student_id'],
@@ -32,13 +37,12 @@ def create_full_order(school_name, batch_name, student_list, institution=None):
             ) for s in student_list
         ]
 
-        
-        Student.objects.bulk_create(student_objs)
+        Subject.objects.bulk_create(subject_objs)
 
     # Run QR generation OUTSIDE the transaction — Cloudinary calls inside a
     # transaction hold the DB connection open for the full duration
-    students = Student.objects.filter(order_id=new_order.id)
-    qr_result = bulk_generate_qr_codes(students, new_order.id)
+    subjects = Subject.objects.filter(order_id=new_order.id)
+    qr_result = bulk_generate_qr_codes(subjects, new_order.id)
 
     print(f"QR Generation: {qr_result['generated']} success, {qr_result['failed']} failed")
     if qr_result['errors']:

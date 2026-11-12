@@ -14,6 +14,9 @@ from django.contrib.auth.models import User
 from django.utils.crypto import get_random_string
 from rest_framework.parsers import MultiPartParser, FormParser
 from api.utils.emails import send_transactional_email 
+from django.db import transaction
+from api.models.orders import Order
+
 
 
 def is_admin(user): 
@@ -28,7 +31,7 @@ def get_institutions(request):
     if not is_admin(request.user):
         return Response({'error': 'Admin access required'}, status=403)
 
-    institutions = Institution.objects.select_related('suspended_by').values(
+    institutions = Institution.objects.select_related('suspended_by', 'deactivated_by').values(
         'id',
         'name',
         'address',
@@ -40,7 +43,13 @@ def get_institutions(request):
         'created_at',
         'suspended_at',
         'suspended_by__username',
-        'suspended_reason'
+        'suspended_reason',
+        'contract_ends_at',
+        'deactivated_at',
+        'deactivated_by__username',
+        'deactivated_reason',
+        'cleanup_status',
+        'cleanup_completed_at',
     )
     return Response({'institutions': list(institutions)})
 
@@ -53,6 +62,7 @@ def create_institution(request):
         
     try:
         name = request.data.get('name', '').strip()
+        username = request.data.get('username', '').strip()
         email = request.data.get('email', '').strip()
         address = request.data.get('address', '').strip()
         contact_person = request.data.get('contact_person', '').strip()
@@ -60,6 +70,12 @@ def create_institution(request):
         logo_file = request.FILES.get('logo')
         order_quota = request.data.get('order_quota', None)
         contract_ends_at = request.data.get('contract_ends_at', None)
+
+        if not username:
+            return Response({'error': 'username is required'}, status=400)
+
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already taken'}, status=400)
 
         if order_quota is not None: 
             try: 
@@ -75,7 +91,7 @@ def create_institution(request):
             }, status=400)
             
         if not name or not address or not contact_person:
-            return Response({"error": "name, address, and contact_person are required"}, status=400)
+            return Response({"error": "name, address, and contact person are required"}, status=400)
 
         photo_url = None
         
@@ -96,7 +112,7 @@ def create_institution(request):
 
         # Create user account
         user = User.objects.create_user(
-            username=email,  # Use email as username
+            username=username,  # Use email as username
             email=email,
             password=None,
             is_staff=False,
@@ -188,73 +204,101 @@ def institution_detail(request, id):
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_institution(request, id):
+    from api.models.admin_audit_log import AdminAuditLog
+    from api.services.institution_cleanup import purge_institution_assets
+    import logging
+
     if not is_admin(request.user):
         return Response({'error': 'Admin access required'}, status=403)
-    
-    try:
-        institution = Institution.objects.get(id = id)
-    except Institution.DoesNotExist:
-        return Response({'error': 'Institution not found'}, status=404)
-    
     new_status = request.data.get('status')
-    
-    if new_status not in [choice[0] for choice in Institution.Status.choices]:
-        return Response({'error': 'Invalid status update'}, status=400)
+    if new_status not in Institution.Status.values:
+        return Response({'error': 'Invalid institution status'}, status=400)
 
-    institution.status = new_status
-        
-    if new_status == Institution.Status.SUSPENDED:
-        institution.suspended_at = timezone.now()
-        institution.suspended_by = request.user
-        institution.suspended_reason = request.data.get('suspended_reason', '')
+    with transaction.atomic():
+        try:
+            institution = Institution.objects.select_for_update().get(pk=id)
+        except Institution.DoesNotExist:
+            return Response({'error': 'Institution not found'}, status=404)
+
+        if institution.status == Institution.Status.DEACTIVATED:
+            if new_status != Institution.Status.DEACTIVATED:
+                return Response({'error': 'A deactivated institution cannot be reactivated.'}, status=400)
+            if institution.cleanup_status == Institution.CleanupStatus.COMPLETED:
+                return Response({'status': institution.status, 'cleanup_status': institution.cleanup_status,
+                                 'message': 'Institution data has already been deleted.'})
+            if institution.cleanup_status == Institution.CleanupStatus.RUNNING:
+                return Response({'error': 'Cleanup is already running.'}, status=409)
+
+        if new_status != Institution.Status.DEACTIVATED:
+            # Temporary suspension never purges data.
+            institution.status = new_status
+            suspended = new_status == Institution.Status.SUSPENDED
+            institution.suspended_at = timezone.now() if suspended else None
+            institution.suspended_by = request.user if suspended else None
+            institution.suspended_reason = request.data.get('suspended_reason', '') if suspended else ''
+            institution.save()
+            return Response({'message': f'Institution status updated to {new_status}', 'status': new_status})
+
+        if institution.contract_ends_at is None or institution.contract_ends_at > timezone.now():
+            return Response({'error': 'The contract end date must have been reached.'}, status=400)
+        if institution.orders.exclude(status__in=[Order.Status.COMPLETED, Order.Status.CANCELLED]).exists():
+            return Response({'error': 'Complete or cancel all orders before deactivation.'}, status=400)
+        if request.data.get('confirm_deletion') is not True:
+            return Response({'error': 'confirm_deletion must be true to permanently delete orders, subjects and assets.'}, status=400)
+        reason = request.data.get('deactivated_reason', request.data.get('deactivation_reason', ''))
+        if not isinstance(reason, str) or not reason.strip():
+            return Response({'error': 'A deactivation reason is required.'}, status=400)
+
+        institution.status = Institution.Status.DEACTIVATED
+        if institution.deactivated_at is None:
+            institution.deactivated_at = timezone.now()
+            institution.deactivated_by = request.user
+            institution.deactivated_reason = reason.strip()
+        institution.cleanup_status = Institution.CleanupStatus.RUNNING
+        institution.cleanup_error = ''
         institution.save()
+        user_ids = [institution.user_id, *UserProfile.objects.filter(
+            institution=institution, role=UserProfile.Role.COORDINATOR
+        ).values_list('user_id', flat=True)]
+        User.objects.filter(pk__in=user_ids).update(is_active=False)
+        UserProfile.objects.filter(user_id__in=user_ids).update(is_active=False)
+        # Outstanding activation links must not reactivate these accounts.
+        AccountInvite.objects.filter(user_id__in=user_ids).update(is_used=True)
+        CoordinatorInvite.objects.filter(institution=institution).update(is_used=True)
+        AdminAuditLog.objects.create(admin_user=request.user, action='DEACTIVATE_INSTITUTION',
+            target_model='Institution', target_id=id, details={'cleanup_status': 'RUNNING'})
 
-        #Asset cleanup
-        import cloudinary.api 
-        from api.models.students import Student 
-        from api.models.orders import Order
+    # Account deactivation is committed before irreversible external deletions.
+    # Keep database rows until every asset operation succeeds so failed cleanup can retry.
+    try:
+        purge_institution_assets(institution)
+        with transaction.atomic():
+            institution = Institution.objects.select_for_update().get(pk=id)
+            if institution.orders.exclude(status__in=[Order.Status.COMPLETED, Order.Status.CANCELLED]).exists():
+                raise ValueError('Order state changed during cleanup')
+            subject_count = sum(order.subjects.count() for order in institution.orders.all())
+            order_count = institution.orders.count()
+            institution.orders.all().delete()  # Cascades to subjects, layouts and processing logs.
+            institution.logo_url = None
+            institution.cleanup_status = Institution.CleanupStatus.COMPLETED
+            institution.cleanup_completed_at = timezone.now()
+            institution.cleanup_error = ''
+            institution.save()
+            AdminAuditLog.objects.create(admin_user=request.user, action='PURGE_INSTITUTION_DATA',
+                target_model='Institution', target_id=id,
+                details={'deleted_orders': order_count, 'deleted_subjects': subject_count})
+    except Exception:
+        logging.getLogger(__name__).exception('Institution %s cleanup failed', id)
+        Institution.objects.filter(pk=id).update(cleanup_status=Institution.CleanupStatus.FAILED,
+            cleanup_error='Asset or database cleanup failed. See server logs and retry deactivation.')
+        return Response({'error': 'Institution deactivated, but cleanup failed. Records retained for retry.',
+                         'status': Institution.Status.DEACTIVATED, 'cleanup_status': Institution.CleanupStatus.FAILED}, status=502)
 
-        orders = Order.objects.filter(institution=institution)
+    return Response({'message': 'Institution deactivated; orders, subject records and assets deleted.',
+                     'status': institution.status, 'cleanup_status': institution.cleanup_status,
+                     'deleted_orders': order_count, 'deleted_subjects': subject_count})
 
-        
-        for order in orders:
-            #Deletes cloudinary assets per order
-            try:
-                cloudinary.api.delete_resources_by_prefix(
-                    f'student_photos/order_{order.id}/'
-                )
-            except Exception as e:
-                print(f'Cloudinary cleanup failed for student_photos/order_{order.id}/: {e}')
-            
-            try:
-                cloudinary.api.delete_resources_by_prefix(
-                    f"final_ids/order_{order.id}/"
-                )
-            except Exception as e:
-                print(f'Cloudinary cleanup failed for final_ids/order_{order.id}/: {e}')
-            
-            try:
-                cloudinary.api.delete_resources_by_prefix(
-                    f'qr_codes/order_{order.id}' 
-                )
-            except Exception:
-                pass
-        
-        Student.objects.filter(order__institution=institution).delete()
-        return Response({
-            'message': 'Institution suspended and assets purged'
-        })
 
-    elif new_status in ['ACTIVE', 'INACTIVE']:
-        institution.status = new_status
-        institution.suspended_at = None
-        institution.suspended_by = None
-        institution.suspended_reason = ''
-        institution.save()
-        
-        return Response({'message': f'Institution status updated to {new_status}'})
-            
-        
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_institution_orders(request, id):

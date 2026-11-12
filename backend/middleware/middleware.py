@@ -10,7 +10,7 @@ def get_user(token_key):
     try:
         token = AccessToken(token_key)
         user_id = token['user_id']
-        return User.objects.get(id=user_id)
+        return User.objects.get(id=user_id, is_active=True)
     except Exception:
         return AnonymousUser()
 

@@ -89,7 +89,7 @@ def coordinator_orders(request):
     orders = Order.objects.filter(
         institution=institution
     ).annotate(
-        total_students=Count('students')
+        total_students=Count('subjects')
     ).values(
         'id', 'school_name', 'batch_name', 'status', 'created_at', 'total_students'
     )
@@ -103,7 +103,7 @@ def coordinator_orders(request):
 @permission_classes([IsAuthenticated])
 def coordinator_search_students(request):
     """
-    Searches students across all orders belonging to the coordinator's institution.
+    Searches subjects across all orders belonging to the coordinator's institution.
     Query param: ?q=<name or student_id>
     """
     if not is_coordinator(request.user):
@@ -117,17 +117,17 @@ def coordinator_search_students(request):
     if not query:
         return Response({'error': 'Query parameter q is required'}, status=400)
 
-    students = Student.objects.filter(
+    subjects = Subject.objects.filter(
         order__institution=institution
     ).filter(
         full_name__icontains=query
     ).select_related('order').values(
-        'id', 'student_id', 'full_name', 'grade_level',
-        'photo_status', 'qr_code_url',
+        'id', 'student_id', 'full_name', 'grade_level', 'section',
+        'photo_status', 'is_photographed', 'is_walk_in', 'qr_code_url',
         'order__id', 'order__school_name', 'order__batch_name', 'order__status'
     )
 
-    return Response(list(students))
+    return Response(list(subjects))
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -156,22 +156,22 @@ def coordinator_student_list(request, order_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_photographed(request, student_id):
-    """Toggle is_photographed for a student. Coordinator only."""
+    """Toggle is_photographed for a subject. Coordinator only."""
     if not is_coordinator(request.user):
         return Response({'error': 'Coordinator access required'}, status=403)
 
     try:
-        student = Student.objects.select_related('order__institution').get(id=student_id)
-    except Student.DoesNotExist:
-        return Response({'error': 'Student not found'}, status=404)
+        subject = Subject.objects.select_related('order__institution').get(id=student_id)
+    except Subject.DoesNotExist:
+        return Response({'error': 'Subject not found'}, status=404)
 
-    if student.order.institution != request.user.profile.institution:
+    if subject.order.institution != request.user.profile.institution:
         return Response({'error': 'Access denied'}, status=403)
 
-    student.is_photographed = not student.is_photographed
-    student.save(update_fields=['is_photographed'])
+    subject.is_photographed = not subject.is_photographed
+    subject.save(update_fields=['is_photographed'])
 
-    return Response({'id': student.id, 'is_photographed': student.is_photographed})
+    return Response({'id': subject.id, 'is_photographed': subject.is_photographed})
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -321,7 +321,7 @@ def _crop_face(order_id, img, image_path):
         return out, face_detected
 
 
-def _render_id_card(cropped_path_or_bytes, subject, layout):
+def _render_id_card(cropped_path_or_bytes, subject, layout, *, background_bytes=None, preview=False):
     """
     Compose a single ID card face (front or back) using Pillow.
 
@@ -330,20 +330,31 @@ def _render_id_card(cropped_path_or_bytes, subject, layout):
     """
     order = subject.order
 
-    response = requests.get(layout.background_image_url, timeout=15)
-    card     = Image.open(BytesIO(response.content)).convert('RGBA')
-    card     = card.resize((layout.card_width, layout.card_height))
+    if background_bytes is None:
+        response = requests.get(layout.background_image_url, timeout=15)
+        response.raise_for_status()
+        background_bytes = response.content
+    
+    with Image.open(BytesIO(background_bytes)) as background:
+        card = background.convert('RGBA')
+
+    card = card.resize((layout.card_width, layout.card_height))
 
     draw = ImageDraw.Draw(card)
     cfg  = layout.fields_config
 
     # Accept file path (dev) or raw bytes (prod)
-    if isinstance(cropped_path_or_bytes, (bytes, bytearray)):
-        face = Image.open(BytesIO(cropped_path_or_bytes)).convert('RGBA')
-    else:
-        face = Image.open(cropped_path_or_bytes).convert('RGBA')
-    face = face.resize((layout.photo_width, layout.photo_height))
-    card.paste(face, (layout.photo_x, layout.photo_y), face)
+    if getattr(layout, 'show_photo', True):
+        if isinstance(cropped_path_or_bytes, (bytes, bytearray)):
+            face_source = BytesIO(cropped_path_or_bytes)
+        else:
+            face_source = cropped_path_or_bytes
+        
+        with Image.open(face_source) as portrait:
+            face = portrait.convert('RGBA')
+
+        face = face.resize((layout.photo_width, layout.photo_height))
+        card.paste(face, (layout.photo_x, layout.photo_y), face)
 
     def _get_font(size=24):
         for path in [
@@ -413,10 +424,16 @@ def _render_id_card(cropped_path_or_bytes, subject, layout):
         'full_name', 'student_id', 'grade_level', 'school_name',
         'batch_name', 'signature_line', 'qr_code', 'barcode',
     }
+    
     extra_data = getattr(subject, 'extra_data', None) or {}
     for field_key, value in extra_data.items():
         if field_key not in CORE_FIELDS and field_key in cfg and value:
             place_text(field_key, str(value))
+    
+    if preview: 
+        buffer = BytesIO()
+        card.convert('RGB').save(buffer, format='PNG')
+        return buffer.getvalue()
 
     side_label = layout.side.lower()   # 'front' or 'back'
 

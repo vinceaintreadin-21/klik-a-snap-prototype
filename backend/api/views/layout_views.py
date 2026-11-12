@@ -2,6 +2,7 @@
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
+from api.utils.permissions import check_order_access
 from rest_framework.response import Response
 from rest_framework import status
 from api.models.orders import Order
@@ -22,9 +23,29 @@ def create_layout(request, order_id):
     - card_width, card_height, photo_x, photo_y, photo_width, photo_height
     - show_* toggles
     """
-    try:
-        order = Order.objects.get(id=order_id)
+    order, err = check_order_access(request, order_id)
+    if err is not None:
+        return err
 
+    if request.user.profile.role not in ('ADMIN', 'OPERATOR'):
+        return Response({
+            'error': 'Only authorized admins or assigned operators can change layouts'
+        }, status=403)
+
+    if order is None:
+        return Response({'error': 'Order not found'}, status=404)
+        
+    if order.status not in (
+        Order.Status.PENDING,
+        Order.Status.FAILED,
+        Order.Status.PROOFING,
+    ): 
+        return Response(
+            {'error': 'Layouts cannot be changed in the current order status.'},
+            status=400,
+        )
+
+    try:
         side = request.data.get('side', 'FRONT').upper()
         if side not in ['FRONT', 'BACK']:
             return Response({
@@ -99,7 +120,11 @@ def create_layout(request, order_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_layout(request, order_id):
-    layouts = IDLayout.objects.filter(order_id=order_id)
+    order, err = check_order_access(request, order_id)
+    if err is not None:
+        return err
+
+    layouts = IDLayout.objects.filter(order=order)
     if not layouts.exists():
         return Response({'error': 'No layout found for this order'}, status=404)
 
@@ -130,81 +155,183 @@ def get_layout(request, order_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def preview_layout(request, order_id):
+    from io import BytesIO
+    from types import SimpleNamespace
+
+    from django.http import HttpResponse
+    from PIL import Image, UnidentifiedImageError
+    from rest_framework import serializers
+
     from api.services.id_engine import _render_id_card
-    from api.models.students import Student
-    from django.http import FileResponse
     from api.utils.permissions import check_order_access
-    import types
 
-    order, err = check_order_access(request, order_id)
-    if err:
-        return err
+    class PreviewSerializer(serializers.Serializer):
+        side = serializers.ChoiceField(choices=['FRONT', 'BACK'])
+        card_width = serializers.IntegerField(min_value=1, max_value=4096)
+        card_height = serializers.IntegerField(min_value=1, max_value=4096)
 
-    try:
-        # Use first processed student if available, otherwise use dummy data
-        real_student = Student.objects.filter(
-            order_id=order_id,
-            photo_status='PROCESSED'
-        ).first()
+        photo_x = serializers.IntegerField(min_value=0, max_value=4096)
+        photo_y = serializers.IntegerField(min_value=0, max_value=4096)
+        photo_width = serializers.IntegerField(min_value=1, max_value=4096)
+        photo_height = serializers.IntegerField(min_value=1, max_value=4096)
 
-        if real_student:
-            student = real_student
-            photo_source = student.processed_photo
-        else:
-            # Dummy student — no real data exposed during layout design
-            student = types.SimpleNamespace(
-                full_name='JUAN DELA CRUZ',
-                student_id='KAS-2026-DEMO',
-                grade_level='Grade 12',
-                section='STEM-A',
-                order=order,
-            )
-            # Use a placeholder face — a solid gray rectangle
-            from PIL import Image
-            from io import BytesIO
-            placeholder = Image.new('RGB', (300, 350), color=(180, 180, 180))
-            buf = BytesIO()
-            placeholder.save(buf, format='JPEG')
-            photo_source = buf.getvalue()
-
-        # Fetch background_image_url from the saved layout for the requested side
-        side = request.data.get('side', 'FRONT').upper()
-        try:
-            saved_layout = IDLayout.objects.get(order=order, side=side)
-            bg_url = saved_layout.background_image_url
-        except IDLayout.DoesNotExist:
-            return Response({'error': f'No {side} layout saved for this order yet'}, status=404)
-
-        layout = types.SimpleNamespace(
-            card_width=int(request.data.get('card_width', 638)),
-            card_height=int(request.data.get('card_height', 1012)),
-            photo_x=int(request.data.get('photo_x', 169)),
-            photo_y=int(request.data.get('photo_y', 180)),
-            photo_width=int(request.data.get('photo_width', 300)),
-            photo_height=int(request.data.get('photo_height', 350)),
-            fields_config=request.data.get('fields_config', {}),
-            background_image_url=bg_url,
-            show_full_name=True, show_student_id=True,
-            show_grade_level=True, show_school_name=True,
-            show_school_year=True, show_signature_line=False,
-            show_qr_code=True, show_barcode=False,
+        fields_config = serializers.JSONField()
+        background_image = serializers.ImageField(
+            required=False,
+            max_length=255,
         )
 
-        output = _render_id_card(photo_source, student, layout)
+        show_photo = serializers.BooleanField(default=True)
+        show_full_name = serializers.BooleanField(default=True)
+        show_student_id = serializers.BooleanField(default=True)
+        show_grade_level = serializers.BooleanField(default=True)
+        show_school_name = serializers.BooleanField(default=True)
+        show_school_year = serializers.BooleanField(default=True)
+        show_signature_line = serializers.BooleanField(default=False)
+        show_qr_code = serializers.BooleanField(default=True)
+        show_barcode = serializers.BooleanField(default=False)
 
-        if isinstance(output, str) and output.startswith('http'):
-            # Production — Cloudinary URL, redirect or proxy
-            import requests as req
-            img_response = req.get(output, timeout=15)
-            from django.http import HttpResponse
-            return HttpResponse(img_response.content, content_type='image/png')
-        else:
-            # Development — local path
-            import os
-            from django.conf import settings
-            full_path = os.path.join(settings.MEDIA_ROOT, output)
-            return FileResponse(open(full_path, 'rb'), content_type='image/png')
+        def validate_fields_config(self, value):
+            if not isinstance(value, dict):
+                raise serializers.ValidationError(
+                    'fields_config must be an object.'
+                )
 
-    except Exception as e:
-        return Response({'error': str(e)}, status=400)
+            if len(value) > 100:
+                raise serializers.ValidationError('Too many layout fields.')
+
+            limits = {
+                'x': (0, 4096),
+                'y': (0, 4096),
+                'font_size': (1, 300),
+                'size': (1, 4096),
+                'width': (1, 4096),
+                'height': (1, 4096),
+            }
+
+            for key, config in value.items():
+                if not isinstance(config, dict):
+                    raise serializers.ValidationError(
+                        f'{key} must contain a configuration object.'
+                    )
+
+                if 'x' not in config or 'y' not in config:
+                    raise serializers.ValidationError(
+                        f'{key} requires x and y coordinates.'
+                    )
+
+                for name, (minimum, maximum) in limits.items():
+                    if name not in config:
+                        continue
+
+                    number = config[name]
+                    if (
+                        isinstance(number, bool)
+                        or not isinstance(number, int)
+                        or not minimum <= number <= maximum
+                    ):
+                        raise serializers.ValidationError(
+                            f'{key}.{name} must be an integer '
+                            f'between {minimum} and {maximum}.'
+                        )
+
+            return value
+
+        def validate_background_image(self, value):
+            if value.size > 10 * 1024 * 1024:
+                raise serializers.ValidationError(
+                    'Background image must be 10 MB or smaller.'
+                )
+            return value
+
+    order, error = check_order_access(request, order_id)
+    if error is not None:
+        return error
+
+    serializer = PreviewSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = dict(serializer.validated_data)
+
+    background_file = data.pop('background_image', None)
+    background_bytes = None
+    background_url = None
+
+    if background_file is not None:
+        background_file.seek(0)
+        background_bytes = background_file.read()
+    else:
+        # Existing layouts can reuse their saved background.
+        saved_layout = IDLayout.objects.filter(
+            order=order,
+            side=data['side'],
+        ).first()
+
+        if not saved_layout or not saved_layout.background_image_url:
+            return Response(
+                {'error': 'Upload a background image before previewing.'},
+                status=400,
+            )
+
+        background_url = saved_layout.background_image_url
+
+    # Fixed sample values: no Subject query or processed photo required.
+    dummy_order = SimpleNamespace(
+        school_name='SAMPLE INSTITUTION',
+        batch_name='SY 2026–2027',
+    )
+
+    dummy_subject = SimpleNamespace(
+        order=dummy_order,
+        order_id=order.id,
+        full_name='JUAN DELA CRUZ',
+        student_id='DEMO-0001',
+        grade_level='Grade 12',
+        section='STEM-A',
+        extra_data={
+            'section': 'STEM-A',
+            'lrn': '123456789012',
+            'address': 'Sample Address',
+            'emergency_contact_name': 'MARIA DELA CRUZ',
+            'contact_info_number': '09123456789',
+        },
+    )
+
+    layout = SimpleNamespace(
+        **data,
+        background_image_url=background_url,
+    )
+
+    placeholder = Image.new('RGB', (300, 350), (180, 180, 180))
+    portrait_buffer = BytesIO()
+    placeholder.save(portrait_buffer, format='PNG')
+
+    try:
+        image_bytes = _render_id_card(
+            portrait_buffer.getvalue(),
+            dummy_subject,
+            layout,
+            background_bytes=background_bytes,
+            preview=True,
+        )
+    except (ValueError, TypeError, KeyError, UnidentifiedImageError):
+        return Response(
+            {'error': 'Invalid image or layout field configuration.'},
+            status=400,
+        )
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).exception(
+            'Layout preview failed for order %s',
+            order_id,
+        )
+        return Response(
+            {'error': 'Could not render the preview. Please try again.'},
+            status=500,
+        )
+
+    response = HttpResponse(image_bytes, content_type='image/png')
+    response['Cache-Control'] = 'no-store'
+    return response

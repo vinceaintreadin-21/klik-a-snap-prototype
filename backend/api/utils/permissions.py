@@ -30,6 +30,9 @@ def check_order_access(request, order_id):
     except UserProfile.DoesNotExist:
         return None, Response({'error': 'User profile not found'}, status=403)
 
+    if order.institution and order.institution.status == 'DEACTIVATED':
+        return None, Response({'error': 'Institution has been deactivated'}, status=403)
+
     role = profile.role
     
     if role == UserProfile.Role.ADMIN:
@@ -62,18 +65,18 @@ def check_order_access(request, order_id):
 
 def check_student_access(request, student_id):
     """
-    Fetches a student and checks that the requesting user has access to
-    the order that student belongs to.
+    Fetches a subject and checks that the requesting user has access to
+    the order that subject belongs to.
 
     Returns:
-        (student, None)        — access granted
+        (subject, None)        — access granted
         (None, Response 403)   — access denied
-        (None, Response 404)   — student not found
+        (None, Response 404)   — subject not found
     """
     try:
-        student = Student.objects.select_related('order').get(id=student_id)
-    except Student.DoesNotExist:
-        return None, Response({'error': 'Student not found'}, status=404)
+        student = Subject.objects.select_related('order').get(id=student_id)
+    except Subject.DoesNotExist:
+        return None, Response({'error': 'Subject not found'}, status=404)
 
     order, err = check_order_access(request, student.order_id)
     if err:

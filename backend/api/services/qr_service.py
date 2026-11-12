@@ -12,7 +12,7 @@ import os
 def generate_qr_code_data(order_id, student_id):
     return str(uuid.uuid4())
 
-def upload_qr_to_cloudinary(qr_data, student_id):
+def upload_qr_to_cloudinary(qr_data, student_id, order_id):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -29,7 +29,7 @@ def upload_qr_to_cloudinary(qr_data, student_id):
 
     upload_result = cloudinary.uploader.upload(
         buffer,
-        folder="qr_codes/order_{order_id}",
+        folder=f"qr_codes/order_{order_id}",
         public_id=f"student_{student_id}_{qr_data}",
         resource_type="image",
         format="png"
@@ -41,7 +41,7 @@ def upload_qr_to_cloudinary(qr_data, student_id):
 #Generate and save QR code for a student
 def generate_student_qr(student, order_id):
     qr_data = generate_qr_code_data(order_id, student.student_id)
-    qr_url = upload_qr_to_cloudinary(qr_data, student.id)
+    qr_url = upload_qr_to_cloudinary(qr_data, student.id, order_id)
 
     student.qr_code_data = qr_data
     student.qr_code_url = qr_url
@@ -52,13 +52,13 @@ def generate_student_qr(student, order_id):
 def _process_single_student(student, order_id):
     """Generate QR data, upload to Cloudinary, return update tuple."""
     qr_data = generate_qr_code_data(order_id, student.student_id)
-    qr_url = upload_qr_to_cloudinary(qr_data, student.id)
+    qr_url = upload_qr_to_cloudinary(qr_data, student.id, order_id)
     return student.id, qr_data, qr_url
 
 
-# Generate QR codes for multiple students in parallel
+# Generate QR codes for multiple subjects in parallel
 def bulk_generate_qr_codes(students, order_id):
-    from api.models.students import Student
+    from api.models.subjects import Subject
 
     student_list = list(students)  # evaluate queryset once
     generated_count = 0
@@ -91,7 +91,7 @@ def bulk_generate_qr_codes(students, order_id):
         students_to_update.append(s)
 
     if students_to_update:
-        Student.objects.bulk_update(students_to_update, ['qr_code_data', 'qr_code_url'])
+        Subject.objects.bulk_update(students_to_update, ['qr_code_data', 'qr_code_url'])
 
     return {
         'generated': generated_count,
