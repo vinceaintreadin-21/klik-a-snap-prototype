@@ -40,4 +40,4 @@ RUN DATABASE_URL="sqlite:////tmp/build.db" \
 EXPOSE 8000
 
 # ── Startup ────────────────────────────────────────────────────────────────────
-CMD ["sh", "-c", "python manage.py migrate && python manage.py seed_admin_demo && daphne -b 0.0.0.0 -p ${PORT:-8000} core.asgi:application"]
+CMD ["sh", "-c", "python manage.py makemigrations api --name institution_deactivation && python manage.py migrate --plan && python manage.py migrate && python manage.py seed_admin_demo && daphne -b 0.0.0.0 -p ${PORT:-8000} core.asgi:application"]
