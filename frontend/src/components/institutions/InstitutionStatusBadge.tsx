@@ -1,11 +1,14 @@
+import type { InstitutionStatus } from '../../hooks/useInstitutions'
+
 interface Props {
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
+    status: InstitutionStatus
 }
 
-const statusConfig = {
-    ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700 border border-green-280' },
+const statusConfig: Record<InstitutionStatus, { label: string; className: string }> = {
+    ACTIVE: { label: 'Active', className: 'bg-green-100 text-green-700 border border-green-200' },
     INACTIVE: { label: 'Inactive', className: 'bg-gray-100 text-gray-600 border border-gray-200' },
-    SUSPENDED: { label: 'Suspended', className: 'bg-red-100 text-red-700 border border-red-200' }
+    SUSPENDED: { label: 'Suspended', className: 'bg-red-100 text-red-700 border border-red-200' },
+    DEACTIVATED: { label: 'Deactivated', className: 'bg-red-100 text-red-700 border border-red-200' }
 }
 
 const InstitutionStatusBadge = ({ status }: Props) => {

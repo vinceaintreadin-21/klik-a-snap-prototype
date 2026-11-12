@@ -55,7 +55,7 @@ const InstitutionTable = ({ onSuspend, onActivate, onCreate }: Props) => {
                                 {new Date(inst.created_at).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 text-right space-x-2">
-                                {inst.status === 'SUSPENDED' || inst.status === 'INACTIVE' ? (
+                                {inst.status !== 'DEACTIVATED' && (inst.status === 'SUSPENDED' || inst.status === 'INACTIVE' ? (
                                     <button
                                         onClick={() => onActivate(inst)}
                                         className="px-3 py-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition"
@@ -69,7 +69,7 @@ const InstitutionTable = ({ onSuspend, onActivate, onCreate }: Props) => {
                                     >
                                         Suspend
                                     </button>
-                                )}
+                                ))}
                             </td>
                         </tr>
                     ))}

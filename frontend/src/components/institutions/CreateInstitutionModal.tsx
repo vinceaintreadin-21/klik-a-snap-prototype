@@ -10,6 +10,7 @@ const CreateInstitutionModal = ({onClose, onSuccess}: Props) => {
     const { createInstitution, loading, error } = useCreateInstitution()
     const [form, setForm] = useState({
         name: '', email: '', address: '',
+        username: '',
         contact_person: '', contact_phone: '',
         order_quota: '', contract_ends_at: ''
     })

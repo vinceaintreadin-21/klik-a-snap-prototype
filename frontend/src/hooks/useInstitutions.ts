@@ -1,46 +1,68 @@
 import {useState, useEffect, useCallback} from 'react'
 import api from '../utils/api'
 
-//Types
+//Types 
+export type InstitutionStatus =
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'SUSPENDED'
+  | 'DEACTIVATED'
+
+export type CleanupStatus =
+  | 'NOT_STARTED'
+  | 'PENDING'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'FAILED'
+
+//Interface 
 interface Institution {
-    id: number
-    name: string
-    address: string
-    contact_person: string
-    contact_email: string
-    contact_phone: string
-    logo_url: string | null
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-    created_at: string
-    suspended_at: string | null
-    suspended_by__username: string | null
-    suspended_reason: string
+  id: number
+  name: string
+  address: string
+  contact_person: string
+  contact_email: string
+  contact_phone: string
+  logo_url: string | null
+  status: InstitutionStatus
+  created_at: string
+  contract_ends_at: string | null
+  deactivated_at: string | null 
+  deactivated_reason: string 
+  cleanup_status: CleanupStatus
+  cleanup_completed_at: string | null
+  suspended_at: string | null
+  suspended_by__username: string | null
+  suspended_reason: string
 }
 
 interface CreateInstitutionPayload {
-    name: string 
-    email: string
-    address: string 
-    contact_person: string 
-    contact_phone?: string 
-    logo?: File
-    order_quota?: number | null
-    contract_ends_at?: string | null
+  name: string 
+  email: string
+  username: string
+  address: string 
+  contact_person: string 
+  contact_phone?: string 
+  logo?: File
+  order_quota?: number | null
+  contract_ends_at?: string | null
 }
 
 interface UpdateInstitutionPayload {
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-    suspended_reason?: string
+  status: InstitutionStatus
+  suspended_reason?: string
+  deactivated_reason?: string
+  confirm_deletion?: boolean
 }
 
 interface Order {
-    id: number 
-    school_name: string 
-    batch_name: string 
-    student_count: number 
-    status: string 
-    deadline: string | null 
-    created_at: string
+  id: number 
+  school_name: string 
+  batch_name: string 
+  student_count: number 
+  status: string 
+  deadline: string | null 
+  created_at: string
 }
 
 export const useInstitutions = () => {
@@ -86,6 +108,7 @@ export const useCreateInstitution = () => {
             const formData = new FormData()
             formData.append('name', payload.name)
             formData.append('email', payload.email)
+            formData.append('username', payload.username)
             formData.append('address', payload.address)
             formData.append('contact_person', payload.contact_person)
             if (payload.contact_phone) formData.append('contact_phone', payload.contact_phone)
@@ -135,7 +158,7 @@ export const useUpdateInstitution = () => {
         }
     }
 
-    return { updateInstitution, loading, error }
+    return { updateInstitution, loading, error, clearError: () => setError(null), }
 }
 
 export const useInstitutionOrders = (id: number) => {

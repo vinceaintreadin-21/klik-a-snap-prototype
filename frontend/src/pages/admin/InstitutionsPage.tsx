@@ -6,7 +6,9 @@ import {
   AlertTriangle, X, Building2, Filter, RefreshCw,
   CheckCircle, Upload,
 } from 'lucide-react'
-import {
+import { 
+  type InstitutionStatus,
+  type CleanupStatus,
   useInstitutions,
   useCreateInstitution,
   useUpdateInstitution,
@@ -15,7 +17,7 @@ import { cn } from '../../lib/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type InstStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
+type InstStatus = InstitutionStatus
 type ModalType  = 'create' | 'suspend' | 'activate' | null
 
 interface Institution {
@@ -31,13 +33,19 @@ interface Institution {
   suspended_at: string | null
   suspended_by__username: string | null
   suspended_reason: string
+  contract_ends_at: string | null
+  deactivated_at: string | null
+  deactivated_reason: string
+  cleanup_status: CleanupStatus
+cleanup_completed_at: string | null
 }
 
 // ── Status config ──────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<InstStatus, { bg: string; dot: string; text: string; label: string }> = {
   ACTIVE:    { bg: '#f0fdf4', dot: '#22c55e', text: '#15803d', label: 'Active'    },
-  INACTIVE:  { bg: '#f1f5f9', dot: '#94a3b8', text: '#64748b', label: 'Inactive'  },
+  INACTIVE:   { bg: '#f1f5f9', dot: '#94a3b8', text: '#64748b', label: 'Inactive' },
+  DEACTIVATED: {bg: '#fef2f2', dot: '#ef4444', text: '#b91c1c', label: 'Deactivated',},
   SUSPENDED: { bg: '#fff7ed', dot: '#f97316', text: '#c2410c', label: 'Suspended' },
 }
 
@@ -89,7 +97,7 @@ function AccountStatusModal({
   inst: Institution
   loading: boolean
   error: string | null
-  onConfirm: (reason?: string) => void
+  onConfirm: (reason?: string) => Promise<boolean>
   onClose: () => void
 }) {
   const [reason, setReason] = useState('')
@@ -112,7 +120,7 @@ function AccountStatusModal({
           </h3>
           <p className="text-[14px] text-[#64748b] leading-6 mb-6">
             {isSuspend
-              ? `${inst.name} has been suspended. All assets have been queued for cleanup.`
+              ? `${inst.name} has been suspended. Its records and assets have been retained.`
               : `${inst.name} is now active and can place new orders immediately.`}
           </p>
           <button onClick={onClose}
@@ -172,7 +180,7 @@ function AccountStatusModal({
             : <CheckCircle2 size={14} className="text-[#22c55e] shrink-0 mt-0.5" />}
           <p className={cn('text-[13px] leading-5', isSuspend ? 'text-[#92400e]' : 'text-[#166534]')}>
             {isSuspend
-              ? 'Suspending will revoke login access and trigger Cloudinary asset cleanup for all student photos and ID cards.'
+              ? 'Suspension is temporary. Orders, subject records and assets will not be deleted.'
               : 'The institution will regain full access and can log in and place new orders immediately.'}
           </p>
         </div>
@@ -203,7 +211,10 @@ function AccountStatusModal({
               Cancel
             </button>
             <button
-              onClick={async () => { await onConfirm(reason || undefined); setDone(true) }}
+              onClick={async () => {
+                const success = await onConfirm(reason || undefined)
+                if (success) setDone(true)
+              }}
               disabled={loading}
               className={cn(
                 'px-5 py-2 rounded-lg text-white text-[14px] font-semibold transition-colors flex items-center gap-2 disabled:opacity-40',
@@ -228,7 +239,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [form, setForm] = useState({
-    name: '', email: '', contact_person: '', contact_phone: '',
+    name: '', email: '', username: '', contact_person: '', contact_phone: '',
     address: '', order_quota: '', contract_ends_at: '',
   })
 
@@ -257,6 +268,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
 
   const fields: { name: keyof typeof form; label: string; type: string; required?: boolean }[] = [
     { name: 'name',           label: 'Institution Name', type: 'text',  required: true },
+    { name: 'username',       label: 'Username',         type: 'text',  required: true },
     { name: 'email',          label: 'Contact Email',    type: 'email', required: true },
     { name: 'contact_person', label: 'Contact Person',   type: 'text',  required: true },
     { name: 'contact_phone',  label: 'Phone',            type: 'text'  },
@@ -312,7 +324,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
           {/* Text fields */}
           <div className="grid grid-cols-2 gap-3">
             {fields.map((f) => (
-              <div key={f.name} className={f.name === 'name' || f.name === 'email' ? 'col-span-2' : ''}>
+              <div key={f.name} className={f.name === 'name' || f.name === 'email' || f.name === 'username' ? 'col-span-2' : ''}>
                 <label className="text-[12px] font-bold text-[#64748b] tracking-[0.55px] uppercase block mb-2">
                   {f.label} {f.required && <span className="text-red-600">*</span>}
                 </label>
@@ -397,19 +409,72 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
   )
 }
 
+function InstitutionCleanupStatus({ inst }: { inst: Institution }) {
+  if (inst.status !== 'DEACTIVATED') return null
+  const labels: Record<CleanupStatus, string> = {
+    NOT_STARTED: 'Cleanup not started',
+    PENDING: 'Cleanup pending',
+    RUNNING: 'Cleanup running',
+    COMPLETED: 'Data deleted',
+    FAILED: 'Cleanup failed — retry required',
+  }
+  return (
+    <div className="mt-1 text-xs text-gray-600">
+      {labels[inst.cleanup_status] ?? 'Cleanup status unavailable'}
+    </div>
+  )
+}
+
+function InstitutionActions({ inst, onActivate, onSuspend, onDeactivate, disabled = false }: {
+  inst: Institution
+  onActivate: (inst: Institution) => void
+  onSuspend: (inst: Institution) => void
+  onDeactivate: (inst: Institution) => void
+  disabled?: boolean
+}) {
+  if (inst.status === 'DEACTIVATED') {
+    return inst.cleanup_status === 'FAILED' ? (
+      <button type="button" disabled={disabled} onClick={() => onDeactivate(inst)}
+        className="rounded-lg px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50">
+        Retry cleanup
+      </button>
+    ) : null
+  }
+  return (
+    <>
+      {inst.status === 'ACTIVE' ? (
+        <button type="button" disabled={disabled} onClick={() => onSuspend(inst)} title="Suspend"
+          className="rounded-lg px-2 py-1 text-xs text-orange-700 hover:bg-orange-50 disabled:opacity-50">
+          Suspend
+        </button>
+      ) : (
+        <button type="button" disabled={disabled} onClick={() => onActivate(inst)} title="Activate"
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-green-700 hover:bg-green-50 disabled:opacity-50">
+          <CheckCircle size={13} /> Activate
+        </button>
+      )}
+      <button type="button" disabled={disabled} onClick={() => onDeactivate(inst)}
+        className="rounded-lg px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50">
+        Deactivate
+      </button>
+    </>
+  )
+}
+
 // ── Grid card ──────────────────────────────────────────────────────────────────
 
 function InstitutionCard({
-  inst, selected, onToggle, onSuspend, onActivate,
+  inst, selected, onToggle, onSuspend, onActivate, onDeactivate, disabled,
 }: {
   inst: Institution
   selected: boolean
   onToggle: () => void
   onSuspend: (i: Institution) => void
   onActivate: (i: Institution) => void
+  onDeactivate: (i: Institution) => void
+  disabled: boolean
 }) {
   const cfg = STATUS_CFG[inst.status]
-  const canActivate = inst.status !== 'ACTIVE'
   return (
     <div className={cn(
       'bg-white rounded-2xl border p-4 flex flex-col gap-3 transition-all hover:shadow-md cursor-default',
@@ -433,21 +498,13 @@ function InstitutionCard({
           {cfg.label}
         </span>
       </div>
+      <InstitutionCleanupStatus inst={inst} />
       <div className="text-[12px] text-[#64748b] truncate">{inst.contact_email}</div>
       <div className="flex items-center justify-between pt-1 border-t border-gray-100">
         <span className="text-[11px] text-[#94a3b8]">{new Date(inst.created_at).toLocaleDateString()}</span>
         <div className="flex items-center gap-1">
-          {canActivate ? (
-            <button onClick={() => onActivate(inst)}
-              className="text-[11px] font-medium text-[#15803d] px-2 py-0.5 rounded hover:bg-[#f0fdf4] transition-colors">
-              Activate
-            </button>
-          ) : (
-            <button onClick={() => onSuspend(inst)}
-              className="text-[11px] font-medium text-[#c2410c] px-2 py-0.5 rounded hover:bg-[#fff7ed] transition-colors">
-              Suspend
-            </button>
-          )}
+          <InstitutionActions inst={inst} onActivate={onActivate} onSuspend={onSuspend}
+            onDeactivate={onDeactivate} disabled={disabled} />
         </div>
       </div>
     </div>
@@ -498,28 +555,73 @@ const InstitutionsPage = () => {
     const next = new Set(rowSel); next.has(id) ? next.delete(id) : next.add(id); setRowSel(next)
   }
 
-  const openModal = (m: ModalType, inst: Institution) => { setSelInst(inst); setModal(m) }
+  const openModal = (m: ModalType, inst: Institution) => { updateInst.clearError(); setSelInst(inst); setModal(m) }
   const closeModal = () => { setModal(null); setSelInst(null) }
 
   const totalCount    = list.length
   const activeCount   = list.filter((i) => i.status === 'ACTIVE').length
   const suspendCount  = list.filter((i) => i.status === 'SUSPENDED').length
+  const deactivatedCount = list.filter((i) => i.status === 'DEACTIVATED').length
 
-  const handleSuspend = async (reason?: string) => {
-    if (!selInst) return
-    await updateInst.updateInstitution(selInst.id, {
+  const handleSuspend = async (reason?: string): Promise<boolean> => {
+    if (!selInst || updateInst.loading) return false
+    const result = await updateInst.updateInstitution(selInst.id, {
       status: 'SUSPENDED',
       suspended_reason: reason,
     })
-    refetch()
+    if (!result) return false
+    await refetch()
     toast('Institution suspended')
+    return true
   }
 
-  const handleActivate = async () => {
-    if (!selInst) return
-    await updateInst.updateInstitution(selInst.id, { status: 'ACTIVE' })
-    refetch()
+  const handleActivate = async (): Promise<boolean> => {
+    if (!selInst || updateInst.loading || selInst.status === 'DEACTIVATED') return false
+    const result = await updateInst.updateInstitution(selInst.id, { status: 'ACTIVE' })
+    if (!result) return false
+    await refetch()
     toast('Institution activated')
+    return true
+  }
+
+  const [deactivationTarget, setDeactivationTarget] = useState<Institution | null>(null)
+  const [deactivationReason, setDeactivationReason] = useState('')
+  const [deletionConfirmed, setDeletionConfirmed] = useState(false) 
+
+  const openDeactivation = (inst: Institution) => {
+    updateInst.clearError()
+    setDeactivationReason('')
+    setDeletionConfirmed(false)
+    setDeactivationTarget(inst)
+  }
+
+  const handleDeactivate = async () => {
+    if (
+      !deactivationTarget ||
+      !deactivationReason.trim() ||
+      !deletionConfirmed ||
+      updateInst.loading
+    ) {
+      return
+    }
+
+    const result = await updateInst.updateInstitution(
+      deactivationTarget.id,
+      {
+        status: 'DEACTIVATED',
+        deactivated_reason: deactivationReason.trim(),
+        confirm_deletion: true,
+      }
+    )
+
+    await refetch()
+
+    if (!result) return
+
+    if (result.cleanup_status === 'COMPLETED') {
+      toast('Institution deactivated. Orders, subjects and assets deleted.')
+      setDeactivationTarget(null)
+    }
   }
 
   return (
@@ -547,11 +649,12 @@ const InstitutionsPage = () => {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Institutions', value: totalCount,   color: 'text-[#0b1c30]'  },
           { label: 'Active',             value: activeCount,  color: 'text-[#047857]'  },
           { label: 'Suspended',          value: suspendCount, color: 'text-[#c2410c]'  },
+          { label: 'Deactivated', value: deactivatedCount, color: 'text-red-700' },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-sm">
             <p className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider mb-1.5">{s.label}</p>
@@ -586,6 +689,7 @@ const InstitutionsPage = () => {
               <option value="">All Statuses</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
+              <option value="DEACTIVATED">Deactivated</option>
               <option value="SUSPENDED">Suspended</option>
             </select>
             <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6b7280] pointer-events-none" />
@@ -672,7 +776,6 @@ const InstitutionsPage = () => {
                     {pageData.map((inst) => {
                       const cfg    = STATUS_CFG[inst.status]
                       const isSel  = rowSel.has(inst.id)
-                      const canAct = inst.status !== 'ACTIVE'
                       return (
                         <tr key={inst.id} className={cn('border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors', isSel && 'bg-[#f8fafc]')}>
                           <td className="w-12 px-5 py-4">
@@ -700,6 +803,7 @@ const InstitutionsPage = () => {
                               <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
                               {cfg.label}
                             </span>
+                            <InstitutionCleanupStatus inst={inst} />
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-[13px] text-[#64748b]">
                             {new Date(inst.created_at).toLocaleDateString()}
@@ -713,17 +817,13 @@ const InstitutionsPage = () => {
                                 <Eye size={13.5} className="text-[#94a3b8]" />
                               </button>
                               <div className="w-px h-4 bg-[#e2e8f0] mx-0.5" />
-                              {canAct ? (
-                                <button title="Activate" onClick={() => openModal('activate', inst)}
-                                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f0fdf4] transition-colors">
-                                  <CheckCircle size={13.5} className="text-[#22c55e]" />
-                                </button>
-                              ) : (
-                                <button title="Suspend" onClick={() => openModal('suspend', inst)}
-                                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#fff7ed] transition-colors">
-                                  <Ban size={13.5} className="text-[#f97316]" />
-                                </button>
-                              )}
+                              <InstitutionActions
+                                inst={inst}
+                                onActivate={(i) => openModal('activate', i)}
+                                onSuspend={(i) => openModal('suspend', i)}
+                                onDeactivate={openDeactivation}
+                                disabled={updateInst.loading}
+                              />
                             </div>
                           </td>
                         </tr>
@@ -753,6 +853,8 @@ const InstitutionsPage = () => {
               onToggle={() => toggleRow(inst.id)}
               onSuspend={(i) => openModal('suspend', i)}
               onActivate={(i) => openModal('activate', i)}
+              onDeactivate={openDeactivation}
+              disabled={updateInst.loading}
             />
           ))}
         </div>
@@ -765,6 +867,8 @@ const InstitutionsPage = () => {
           onSuccess={() => { refetch(); toast('Institution created'); closeModal() }}
         />
       )}
+
+      
       {modal === 'suspend' && selInst && (
         <AccountStatusModal
           action="suspend"
@@ -784,6 +888,97 @@ const InstitutionsPage = () => {
           onConfirm={handleActivate}
           onClose={closeModal}
         />
+      )}
+
+      {deactivationTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deactivation-title"
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <h2
+              id="deactivation-title"
+              className="text-lg font-semibold text-red-700"
+            >
+              End contract and delete data
+            </h2>
+      
+            <p className="mt-3 text-sm text-gray-700">
+              Deactivate {deactivationTarget.name} and its coordinator accounts.
+              Permanently delete its orders, subject records, photos, ID cards,
+              QR codes and other associated assets.
+            </p>
+      
+            <p className="mt-2 text-sm font-semibold text-red-700">
+              This action cannot be undone.
+            </p>
+      
+            <label className="mt-4 block text-sm font-medium">
+              Deactivation reason
+              <textarea
+                value={deactivationReason}
+                onChange={(event) =>
+                  setDeactivationReason(event.target.value)
+                }
+                disabled={updateInst.loading}
+                rows={3}
+                className="mt-1 w-full rounded-lg border p-2"
+              />
+            </label>
+      
+            <label className="mt-4 flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={deletionConfirmed}
+                onChange={(event) =>
+                  setDeletionConfirmed(event.target.checked)
+                }
+                disabled={updateInst.loading}
+                className="mt-1"
+              />
+              I confirm permanent deletion of this institution’s orders,
+              subject records and assets.
+            </label>
+      
+            {updateInst.error && (
+              <p role="alert" className="mt-4 text-sm text-red-700">
+                {updateInst.error}
+              </p>
+            )}
+      
+            {updateInst.loading && (
+              <p role="status" className="mt-4 text-sm text-gray-600">
+                Deactivating and deleting data. Please wait.
+              </p>
+            )}
+      
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeactivationTarget(null)}
+                disabled={updateInst.loading}
+                className="rounded-lg border px-4 py-2 disabled:opacity-50"
+              >
+                Close
+              </button>
+      
+              <button
+                type="button"
+                onClick={handleDeactivate}
+                disabled={
+                  updateInst.loading ||
+                  !deactivationReason.trim() ||
+                  !deletionConfirmed
+                }
+                className="rounded-lg bg-red-700 px-4 py-2 text-white disabled:opacity-50"
+              >
+                {updateInst.loading ? 'Deleting…' : 'Deactivate and delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast */}

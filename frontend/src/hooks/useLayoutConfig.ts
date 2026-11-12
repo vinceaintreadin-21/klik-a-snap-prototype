@@ -129,6 +129,21 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
   const [selectedElement, setSelectedElement] = useState<ElementKey | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState(false)
+  const previewRequestId = useRef(0)
+
+  useEffect(() => {
+    if (!previewImage) return
+    return () => URL.revokeObjectURL(previewImage)
+  }, [previewImage])
+
+  useEffect(() => {
+    setPreviewImage(null)
+    setPreviewing(false)
+    return () => {
+      // Ignore responses from a previous side/order or an unmounted editor.
+      previewRequestId.current += 1
+    }
+  }, [orderId, side])
   const [zoom, setZoom] = useState(1)
 
   // Stable refs — keyed by element key
@@ -348,37 +363,122 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
 
   // ── Preview ───────────────────────────────────────────────────────────────
   const handlePreview = async () => {
-    if (!bgImage) return alert('Add a background image first.')
+    if (!bgImage) {
+      alert('Add a background image first.')
+      return
+    }
+
+    const requestId = ++previewRequestId.current
     setPreviewing(true)
+
     try {
       const photo = elements.photo ?? FIELD_DROP_DEFAULTS.photo
-      const cfg: Record<string, any> = {}
+      const cfg: Record<string, Record<string, string | number>> = {}
+
+      const fieldKeys: Partial<Record<ElementKey, string>> = {
+        name: 'full_name',
+        section: 'grade_level',
+        qr: 'qr_code',
+        barcode: 'barcode',
+        student_id: 'student_id',
+        school_name: 'school_name',
+        batch_name: 'batch_name',
+        signature_line: 'signature_line',
+      }
+
       for (const key of activeFields) {
         if (key === 'photo') continue
-        const el = elements[key]
-        if (!el) continue
-        const cfgKeyMap: Partial<Record<ElementKey, string>> = {
-          name: 'full_name', section: 'grade_level', qr: 'qr_code',
-          barcode: 'barcode', student_id: 'student_id', school_name: 'school_name',
-          batch_name: 'batch_name', signature_line: 'signature_line',
+
+        const element = elements[key]
+        const fieldKey = fieldKeys[key]
+        if (!element || !fieldKey) continue
+
+        const field: Record<string, string | number> = {
+          x: Math.round(element.x),
+          y: Math.round(element.y),
         }
-        const cfgKey = cfgKeyMap[key]
-        if (!cfgKey) continue
-        if (key === 'qr') cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), size: Math.round(el.w) }
-        else if (key === 'barcode') cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), width: Math.round(el.w), height: Math.round(el.h) }
-        else if (key === 'signature_line') cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), width: Math.round(el.w) }
-        else cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), font_size: el.fontSize ?? 16, color: el.color ?? '#000000' }
+
+        if (key === 'qr') {
+          field.size = Math.round(element.w)
+        } else if (key === 'barcode') {
+          field.width = Math.round(element.w)
+          field.height = Math.round(element.h)
+        } else if (key === 'signature_line') {
+          field.width = Math.round(element.w)
+        } else {
+          field.font_size = Math.round(element.fontSize ?? 16)
+          field.color = element.color ?? '#000000'
+        }
+
+        cfg[fieldKey] = field
       }
-      const res = await api.post(
+
+      const formData = new FormData()
+
+      formData.append('side', side)
+      formData.append('card_width', String(Math.round(cardWidth)))
+      formData.append('card_height', String(Math.round(cardHeight)))
+      formData.append('photo_x', String(Math.round(photo.x)))
+      formData.append('photo_y', String(Math.round(photo.y)))
+      formData.append('photo_width', String(Math.round(photo.w)))
+      formData.append('photo_height', String(Math.round(photo.h)))
+      formData.append('fields_config', JSON.stringify(cfg))
+      formData.append('show_photo', String(activeFields.includes('photo')))
+
+      Object.entries(toggles).forEach(([key, value]) => {
+        formData.append(key, String(value))
+      })
+
+      // A newly selected background is previewed without saving/uploading it
+      // to permanent storage first.
+      if (bgFile) {
+        formData.append('background_image', bgFile)
+      }
+
+      const response = await api.post(
         `/orders/${orderId}/layout/preview/`,
-        { side, photo_x: Math.round(photo.x), photo_y: Math.round(photo.y), photo_width: Math.round(photo.w), photo_height: Math.round(photo.h), card_width: cardWidth, card_height: cardHeight, fields_config: cfg },
+        formData,
         { responseType: 'blob' },
       )
-      setPreviewImage(URL.createObjectURL(res.data))
-    } catch {
-      alert('Preview failed — make sure at least one processed student exists for this order.')
+
+      if (requestId !== previewRequestId.current) return
+      setPreviewImage(URL.createObjectURL(response.data))
+    } catch (error: unknown) {
+      if (requestId !== previewRequestId.current) return
+      const response = (
+        error as { response?: { data?: unknown } }
+      ).response
+
+      let details = response?.data
+
+      if (details instanceof Blob) {
+        const text = await details.text()
+
+        try {
+          details = JSON.parse(text)
+        } catch {
+          details = null
+        }
+      }
+
+      let message = 'Could not render the preview. Please try again.'
+
+      if (details && typeof details === 'object') {
+        const body = details as Record<string, unknown>
+
+        if (typeof body.error === 'string') {
+          message = body.error
+        } else if (typeof body.detail === 'string') {
+          message = body.detail
+        } else {
+          // Includes serializer errors such as invalid dimensions.
+          message = JSON.stringify(body)
+        }
+      }
+
+      if (requestId === previewRequestId.current) alert(message)
     } finally {
-      setPreviewing(false)
+      if (requestId === previewRequestId.current) setPreviewing(false)
     }
   }
 

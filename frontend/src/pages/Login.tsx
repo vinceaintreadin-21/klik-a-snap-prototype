@@ -45,12 +45,12 @@ const Login = () => {
           )}
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase ml-1">Username</label>
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">Username or Email</label>
               <input
                 type="text"
                 required
                 className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
-                placeholder="Enter your username"
+                placeholder="Enter your username or email"
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>

@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react'
-import Draggable from 'react-draggable'
 import {
   Users, Calendar, Clock, Search, ChevronRight,
   ZoomIn, ZoomOut, Grid3x3, Eye, Save,
@@ -129,13 +128,26 @@ const HANDLE_CURSORS: Record<ResizeHandle, string> = {
   e: 'e-resize', se: 'se-resize', s: 's-resize', sw: 'sw-resize', w: 'w-resize',
 }
 
+type ElementGesture = {
+  pointerId: number
+  mode: 'drag' | ResizeHandle
+  startX: number
+  startY: number
+  zoom: number
+  original: ElementProps
+}
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(value, Math.max(min, max)))
+
 function ResizableElement({
   elementKey,
   el,
   selected,
   zoom,
   label,
-  nodeRef,
+  cardWidth,
+  cardHeight,
   onSelect,
   onDragStop,
   onResize,
@@ -145,121 +157,295 @@ function ResizableElement({
   selected: boolean
   zoom: number
   label: string
-  nodeRef: React.RefObject<any>
+  cardWidth: number
+  cardHeight: number
   onSelect: () => void
   onDragStop: (x: number, y: number) => void
   onResize: (patch: Partial<ElementProps>) => void
 }) {
-  const resizeStart = useRef<{
-    handle: ResizeHandle
-    startX: number; startY: number
-    origX: number; origY: number
-    origW: number; origH: number
-  } | null>(null)
+  const gesture = useRef<ElementGesture | null>(null)
 
-  const onPointerDown = useCallback((handle: ResizeHandle, e: React.PointerEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-      ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
-    resizeStart.current = {
-      handle,
-      startX: e.clientX, startY: e.clientY,
-      origX: el.x, origY: el.y,
-      origW: el.w, origH: el.h,
+  // These values stay in screen pixels regardless of canvas zoom.
+  const handleHitSize = 22 / zoom
+  const handleVisualSize = 9 / zoom
+
+  const beginGesture = (
+    event: React.PointerEvent<HTMLDivElement>,
+    mode: ElementGesture['mode'],
+  ) => {
+    if (!event.isPrimary || event.button !== 0) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    onSelect()
+
+    // Capture on the stable element wrapper, including handle gestures.
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    gesture.current = {
+      pointerId: event.pointerId,
+      mode,
+      startX: event.clientX,
+      startY: event.clientY,
+      zoom,
+      original: { ...el },
     }
-  }, [el])
+  }
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    const rs = resizeStart.current
-    if (!rs) return
-    e.preventDefault()
-    const dx = (e.clientX - rs.startX) / zoom
-    const dy = (e.clientY - rs.startY) / zoom
-    const MIN = 20
-    const { origX, origY, origW, origH, handle: h_str } = rs
+  const calculatePatch = (
+    event: React.PointerEvent<HTMLDivElement>,
+    current: ElementGesture,
+  ): Partial<ElementProps> => {
+    const dx = (event.clientX - current.startX) / current.zoom
+    const dy = (event.clientY - current.startY) / current.zoom
+    const original = current.original
 
-    let x = origX, y = origY, w = origW, h = origH
+    if (current.mode === 'drag') {
+      return {
+        x: Math.round(
+          clamp(original.x + dx, 0, cardWidth - original.w),
+        ),
+        y: Math.round(
+          clamp(original.y + dy, 0, cardHeight - original.h),
+        ),
+      }
+    }
 
-    if (h_str.includes('e')) w = Math.max(MIN, origW + dx)
-    if (h_str.includes('s')) h = Math.max(MIN, origH + dy)
-    if (h_str.includes('w')) { w = Math.max(MIN, origW - dx); x = origX + origW - w }
-    if (h_str.includes('n')) { h = Math.max(MIN, origH - dy); y = origY + origH - h }
+    // Text fields can be shorter than photos or codes.
+    const isText = !['photo', 'qr', 'barcode'].includes(elementKey)
+    const minWidth = Math.min(20, cardWidth)
+    const minHeight = Math.min(isText ? 12 : 20, cardHeight)
 
-    onResize({ x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) })
-  }, [zoom, onResize])
+    let left = original.x
+    let top = original.y
+    let right = original.x + original.w
+    let bottom = original.y + original.h
 
-  const onPointerUp = useCallback(() => {
-    resizeStart.current = null
-  }, [])
+    const handle = current.mode
 
-  const handlePositions: Record<ResizeHandle, { top?: string; bottom?: string; left?: string; right?: string; transform: string }> = {
-    nw: { top: '-4px', left: '-4px', transform: 'none' },
-    n: { top: '-4px', left: '50%', transform: 'translateX(-50%)' },
-    ne: { top: '-4px', right: '-4px', transform: 'none' },
-    e: { top: '50%', right: '-4px', transform: 'translateY(-50%)' },
-    se: { bottom: '-4px', right: '-4px', transform: 'none' },
-    s: { bottom: '-4px', left: '50%', transform: 'translateX(-50%)' },
-    sw: { bottom: '-4px', left: '-4px', transform: 'none' },
-    w: { top: '50%', left: '-4px', transform: 'translateY(-50%)' },
+    if (handle.includes('w')) {
+      left = clamp(original.x + dx, 0, right - minWidth)
+    }
+
+    if (handle.includes('e')) {
+      right = clamp(
+        original.x + original.w + dx,
+        left + minWidth,
+        cardWidth,
+      )
+    }
+
+    if (handle.includes('n')) {
+      top = clamp(original.y + dy, 0, bottom - minHeight)
+    }
+
+    if (handle.includes('s')) {
+      bottom = clamp(
+        original.y + original.h + dy,
+        top + minHeight,
+        cardHeight,
+      )
+    }
+
+    return {
+      x: Math.round(left),
+      y: Math.round(top),
+      w: Math.round(right - left),
+      h: Math.round(bottom - top),
+    }
+  }
+
+  const moveGesture = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    const current = gesture.current
+    if (!current || current.pointerId !== event.pointerId) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    onResize(calculatePatch(event, current))
+  }
+
+  const finishGesture = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    const current = gesture.current
+    if (!current || current.pointerId !== event.pointerId) return
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const patch = calculatePatch(event, current)
+    onResize(patch)
+
+    if (current.mode === 'drag') {
+      onDragStop(
+        patch.x ?? current.original.x,
+        patch.y ?? current.original.y,
+      )
+    }
+
+    gesture.current = null
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  const cancelGesture = (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (gesture.current?.pointerId !== event.pointerId) return
+
+    gesture.current = null
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  const handlePositions: Record<
+    ResizeHandle,
+    { left: string; top: string }
+  > = {
+    nw: { left: '0%', top: '0%' },
+    n: { left: '50%', top: '0%' },
+    ne: { left: '100%', top: '0%' },
+    e: { left: '100%', top: '50%' },
+    se: { left: '100%', top: '100%' },
+    s: { left: '50%', top: '100%' },
+    sw: { left: '0%', top: '100%' },
+    w: { left: '0%', top: '50%' },
   }
 
   return (
-    <Draggable
-      key={`${elementKey}-${el.w}-${el.h}`}
-      nodeRef={nodeRef}
-      bounds="parent"
-      scale={zoom}
-      position={{ x: el.x, y: el.y }}
-      onStart={onSelect}
-      onStop={(_, d) => onDragStop(d.x, d.y)}
-      // Disable drag while a resize is in progress
-      disabled={!!resizeStart.current}
-    >
-      <div
-        ref={nodeRef}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        className={cn(
-          'absolute flex items-center justify-center border-2 border-dashed select-none',
-          selected
-            ? 'border-blue-500 bg-blue-50/40 cursor-move z-20'
-            : 'border-gray-300/70 hover:border-blue-400 cursor-move z-10',
-        )}
-        style={{
-          width: el.w,
-          height: el.h,
-          color: el.color || '#000',
-          fontSize: `${el.fontSize || 11}px`,
-          left: el.x,
-          top: el.y,
-          // position is controlled by Draggable via transform, override here needed
-          position: 'absolute',
-        }}
-        onClick={(e) => { e.stopPropagation(); onSelect() }}
-      >
-        {/* Field label */}
-        <span className="text-[10px] text-gray-500 font-medium select-none px-1 text-center leading-tight pointer-events-none">
-          {label}
-        </span>
+    <div
+      tabIndex={0}
+      aria-label={`${label}: drag to move, arrow keys to reposition`}
+      onPointerDown={(event) => {
+        const target = event.target as HTMLElement
+        const handle = target
+          .closest<HTMLElement>('[data-resize-handle]')
+          ?.dataset.resizeHandle as ResizeHandle | undefined
 
-        {/* Selected: label badge + resize handles */}
-        {selected && (
-          <>
-            <div className="absolute -top-5 left-0 bg-blue-600 text-white rounded-t px-1.5 py-0.5 whitespace-nowrap pointer-events-none text-[8px] font-semibold z-30">
-              {label}
-            </div>
-            {(Object.keys(handlePositions) as ResizeHandle[]).map((h) => (
+        beginGesture(event, handle ?? 'drag')
+      }}
+      onPointerMove={moveGesture}
+      onPointerUp={finishGesture}
+      onPointerCancel={cancelGesture}
+      onLostPointerCapture={() => {
+        gesture.current = null
+      }}
+      onFocus={onSelect}
+      onClick={(event) => {
+        event.stopPropagation()
+        onSelect()
+      }}
+      onKeyDown={(event) => {
+        const step = event.shiftKey ? 10 : 1
+        const offsets: Record<string, [number, number]> = {
+          ArrowLeft: [-step, 0],
+          ArrowRight: [step, 0],
+          ArrowUp: [0, -step],
+          ArrowDown: [0, step],
+        }
+
+        const offset = offsets[event.key]
+        if (!offset) return
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        const x = Math.round(
+          clamp(el.x + offset[0], 0, cardWidth - el.w),
+        )
+        const y = Math.round(
+          clamp(el.y + offset[1], 0, cardHeight - el.h),
+        )
+
+        onResize({ x, y })
+      }}
+      className={cn(
+        'absolute flex items-center justify-center',
+        'border border-dashed select-none outline-none',
+        selected
+          ? 'border-blue-500 bg-blue-50/40 z-20'
+          : 'border-gray-300 hover:border-blue-400 z-10',
+      )}
+      style={{
+        left: el.x,
+        top: el.y,
+        width: el.w,
+        height: el.h,
+        boxSizing: 'border-box',
+        color: el.color ?? '#000000',
+        fontSize: el.fontSize ?? 16,
+        cursor: 'move',
+        touchAction: 'none',
+        userSelect: 'none',
+      }}
+    >
+      <span
+        className="pointer-events-none text-center px-1"
+        style={{
+          fontSize: 'inherit',
+          color: 'inherit',
+          lineHeight: 1.15,
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}
+      >
+        {label}
+      </span>
+
+      {selected && (
+        <>
+          <div
+            className="absolute bg-blue-600 text-white rounded px-1.5 py-0.5 whitespace-nowrap pointer-events-none"
+            style={{
+              left: 0,
+              top: -24 / zoom,
+              fontSize: 10 / zoom,
+            }}
+          >
+            {label}
+          </div>
+
+          {(Object.keys(handlePositions) as ResizeHandle[]).map(
+            (handle) => (
               <div
-                key={h}
-                className="absolute w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-sm z-30"
-                style={{ cursor: HANDLE_CURSORS[h], ...handlePositions[h] }}
-                onPointerDown={(e) => onPointerDown(h, e)}
-              />
-            ))}
-          </>
-        )}
-      </div>
-    </Draggable>
+                key={handle}
+                data-resize-handle={handle}
+                style={{
+                  position: 'absolute',
+                  ...handlePositions[handle],
+                  width: handleHitSize,
+                  height: handleHitSize,
+                  transform: 'translate(-50%, -50%)',
+                  cursor: HANDLE_CURSORS[handle],
+                  touchAction: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 30,
+                }}
+              >
+                <span
+                  style={{
+                    width: handleVisualSize,
+                    height: handleVisualSize,
+                    background: '#ffffff',
+                    border: `${1.5 / zoom}px solid #3b82f6`,
+                    borderRadius: 2 / zoom,
+                    pointerEvents: 'none',
+                  }}
+                />
+              </div>
+            ),
+          )}
+        </>
+      )}
+    </div>
   )
 }
 
@@ -278,7 +464,7 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
     cardHeight, setCardHeight,
     zoom, setZoom,
     toggles, setToggles,
-    elements, refs, presets,
+    elements, presets,
     activeFields,
     addField, removeField,
     updateProp, handleElementDrag, handleFileChange,
@@ -444,7 +630,7 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
               <div className="absolute inset-0 bg-black/70 z-50 flex items-center justify-center">
                 <div className="bg-white rounded-xl p-4 shadow-2xl max-h-[90vh] overflow-auto">
                   <div className="flex justify-between items-center mb-3">
-                    <p className="text-sm font-semibold text-gray-800">Preview (First Student)</p>
+                    <p className="text-sm font-semibold text-gray-800">Preview (Sample Subject)</p>
                     <button onClick={() => setPreviewImage(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
                   </div>
                   <img src={previewImage} alt="ID Preview" className="max-w-full rounded" />
@@ -474,9 +660,17 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
             </div>
 
             {/* Card canvas */}
-            <div style={{ width: `${cardWidth * zoom}px`, height: `${cardHeight * zoom}px`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div 
+              style={{ 
+                width: cardWidth * zoom,
+                height: cardHeight * zoom,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
               <div
-                className="relative bg-white shadow-2xl shrink-0 overflow-hidden"
+                className="relative bg-white shadow-2xl shrink-0 overflow-visible"
                 style={{
                   width: cardWidth,
                   height: cardHeight,
@@ -497,7 +691,8 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
                       selected={selectedElement === key}
                       zoom={zoom}
                       label={ELEMENT_LABELS[key]}
-                      nodeRef={refs[key]}
+                      cardWidth={cardWidth}
+                      cardHeight={cardHeight}
                       onSelect={() => setSelectedElement(key)}
                       onDragStop={(x, y) => handleElementDrag(key, x, y)}
                       onResize={(patch) => handleResize(key, patch)}
@@ -529,8 +724,36 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
                       <input
                         type="number"
                         value={Math.round((sel as any)[field] ?? 0)}
-                        min={field === 'w' || field === 'h' ? 10 : undefined}
-                        onChange={(e) => updateProp(field, +e.target.value)}
+                        min={field === 'w' || field === 'h' ? 12 : 0}
+                        onChange={(event) => {
+                          const value = event.currentTarget.valueAsNumber
+                          if (!Number.isFinite(value)) return
+
+                          if (field === 'w') {
+                            patchElement(selectedElement, {
+                              w: Math.round(clamp(value, 20, cardWidth)),
+                              x: Math.round(
+                                clamp(sel.x, 0, cardWidth - clamp(value, 20, cardWidth)),
+                              ),
+                            })
+                          } else if (field === 'h') {
+                            patchElement(selectedElement, {
+                              h: Math.round(clamp(value, 12, cardHeight)),
+                              y: Math.round(
+                                clamp(sel.y, 0, cardHeight - clamp(value, 12, cardHeight)),
+                              ),
+                            })
+                          } else {
+                            const maximum =
+                              field === 'x'
+                                ? cardWidth - sel.w
+                                : cardHeight - sel.h
+
+                            patchElement(selectedElement, {
+                              [field]: Math.round(clamp(value, 0, maximum)),
+                            })
+                          }
+                        }}
                         className="w-full text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 outline-none focus:border-blue-400"
                       />
                     </div>

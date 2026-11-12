@@ -201,7 +201,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
             <div className="absolute inset-0 bg-black/70 z-50 flex items-center justify-center">
               <div className="bg-white rounded-xl p-4 shadow-2xl max-h-[90vh] overflow-auto">
                 <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-semibold">Preview (First Student)</p>
+                  <p className="text-sm font-semibold">Preview (Sample Subject)</p>
                   <button onClick={() => setPreviewImage(null)} className="text-gray-400 hover:text-gray-600">✕</button>
                 </div>
                 <img src={previewImage} alt="ID Preview" className="max-w-full rounded" />
