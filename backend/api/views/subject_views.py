@@ -16,7 +16,10 @@ from rest_framework.response import Response
 from api.models.orders import Order
 from api.models.subjects import Subject
 from api.services.qr_service import generate_student_qr
-from api.utils.permissions import check_order_access, check_student_access
+from api.utils.permissions import check_order_access, check_student_access, OrderAction
+
+from django.db import transaction
+from django.db.models import Q
 
 
 @api_view(["GET"])
@@ -36,6 +39,7 @@ def student_detail_controller(request, order_id):
             "photo_status",
             "is_walk_in",
             "processed_photo",
+            "processed_photo_back",
             "fail_reason",
             "original_photo_url",
             "extra_data",
@@ -82,7 +86,7 @@ def search_students(request, order_id):
 def quick_add_student(request, order_id):
     """Fail-Safe C: Walk-in subject — create instantly and return student_id for QR display"""
 
-    order, err = check_order_access(request, order_id)
+    order, err = check_order_access(request, order_id, OrderAction.ADD_STUDENT)
     if err:
         return err
     try:
@@ -123,7 +127,7 @@ def quick_add_student(request, order_id):
 def manual_link_photo(request, order_id):
     """Fail-Safe B: Operator manually links an unmatched photo to a subject"""
 
-    order, err = check_order_access(request, order_id)
+    order, err = check_order_access(request, order_id, OrderAction.LINK_PHOTO)
     if err is not None:
         return err
 
@@ -195,22 +199,47 @@ def _generate_student_id(order):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def approve_order(request, order_id):
-    order, err = check_order_access(request, order_id)
+    order, err = check_order_access(request, order_id, action=OrderAction.APPROVE_ORDER)
     if err:
         return err
 
-    if order.status != Order.Status.PROOFING:
-        return Response({"error": "Order is not in PROOFING status"}, status=400)
+    with transaction.atomic():
+        order = Order.objects.select_for_update().filter(pk=order_id).first()
+        if order is None:
+            return Response({"error": "Order not found"}, status=404)
 
-    Subject.objects.filter(
-        order=order, photo_status=Subject.PhotoStatus.PROCESSED
-    ).update(is_approved=True)
+        if order.status != Order.Status.PROOFING:
+            return Response({"error": "Order is not in PROOFING status"}, status=400)
 
-    order.status = Order.Status.APPROVED
-    order.approved_by = request.user
-    order.approved_at = timezone.now()
-    order.approval_notes = request.data.get("notes", "")
-    order.save()
+        subjects = Subject.objects.filter(order=order)
+        total = subjects.count()
+        unresolved = subjects.exclude(photo_status=Subject.PhotoStatus.PROCESSED).count()
+        missing_output_filter = Q(processed_photo="") | Q(processed_photo__isnull=True)
+        requires_back = order.layouts.filter(side="BACK").exists()
+        if requires_back:
+            missing_output_filter |= Q(processed_photo_back="") | Q(processed_photo_back__isnull=True)
+        missing_output = subjects.filter(
+            missing_output_filter, photo_status=Subject.PhotoStatus.PROCESSED
+        ).count()
+
+        if total == 0 or unresolved or missing_output:
+            return Response(
+                {
+                    "error": "Batch is incomplete",
+                    "total": total,
+                    "unresolved": unresolved,
+                    "missing_rendered_output": missing_output,
+                    "requires_back": requires_back,
+                },
+                status=400,
+            )
+
+        subjects.update(is_approved=True)
+        order.status = Order.Status.APPROVED
+        order.approved_by = request.user
+        order.approved_at = timezone.now()
+        order.approval_notes = request.data.get("notes", "")
+        order.save(update_fields=["status", "approved_by", "approved_at", "approval_notes"])
 
     return Response({"message": "Order approved", "status": order.status})
 
@@ -218,12 +247,24 @@ def approve_order(request, order_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def approve_student(request, student_id):
-    subject, err = check_student_access(request, student_id)
+    subject, err = check_student_access(request, student_id, OrderAction.APPROVE_STUDENT)
     if err:
         return err
 
-    subject.is_approved = True
-    subject.save()
+    with transaction.atomic():
+        order = Order.objects.select_for_update().filter(pk=subject.order_id).first()
+        if order is None:
+            return Response({"error": "Order not found"}, status=404)
+        subject = Subject.objects.filter(pk=subject.pk, order=order).first()
+        if subject is None:
+            return Response({"error": "Subject not found"}, status=404)
+        if order.status != Order.Status.PROOFING:
+            return Response({"error": "Order is not in PROOFING status"}, status=400)
+        if subject.photo_status != Subject.PhotoStatus.PROCESSED or not subject.processed_photo:
+            return Response({"error": "A rendered card is required before approval"}, status=400)
+
+        subject.is_approved = True
+        subject.save(update_fields=["is_approved", "updated_at"])
 
     return Response({"id": subject.id, "is_approved": True})
 
@@ -231,16 +272,50 @@ def approve_student(request, student_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def request_revision(request, student_id):
-    subject, err = check_student_access(request, student_id)
-    if err:
+    subject, err = check_student_access(request, student_id, action=OrderAction.REQUEST_REVISION)
+    if err is not None:
         return err
 
-    subject.is_approved = False
-    subject.photo_status = Subject.PhotoStatus.MANUAL_REVIEW
-    subject.fail_reason = request.data.get("reason", "revision_requested")
-    subject.save()
+    return _flag_subject_for_review(
+        subject, request.data.get("reason", "revision_requested"),
+        allowed_statuses=(Order.Status.PROOFING,),
+    )
 
-    return Response({"id": subject.id, "photo_status": subject.photo_status})
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def reject_subject_photo(request, student_id):
+    subject, err = check_student_access(request, student_id, action=OrderAction.PROCESS)
+    if err is not None:
+        return err
+
+    return _flag_subject_for_review(
+        subject, "rejected",
+        allowed_statuses=(Order.Status.PENDING, Order.Status.FAILED, Order.Status.PROOFING),
+    )
+
+
+def _flag_subject_for_review(subject, reason, *, allowed_statuses):
+    if not isinstance(reason, str) or not reason.strip() or len(reason) > 100:
+        return Response({"error": "Provide a revision reason of 1 to 100 characters"}, status=400)
+
+    with transaction.atomic():
+        order = Order.objects.select_for_update().filter(pk=subject.order_id).first()
+        if order is None:
+            return Response({"error": "Order not found"}, status=404)
+        if order.status not in allowed_statuses:
+            return Response({"error": "This order is not open for photo review"}, status=400)
+
+        updated = Subject.objects.filter(pk=subject.pk, order=order).update(
+            is_approved=False,
+            photo_status=Subject.PhotoStatus.MANUAL_REVIEW,
+            fail_reason=reason.strip(),
+            updated_at=timezone.now(),
+        )
+        if not updated:
+            return Response({"error": "Subject not found"}, status=404)
+
+    return Response({"id": subject.pk, "photo_status": Subject.PhotoStatus.MANUAL_REVIEW})
 
 
 @api_view(["POST"])
@@ -250,9 +325,11 @@ def reprocess_student(request, student_id):
     If the photo was manually linked (/manual/ path), bypass QR detection
     and go straight to face crop + ID card render.
     """
-    subject, err = check_student_access(request, student_id)
+    subject, err = check_student_access(request, student_id, action=OrderAction.PROCESS)
     if err:
         return err
+    if subject.order.status not in (Order.Status.PENDING, Order.Status.FAILED, Order.Status.PROOFING):
+        return Response({"error": "This order is not open for photo processing"}, status=400)
 
     if not subject.original_photo_url:
         return Response({"error": "No photo available to reprocess"}, status=400)
@@ -341,7 +418,9 @@ def _process_linked_photo(subject):
 @permission_classes([IsAuthenticated])
 def process_linked_photo(request, student_id):
     """API endpoint: POST /students/<student_id>/process-linked/"""
-    subject, err = check_student_access(request, student_id)
+    subject, err = check_student_access(request, student_id, action=OrderAction.PROCESS)
     if err:
         return err
+    if subject.order.status not in (Order.Status.PENDING, Order.Status.FAILED, Order.Status.PROOFING):
+        return Response({"error": "This order is not open for photo processing"}, status=400)
     return _process_linked_photo(subject)

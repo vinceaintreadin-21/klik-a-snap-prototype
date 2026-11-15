@@ -1,4 +1,3 @@
-#order_views.py
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -16,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
 from api.models.user_profile import UserProfile
-from api.utils.permissions import check_order_access, check_student_access
+from api.utils.permissions import check_order_access, check_student_access, OrderAction
 import os
 import zipfile
 from io import BytesIO
@@ -197,7 +196,7 @@ def _create_order(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_processing(request, pk):
-    order, err = check_order_access(request, pk)
+    order, err = check_order_access(request, pk, action=OrderAction.PROCESS)
     if err:
         return err
     try:
@@ -215,7 +214,7 @@ def start_processing(request, pk):
 @api_view(['POST']) 
 @permission_classes([IsAuthenticated])
 def complete_order(request, pk):
-    order, err = check_order_access(request, pk)
+    order, err = check_order_access(request, pk, action=OrderAction.COMPLETE)
     if err:
         return err
     try:
@@ -232,17 +231,16 @@ def complete_order(request, pk):
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def upload_photos(request, order_id, student_id=None):
-    order, err = check_order_access(request, order_id)
+    order, err = check_order_access(request, order_id, action=OrderAction.PROCESS)
     if err:
         return err
     
-    if student_id is not None:
+    if order.status not in (Order.Status.PENDING, Order.Status.FAILED, Order.Status.PROOFING):
+        return Response({'error': 'Photos can only be changed when the order is PENDING, PROOFING or FAILED'}, status=400)
 
+    if student_id is not None:
         from api.services.id_engine import manual_crop_photo as execute_manual_crop
         return execute_manual_crop(request, order_id, student_id)
-        
-    if order.status not in [Order.Status.PENDING, Order.Status.FAILED, Order.Status.PROOFING]:
-        return Response({ 'error': 'Photos can only be uploaded when order is PENDING, PROOFING or FAILED'}, status=400)
 
     files = request.FILES.getlist('files')
 
@@ -401,28 +399,65 @@ def parse_order_file(request):
             rows_iter    = ws.iter_rows(values_only=True)
             
             headers = []
-            for header_row in rows_iter:
-                headers = [str(cell).strip() if cell else '' for cell in header_row]
-                if any(h for h in headers): 
+            header_row_number = 0 
+
+            for sheet_row, cells in enumerate(rows_iter, start=1):
+                headers = [str(cell).strip() if cell is not None else "" for cell in cells]
+                if any(headers):
+                    header_row_number = sheet_row
                     break
 
-            rows = []        
-            for row in rows_iter:
-                raw = {
-                    headers[i]: str(row[i]).strip() if row[i] is not None else ''
-                    for i in range(min(len(headers), len(row)))
-                }
-                if not any(raw.values()):
+            indexed_columns = [
+                (index, {"key": "_".join(label.lower().split()), "label": label})
+                for index, label in enumerate(headers)
+                if label
+            ]
+
+            columns = [column for _, column in indexed_columns]
+            keys = [column["key"] for column in columns]
+
+            if not columns or len(keys) != len(set(keys)):
+                wb.close()
+                return Response({
+                    "error": "The sheet needs non-empty, unique column headers."
+                }, status=400)
+
+            rows = []
+            preview_rows = []
+
+            for sheet_row, cells in enumerate(rows_iter, start=header_row_number + 1):
+                values = {}
+                for index, column in indexed_columns:
+                    value = cells[index] if index < len(cells) else None
+                    values[column["key"]] = "" if value is None else str(value).strip()
+
+                if not any(values.values()):
                     continue
-                rows.append(map_row(raw))
+
+                name = next(
+                    (values[key] for key in ("name", "full_name", "fullname") if values.get(key)),
+                    "",
+                )
+
+                if not name:
+                    name = " ".join(
+                        values[key]
+                        for key in ("first_name", "last_name")
+                        if values.get(key)
+                    )
+
+                preview_rows.append({"row": sheet_row, "name": name, "values": values})
+                rows.append(map_row({column["label"]: values[column["key"]] for column in columns}))
 
             wb.close()
 
             return Response({
-                'rows':       rows,
-                'sheets':     sheet_names,
-                'total_rows': len(rows),
-                'file_name':  file.name,
+                "columns": columns,
+                "preview_rows": preview_rows,
+                "rows": rows,
+                "sheets": sheet_names,
+                "total_rows": len(preview_rows),
+                "file_name": file.name,
             })
 
         # ── xls ───────────────────────────────────────────────────────────────
@@ -700,10 +735,9 @@ def generate_test_photos(request, order_id):
     import requests as req
     import random
 
-    try:
-        order = Order.objects.get(id=order_id)
-    except Order.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=404)
+    order, err = check_order_access(request, order_id, action=OrderAction.PROCESS)
+    if err is not None:
+        return err
 
     students = Subject.objects.filter(
         order=order

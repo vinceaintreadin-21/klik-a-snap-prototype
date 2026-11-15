@@ -3,6 +3,7 @@ from api.models.orders import Order
 from api.models.subjects import Subject
 from django.db import transaction
 from api.services.qr_service import bulk_generate_qr_codes
+from uuid import uuid4
 
 def create_full_order(school_name, batch_name, student_list, institution=None):
     # We use a transaction (like Laravel's DB::transaction)
@@ -14,6 +15,19 @@ def create_full_order(school_name, batch_name, student_list, institution=None):
             if institution.status != Institution.Status.ACTIVE:
                 raise ValueError('Only active institutions can create orders')
 
+        student_list = [
+            {
+                **row,
+                "name": (row.get("name") or "").strip(),
+                "student_id": (row.get("student_id") or "").strip() or f"KAS-{uuid4().hex}",
+                "grade": row.get("grade") or "",
+            }
+            for row in student_list
+        ]
+        
+        if any(not row["name"] for row in student_list):
+            raise ValueError("Each subject must have a name.")
+            
         student_ids = [s['student_id'] for s in student_list]
         if len(student_ids) != len(set(student_ids)):
             raise ValueError("Duplicate student_id values found in the student list")

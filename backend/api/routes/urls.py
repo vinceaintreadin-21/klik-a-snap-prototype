@@ -12,7 +12,7 @@ from api.views.subject_views import (
     student_detail_controller, search_students, 
     quick_add_student, manual_link_photo, approve_order,
     approve_student, request_revision, reprocess_student,
-    process_linked_photo
+    process_linked_photo, reject_subject_photo
 )
 from api.views.layout_views import create_layout, get_layout, preview_layout
 from api.views.auth_views import register_user, get_user_profile, login_user, logout_user, accept_account_invite, validate_account_invite
@@ -142,6 +142,7 @@ urlpatterns = [
     path('auth/invite/<uuid:token>/', validate_account_invite, name='validate-account-invite'),
     path('auth/invite/<uuid:token>/accept/', accept_account_invite, name='accept-account-invite'),
 
+    path('students/<int:student_id>/reject-photo/', reject_subject_photo, name='reject-subject-photo'),
     path('students/<int:student_id>/reprocess/', reprocess_student, name='reprocess-student'),
 
     path('students/<int:student_id>/process-linked/', process_linked_photo, name='process-linked-photo'),

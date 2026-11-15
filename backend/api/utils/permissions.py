@@ -6,7 +6,28 @@ from api.models.subjects import Subject
 from api.models.user_profile import UserProfile
 
 
-def check_order_access(request, order_id):
+class OrderAction:
+    VIEW = "view"
+    ADD_STUDENT = "add_student"
+    LINK_PHOTO = "link_photo"
+    PROCESS = "process"                  # reprocess / process-linked / crop
+    APPROVE_STUDENT = "approve_student"
+    REQUEST_REVISION = "request_revision"
+    APPROVE_ORDER = "approve_order"      # the institution gate
+    COMPLETE = "complete"
+
+R = UserProfile.Role
+A = OrderAction
+
+ROLE_ACTIONS = {
+    R.ADMIN: {A.VIEW, A.ADD_STUDENT, A.LINK_PHOTO, A.PROCESS,
+              A.APPROVE_STUDENT, A.REQUEST_REVISION, A.APPROVE_ORDER, A.COMPLETE},
+    R.OPERATOR: {A.VIEW, A.ADD_STUDENT, A.LINK_PHOTO, A.PROCESS, A.COMPLETE},
+    R.INSTITUTION: {A.VIEW, A.APPROVE_STUDENT, A.REQUEST_REVISION, A.APPROVE_ORDER},
+    R.COORDINATOR: {A.VIEW, A.REQUEST_REVISION},   # decide if coordinators may do more
+}
+
+def check_order_access(request, order_id, action=OrderAction.VIEW):
     """
     Fetches an order and checks that the requesting user has access to it.
 
@@ -34,6 +55,9 @@ def check_order_access(request, order_id):
         return None, Response({'error': 'Institution has been deactivated'}, status=403)
 
     role = profile.role
+
+    if action not in ROLE_ACTIONS.get(role, set()):
+        return None, Response({"error": "Role not permitted for this action"}, status=403)
     
     if role == UserProfile.Role.ADMIN:
         return order, None
@@ -63,7 +87,7 @@ def check_order_access(request, order_id):
     return order, None
 
 
-def check_student_access(request, student_id):
+def check_student_access(request, student_id, action=OrderAction.VIEW):
     """
     Fetches a subject and checks that the requesting user has access to
     the order that subject belongs to.
@@ -78,7 +102,7 @@ def check_student_access(request, student_id):
     except Subject.DoesNotExist:
         return None, Response({'error': 'Subject not found'}, status=404)
 
-    order, err = check_order_access(request, student.order_id)
+    order, err = check_order_access(request, student.order_id, action=action)
     if err:
         return None, err
 
