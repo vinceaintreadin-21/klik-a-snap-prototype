@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { isAxiosError } from 'axios'
 import {
     ChevronRight, ArrowLeft, Upload, CheckCircle2,
     FileText, Info, AlertCircle, Check, QrCode, Download,
-    Loader2, X,
+    Loader2, X, ChevronLeft, Pencil,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import api from '../../utils/api'
@@ -11,13 +12,103 @@ import { useOrders } from '../../context/OrderContext'
 
 type OrderStep = 1 | 2 | 3
 
-interface ParsedStudent {
+type PreviewColumn = {
+    key: string
+    label: string
+}
+
+type ImportedRow = {
     row: number
-    student_id: string
     name: string
-    grade?: string
-    extra?: Record<string, string>
+    values: Record<string, string>
+}
+
+type PreviewRow = ImportedRow & {
     errors: string[]
+}
+
+const FULL_NAME_KEYS = ['name', 'full_name', 'fullname']
+const NAME_KEYS = [...FULL_NAME_KEYS, 'first_name', 'last_name']
+
+function validateRow(row: ImportedRow): PreviewRow {
+    return { ...row, errors: row.name.trim() ? [] : ['Missing name'] }
+}
+
+function PreviewRowEditor({ columns, row, onSave, onClose }: {
+    columns: PreviewColumn[]
+    row: PreviewRow
+    onSave: (row: PreviewRow) => void
+    onClose: () => void
+}) {
+    const dialog = useRef<HTMLDialogElement>(null)
+    const [values, setValues] = useState(row.values)
+    const [manualName, setManualName] = useState(row.name)
+    const nameColumn = columns.find(({ key }) => NAME_KEYS.includes(key))
+    const fullName = FULL_NAME_KEYS.map((key) => values[key]?.trim()).find(Boolean)
+    const name = nameColumn
+        ? fullName || [values.first_name?.trim(), values.last_name?.trim()].filter(Boolean).join(' ')
+        : manualName.trim()
+    const focusKey = row.errors.length ? nameColumn?.key : columns[0]?.key
+    const inputClass = 'w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100'
+
+    useEffect(() => {
+        const element = dialog.current
+        element?.showModal()
+        return () => { element?.close() }
+    }, [])
+
+    return (
+        <dialog ref={dialog} aria-labelledby="row-editor-title"
+            onCancel={(event) => { event.preventDefault(); onClose() }}
+            className="m-auto w-[calc(100%_-_2rem)] max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-900/45">
+            <form className="flex max-h-[85dvh] flex-col" onSubmit={(event) => {
+                event.preventDefault()
+                if (name) onSave(validateRow({ row: row.row, name, values }))
+            }}>
+                <header className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
+                    <h2 id="row-editor-title" className="text-base font-semibold">Edit row {row.row}</h2>
+                    <button type="button" aria-label="Close row editor" onClick={onClose}
+                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+                        <X size={16} />
+                    </button>
+                </header>
+                <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-4 sm:grid-cols-2">
+                    {!nameColumn && (
+                        <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
+                            Name
+                            <input autoFocus={!focusKey} value={manualName} required
+                                onChange={(event) => setManualName(event.target.value)} className={inputClass} />
+                        </label>
+                    )}
+                    {columns.map(({ key, label }) => (
+                        <label key={key} className="grid gap-1.5 text-sm font-medium">
+                            {label}
+                            <input autoFocus={key === focusKey} value={values[key] ?? ''}
+                                aria-invalid={(!name && key === nameColumn?.key) || undefined}
+                                onChange={(event) => {
+                                    const value = event.target.value
+                                    setValues((previous) => ({ ...previous, [key]: value }))
+                                }}
+                                className={cn(inputClass, !name && key === nameColumn?.key && 'border-red-400 bg-red-50')} />
+                        </label>
+                    ))}
+                </div>
+                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+                    <span aria-live="polite" className="text-sm text-red-700">{!name && 'Name is required.'}</span>
+                    <div className="ml-auto flex gap-2">
+                        <button type="button" onClick={onClose}
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100">
+                            Cancel
+                        </button>
+                        <button type="submit" disabled={!name}
+                            className="rounded-lg bg-[#004ac6] px-3 py-2 text-sm font-medium text-white hover:bg-[#003da6] disabled:opacity-50">
+                            Save changes
+                        </button>
+                    </div>
+                </footer>
+            </form>
+        </dialog>
+    )
 }
 
 function StepIndicator({ step, current }: { step: OrderStep; current: OrderStep }) {
@@ -52,7 +143,11 @@ export default function NewOrderPage() {
     const [file, setFile] = useState<File | null>(null)
     const [isDragOver, setIsDragOver] = useState(false)
     const [parsing, setParsing] = useState(false)
-    const [parsedRows, setParsedRows] = useState<ParsedStudent[]>([])
+    const [parsedRows, setParsedRows] = useState<PreviewRow[]>([])
+    const [columns, setColumns] = useState<PreviewColumn[]>([])
+    const [page, setPage] = useState(1)
+    const [showIssuesOnly, setShowIssuesOnly] = useState(false)
+    const [editingRow, setEditingRow] = useState<PreviewRow | null>(null)
     const [parseError, setParseError] = useState<string | null>(null)
     const [creatingOrder, setCreatingOrder] = useState(false)
     const [createdOrder, setCreatedOrder] = useState<any | null>(null)
@@ -62,6 +157,19 @@ export default function NewOrderPage() {
 
     const errorRows = parsedRows.filter((r) => r.errors.length > 0)
     const validRows = parsedRows.filter((r) => r.errors.length === 0)
+
+    const pageSize = 20
+    const previewRows = showIssuesOnly ? errorRows : parsedRows
+    const pageCount = Math.max(1, Math.ceil(previewRows.length / pageSize))
+    const currentPage = Math.min(page, pageCount)
+    const start = (currentPage - 1) * pageSize
+    const visibleRows = previewRows.slice(start, start + pageSize)
+
+    const handleSaveRow = (updatedRow: PreviewRow) => {
+        setParsedRows((rows) => rows.map((row) => row.row === updatedRow.row ? updatedRow : row))
+        setPage(currentPage)
+        setEditingRow(null)
+    }
 
     // ── Step 1: file selection ────────────────────────────────────────────────
 
@@ -89,34 +197,25 @@ export default function NewOrderPage() {
                 headers: { 'Content-Type': 'multipart/form-data' },
             })
 
-            // 1. Extract array from res.data.rows
-            const rawRows: any[] = res.data?.rows ?? []
+            const importedRows: ImportedRow[] | undefined = res.data.preview_rows
+            const importedColumns: PreviewColumn[] | undefined = res.data.columns
 
-            // 2. Map and generate validation errors for each student row
-            const mappedRows: ParsedStudent[] = rawRows.map((item, index) => {
-                const errors: string[] = []
-
-                if (!item.name || item.name.trim() === '') {
-                    errors.push('Missing student name')
-                }
-                if (!item.student_id || item.student_id.trim() === '') {
-                    errors.push('Missing student ID')
-                }
-
-                return {
-                    row: index + 1,
-                    student_id: item.student_id || '',
-                    name: item.name || '',
-                    grade: item.grade || '',
-                    extra: item.extra_fields || {},
-                    errors: errors,
-                }
-            })
-
-            setParsedRows(mappedRows)
+          if (!importedRows || !importedColumns) {
+            setParseError(
+              res.data.sheets?.length > 1
+                  ? 'Select a worksheet before previewing this workbook.'
+                  : 'This file format does not provide a flexible preview yet.',
+            )
+            return
+          }
+            setColumns(importedColumns)
+            setParsedRows(importedRows.map(validateRow))
+            setPage(1)
+            setShowIssuesOnly(false)
             setStep(2)
-        } catch (err: any) {
-            setParseError(err.response?.data?.error || 'Failed to parse file. Please check the format.')
+        } catch (err) {
+            const message = isAxiosError(err) ? err.response?.data?.error : undefined
+            setParseError(message || 'Failed to parse file. Please check the format.')
         } finally {
             setParsing(false)
         }
@@ -127,26 +226,21 @@ export default function NewOrderPage() {
         if (!batchName.trim() || errorRows.length > 0 || validRows.length === 0) return
         setCreatingOrder(true)
         try {
-            // Send the already-parsed student list as JSON — the file was
-            // already decoded in step 1 via /orders/parse-file/, so we don't
-            // need to re-upload it here. Sending raw binary multipart to a
-            // JSON-parsing endpoint causes the utf-8 codec error.
             const res = await api.post('/orders/', {
                 batch_name: batchName.trim(),
-                school_name: batchName.trim(),   // institution's name is resolved server-side
-                students: validRows.map((r) => ({
-                    name: r.name,
-                    student_id: r.student_id,
-                    grade: r.grade ?? '',
-                    section: '',
+                school_name: batchName.trim(),
+                students: validRows.map((row) => ({
+                    name: row.name,
+                    extra_fields: row.values,
                 })),
             })
             const order = res.data?.order ?? res.data
             setCreatedOrder(order)
             addOrder(order)
             setStep(3)
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Failed to create order.')
+        } catch (err) {
+            const message = isAxiosError(err) ? err.response?.data?.error : undefined
+            alert(message || 'Failed to create order.')
         } finally {
             setCreatingOrder(false)
         }
@@ -314,84 +408,123 @@ export default function NewOrderPage() {
 
                 {/* ── STEP 2 ── */}
                 {step === 2 && (
-                    <div className="flex flex-col gap-4">
-                        <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-[0px_1px_2px_rgba(0,0,0,0.04)]">
-                            <div className="flex items-center justify-between px-6 py-4 border-b border-[#f1f5f9]">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[15px] font-semibold text-[#0b1c30]">Data Preview</span>
-                                    <span className="bg-[#e8eeff] text-[#004ac6] text-[11px] font-bold px-2.5 py-0.5 rounded-full tracking-wide uppercase">Parsed Results</span>
+                    <div className="flex min-w-0 flex-col gap-4">
+                        {editingRow && (
+                            <PreviewRowEditor key={editingRow.row} columns={columns} row={editingRow}
+                                onClose={() => setEditingRow(null)} onSave={handleSaveRow} />
+                        )}
+                        <section aria-labelledby="data-preview-title"
+                            className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
+                                <div className="flex items-center gap-2.5">
+                                    <h2 id="data-preview-title" className="text-sm font-semibold text-slate-900">Data Preview</h2>
+                                    <span className="rounded-full bg-[#e8eeff] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#004ac6]">
+                                        Parsed results
+                                    </span>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="flex items-center gap-1.5 text-[13px] text-[#166534]">
-                                        <CheckCircle2 size={14} className="text-[#22c55e]" />
-                                        <span className="font-semibold">{validRows.length}</span> Valid
+                                <div className="flex items-center gap-4 text-xs font-medium" aria-live="polite">
+                                    <span className="flex items-center gap-1.5 text-emerald-700">
+                                        <CheckCircle2 size={14} /> {validRows.length} valid
                                     </span>
                                     {errorRows.length > 0 && (
-                                        <span className="flex items-center gap-1.5 text-[13px] text-[#b91c1c]">
-                                            <AlertCircle size={14} className="text-[#ef4444]" />
-                                            <span className="font-semibold">{errorRows.length}</span> Error{errorRows.length !== 1 ? 's' : ''}
+                                        <span className="flex items-center gap-1.5 text-red-700">
+                                            <AlertCircle size={14} /> {errorRows.length} {errorRows.length === 1 ? 'error' : 'errors'}
                                         </span>
                                     )}
                                 </div>
-                            </div>
-
-                            <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className="bg-[rgba(248,250,252,0.9)] border-b border-[#f1f5f9]">
-                                        <th className="text-left px-6 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase w-[60px]">#</th>
-                                        <th className="text-left px-6 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase">Student ID</th>
-                                        <th className="text-left px-6 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase">Name</th>
-                                        <th className="text-left px-6 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase">Grade / Level</th>
-                                        <th className="text-left px-6 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase">Issues</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {parsedRows.slice(0, 20).map((row) => {
-                                        const hasError = row.errors.length > 0
-                                        return (
-                                            <tr key={row.row} className={cn('border-b border-[#f8fafc]', hasError && 'bg-[#fff5f5]')}>
-                                                <td className="px-6 py-3 text-[12px] text-[#9ba3af]">{row.row}</td>
-                                                <td className="px-6 py-3">
-                                                    <span className={cn('font-mono text-[13px]', hasError ? 'text-[#ba1a1a] font-semibold' : 'text-[#374151]')}>
-                                                        {row.student_id || '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-3">
-                                                    <span className={cn('text-[13px]', hasError ? 'text-[#ba1a1a]' : 'text-[#374151]')}>
-                                                        {row.name || '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-3 text-[13px] text-[#64748b]">{row.grade ?? '—'}</td>
-                                                <td className="px-6 py-3">
-                                                    {hasError ? (
-                                                        <span className="text-[11px] text-[#b91c1c] font-medium">{row.errors.join(', ')}</span>
-                                                    ) : (
-                                                        <span className="text-[11px] text-[#22c55e] font-medium flex items-center gap-1">
-                                                            <Check size={11} /> OK
+                            </header>
+                            <div className="max-h-[55vh] overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600"
+                                role="region" aria-label="Spreadsheet rows" tabIndex={0}>
+                                <table className="w-full border-separate border-spacing-0 text-[13px]">
+                                    <thead className="sticky top-0 z-20 bg-slate-50 text-[10px] uppercase tracking-wide text-slate-600">
+                                        <tr>
+                                            <th scope="col" className="border-b border-slate-200 px-4 py-3 text-left">Row</th>
+                                            {columns.map(({ key, label }) => (
+                                                <th key={key} scope="col" className="whitespace-nowrap border-b border-slate-200 px-4 py-3 text-left">{label}</th>
+                                            ))}
+                                            <th scope="col" className="border-b border-slate-200 px-4 py-3 text-left">Status</th>
+                                            <th scope="col" className="sticky right-0 border-b border-l border-slate-200 bg-slate-50 px-4 py-3 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {visibleRows.map((row) => {
+                                            const hasError = row.errors.length > 0
+                                            return (
+                                                <tr key={row.row} className={cn('group', hasError
+                                                    ? 'bg-red-50 hover:bg-red-100/70'
+                                                    : 'odd:bg-white even:bg-slate-50 hover:bg-blue-50')}>
+                                                    <th scope="row" className="border-b border-slate-100 px-4 py-2.5 text-left font-normal tabular-nums text-slate-500">
+                                                        {row.row}
+                                                    </th>
+                                                    {columns.map(({ key }) => {
+                                                        const value = row.values[key]
+                                                        const missingName = hasError && NAME_KEYS.includes(key) && !value?.trim()
+                                                        return (
+                                                            <td key={key} className={cn(
+                                                                'whitespace-nowrap border-b border-slate-100 px-4 py-2.5',
+                                                                missingName ? 'font-medium text-red-700' : value?.trim() ? 'text-slate-700' : 'text-slate-400',
+                                                            )}>
+                                                                {value?.trim() ? value : missingName ? 'Missing' : '—'}
+                                                            </td>
+                                                        )
+                                                    })}
+                                                    <td className="whitespace-nowrap border-b border-slate-100 px-4 py-2.5">
+                                                        <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium',
+                                                            hasError ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800')}>
+                                                            {hasError ? row.errors.join(', ') : 'Valid'}
                                                         </span>
-                                                    )}
+                                                    </td>
+                                                    <td className={cn('sticky right-0 border-b border-l border-slate-200 px-3 py-2 text-right',
+                                                        hasError ? 'bg-red-50 group-hover:bg-red-100' : 'bg-white group-even:bg-slate-50 group-hover:bg-blue-50')}>
+                                                        <button type="button" disabled={creatingOrder}
+                                                            aria-label={`${hasError ? 'Fix error in' : 'Edit'} row ${row.row}`}
+                                                            onClick={() => setEditingRow(row)}
+                                                            className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50',
+                                                                hasError ? 'text-red-700 hover:bg-red-100' : 'text-[#004ac6] hover:bg-blue-100')}>
+                                                            {hasError ? <AlertCircle size={13} /> : <Pencil size={13} />}
+                                                            {hasError ? 'Fix error' : 'Edit'}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                        {visibleRows.length === 0 && (
+                                            <tr>
+                                                <td colSpan={columns.length + 3} className="px-5 py-8 text-center text-slate-500">
+                                                    {showIssuesOnly ? 'No rows need correction.' : 'No rows found in this worksheet.'}
                                                 </td>
                                             </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-
-                            {parsedRows.length > 20 && (
-                                <div className="px-6 py-2 text-[12px] text-[#9ba3af] bg-[#f8fafc] border-t border-[#f1f5f9]">
-                                    Showing first 20 of {parsedRows.length} rows
-                                </div>
-                            )}
-
-                            <div className="bg-[#f8fafc] border-t border-[#f1f5f9] flex items-center justify-between px-6 py-3">
-                                <span className="text-[12px] text-[#9ba3af]">{parsedRows.length} rows parsed from {file?.name}</span>
-                                <span className={cn('text-[12px] font-medium', errorRows.length > 0 ? 'text-[#b91c1c]' : 'text-[#166534]')}>
-                                    {errorRows.length > 0
-                                        ? `${errorRows.length} error${errorRows.length !== 1 ? 's' : ''} — fix before proceeding`
-                                        : 'All records valid'}
-                                </span>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
-                        </div>
+                            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <span className="tabular-nums text-slate-600" aria-live="polite">
+                                        {previewRows.length
+                                            ? `Showing ${start + 1}–${start + visibleRows.length} of ${previewRows.length} rows`
+                                            : '0 rows'}
+                                    </span>
+                                    <button type="button" aria-label="Previous page" disabled={currentPage === 1}
+                                        onClick={() => setPage(currentPage - 1)}
+                                        className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-blue-50 disabled:opacity-40">
+                                        <ChevronLeft size={13} />
+                                    </button>
+                                    <span className="font-semibold tabular-nums text-[#004ac6]">{currentPage} / {pageCount}</span>
+                                    <button type="button" aria-label="Next page" disabled={currentPage === pageCount}
+                                        onClick={() => setPage(currentPage + 1)}
+                                        className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-blue-50 disabled:opacity-40">
+                                        <ChevronRight size={13} />
+                                    </button>
+                                </div>
+                                <label className="flex cursor-pointer items-center gap-2 text-slate-700">
+                                    <input type="checkbox" checked={showIssuesOnly}
+                                        onChange={(event) => { setShowIssuesOnly(event.target.checked); setPage(1) }}
+                                        className="size-4 accent-[#004ac6]" />
+                                    Show errors only
+                                </label>
+                            </footer>
+                        </section>
 
                         <div className="flex items-center justify-between pt-2 border-t border-[#f1f5f9]">
                             <button onClick={() => setStep(1)}

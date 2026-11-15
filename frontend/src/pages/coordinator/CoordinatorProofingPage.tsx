@@ -108,13 +108,11 @@ function RevisionReasonPicker({
 function IDPreviewModal({
     subject,
     reviewStatus,
-    onApprove,
     onRevise,
     onClose,
 }: {
     subject: ProofSubject
     reviewStatus: CardReviewStatus
-    onApprove: () => void
     onRevise: (reason: string, note: string) => void
     onClose: () => void
 }) {
@@ -125,18 +123,6 @@ function IDPreviewModal({
 
     const hue = getHue(subject.id)
     const bg = `hsl(${hue}, 55%, 48%)`
-
-    const handleApprove = async () => {
-        setLoading(true)
-        try {
-            await api.post(`/students/${subject.id}/approve/`)
-            onApprove()
-        } catch (err: any) {
-            toast.error(err.response?.data?.error || 'Failed to approve')
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const handleSubmitRevision = async () => {
         if (!selectedReason) return
@@ -255,18 +241,6 @@ function IDPreviewModal({
 
                             {/* Action buttons */}
                             <div className="flex gap-2.5">
-                                <button
-                                    onClick={handleApprove}
-                                    disabled={loading || reviewStatus === 'approved'}
-                                    className={cn(
-                                        'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[14px] font-semibold transition-all shadow-sm',
-                                        reviewStatus === 'approved'
-                                            ? 'bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] cursor-default'
-                                            : 'bg-[#004ac6] text-white hover:bg-[#003da6] disabled:opacity-50'
-                                    )}>
-                                    <CheckCircle2 size={16} />
-                                    {reviewStatus === 'approved' ? 'Approved' : loading ? 'Approving…' : 'Approve'}
-                                </button>
                                 <button
                                     onClick={() => setMode('revise')}
                                     disabled={loading}
@@ -539,11 +513,6 @@ export default function CoordinatorProofingPage() {
         }
     }, [])
 
-    const handleApprove = (subjectId: number) => {
-        setCardStatuses((prev) => ({ ...prev, [subjectId]: 'approved' }))
-        setPreviewSubject(null)
-    }
-
     const handleRevise = (subjectId: number) => {
         setCardStatuses((prev) => ({ ...prev, [subjectId]: 'revision' }))
         setPreviewSubject(null)
@@ -606,7 +575,6 @@ export default function CoordinatorProofingPage() {
                 <IDPreviewModal
                     subject={previewSubject}
                     reviewStatus={cardStatuses[previewSubject.id] ?? 'pending'}
-                    onApprove={() => handleApprove(previewSubject.id)}
                     onRevise={(_r, _n) => handleRevise(previewSubject.id)}
                     onClose={() => setPreviewSubject(null)}
                 />

@@ -14,7 +14,7 @@ interface IDPreviewStudent {
     student_id: string
     department?: string
     role?: string
-    processed_photo?: string
+    processed_photo?: string | null
     initials: string
     hue: number
 }
@@ -22,6 +22,8 @@ interface IDPreviewStudent {
 interface IDPreviewModalProps {
     student: IDPreviewStudent
     reviewStatus: CardReviewStatus
+    readOnly: boolean
+    canApprove: boolean
     onApprove: () => void
     onRevise: (studentId: number, reason: string, note: string) => void
     onClose: () => void
@@ -30,6 +32,8 @@ interface IDPreviewModalProps {
 export default function IDPreviewModal({
     student,
     reviewStatus,
+    readOnly,
+    canApprove,
     onApprove,
     onRevise,
     onClose,
@@ -38,23 +42,27 @@ export default function IDPreviewModal({
     const [selectedReason, setSelectedReason] = useState('')
     const [note, setNote] = useState('')
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const bgColor = `hsl(${student.hue}, 55%, 48%)`
 
     const handleApprove = async () => {
+        if (loading || readOnly || !canApprove) return
+        setError(null)
         setLoading(true)
         try {
             await api.post(`/students/${student.id}/approve/`)
             onApprove()
         } catch (err: any) {
-            console.error('Approve failed:', err)
+            setError(err.response?.data?.error || 'Failed to approve the card.')
         } finally {
             setLoading(false)
         }
     }
 
     const handleSubmitRevision = async () => {
-        if (!selectedReason) return
+        if (loading || readOnly || !selectedReason) return
+        setError(null)
         setLoading(true)
         try {
             await api.post(`/students/${student.id}/request-revision/`, {
@@ -63,7 +71,7 @@ export default function IDPreviewModal({
             })
             onRevise(student.id, selectedReason, note)
         } catch (err: any) {
-            console.error('Revision request failed:', err)
+            setError(err.response?.data?.error || 'Failed to request a revision.')
         } finally {
             setLoading(false)
         }
@@ -78,7 +86,7 @@ export default function IDPreviewModal({
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[#f1f5f9]">
                     <div className="flex items-center gap-2">
                         {mode === 'revise' && (
-                            <button onClick={() => setMode('preview')}
+                            <button onClick={() => { setError(null); setMode('preview') }}
                                 className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#f1f5f9] transition-colors mr-1">
                                 <ArrowLeft size={14} className="text-[#64748b]" />
                             </button>
@@ -97,6 +105,12 @@ export default function IDPreviewModal({
                         <X size={16} className="text-[#64748b]" />
                     </button>
                 </div>
+
+                {error && (
+                    <p role="alert" className="mx-6 mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                        {error}
+                    </p>
+                )}
 
                 {mode === 'preview' ? (
                     <div className="px-6 py-5 flex flex-col gap-5">
@@ -164,10 +178,10 @@ export default function IDPreviewModal({
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-3">
+                        {!readOnly && <div className="flex gap-3">
                             <button
                                 onClick={handleApprove}
-                                disabled={loading || reviewStatus === 'approved'}
+                                disabled={loading || !canApprove || reviewStatus === 'approved'}
                                 className={cn(
                                     'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[14px] font-semibold transition-all shadow-sm',
                                     reviewStatus === 'approved'
@@ -178,7 +192,7 @@ export default function IDPreviewModal({
                                 {reviewStatus === 'approved' ? 'Approved' : loading ? 'Approving…' : 'Approve ID'}
                             </button>
                             <button
-                                onClick={() => setMode('revise')}
+                                onClick={() => { setError(null); setMode('revise') }}
                                 disabled={loading}
                                 className={cn(
                                     'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[14px] font-semibold border transition-all',
@@ -189,7 +203,7 @@ export default function IDPreviewModal({
                                 <RotateCcw size={16} />
                                 {reviewStatus === 'revision' ? 'Revision Sent' : 'Request Revision'}
                             </button>
-                        </div>
+                        </div>}
                     </div>
                 ) : (
                     <div className="px-6 py-5 flex flex-col gap-4">
@@ -238,7 +252,7 @@ export default function IDPreviewModal({
                         </div>
 
                         <div className="flex items-center gap-2.5">
-                            <button onClick={() => setMode('preview')}
+                            <button onClick={() => { setError(null); setMode('preview') }}
                                 className="px-4 py-2.5 rounded-xl border border-[#e2e8f0] text-[13px] text-[#64748b] hover:bg-[#f8fafc] transition-colors">
                                 Cancel
                             </button>

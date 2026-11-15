@@ -7,8 +7,8 @@
 import { useState, useMemo, useEffect } from "react";
 import {
     ChevronLeft, Search, Flag, ArrowRight, AlertTriangle,
-    FileCheck, Clock, Printer, CheckCircle2, Users, Calendar,
-    Lock, Loader2,
+    FileCheck, Printer, CheckCircle2, Users, Calendar,
+    Loader2,
 } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import api from "../../../utils/api";
@@ -126,10 +126,8 @@ export default function OrderDetail({ order, onBack, onOpenRevisions }: Props) {
     const [students, setStudents] = useState<DetailStudent[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [submitted, setSubmitted] = useState(false);
 
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Per-student local state
@@ -166,10 +164,6 @@ export default function OrderDetail({ order, onBack, onOpenRevisions }: Props) {
 
     const flaggedCount = flaggedIds.size;
     const reviewedCount = reviewedIds.size;
-    const allReviewed = reviewedCount >= students.filter(s => s.photo_status === "PROCESSED").length
-        && students.filter(s => s.photo_status === "PROCESSED").length > 0;
-    const canSubmit = status === "PROOFING" && flaggedCount === 0 && allReviewed;
-
     const hasRevisionStudents = students.some(
         s => s.photo_status === "MANUAL_REVIEW" && s.fail_reason === "revision_requested",
     );
@@ -199,21 +193,6 @@ export default function OrderDetail({ order, onBack, onOpenRevisions }: Props) {
 
     const markAllReviewed = () => {
         setReviewedIds(new Set(students.map(s => s.id)));
-    };
-
-    const handleSubmitForProofing = async () => {
-        // For the operator's "Ready for Institution Proofing" action,
-        // we call POST /orders/{id}/approve/ which moves to APPROVED.
-        setSubmitting(true);
-        setError(null);
-        try {
-            await api.post(`/orders/${order.id}/approve/`);
-            setSubmitted(true); 
-        } catch (err: any) {
-            setError(err.response?.data?.error || "Failed to submit for proofing");
-        } finally {
-            setSubmitting(false);
-        }
     };
 
     const processedCount = students.filter(s => s.photo_status === "PROCESSED").length;
@@ -340,7 +319,7 @@ export default function OrderDetail({ order, onBack, onOpenRevisions }: Props) {
                                                 {flaggedCount} card{flaggedCount > 1 ? "s" : ""} flagged
                                             </div>
                                             <p className="text-[12px] text-red-600 mt-0.5">
-                                                Resolve all flags before submitting.
+                                                Review flagged cards before printing.
                                             </p>
                                         </div>
                                     </div>
@@ -398,96 +377,20 @@ export default function OrderDetail({ order, onBack, onOpenRevisions }: Props) {
                             </div>
 
                             <div className="p-5 space-y-2">
-                            {/* Already submitted — waiting for institution */}
-                            {submitting === false && canSubmit === false && reviewedCount >= processedCount && processedCount > 0 && flaggedCount === 0 ? (
-                                /* This branch won't actually fire since canSubmit would be true — kept for clarity */
-                                null
-                            ) : null}
-
-                            {/* Submitted state — button disabled, waiting message */}
-                            {submitting === true ? (
-                                <div className="w-full flex flex-col items-center gap-2 py-3 rounded-xl bg-blue-50 border border-blue-100">
-                                <div className="w-5 h-5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
-                                <span className="text-[12px] font-semibold text-blue-700">Submitting…</span>
-                                </div>
-                            ) : null}
-
-                            {/* Blocker hints */}
-                            {!submitting && !allReviewed && processedCount > 0 && (
-                                <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                                <AlertTriangle size={11} />
-                                Review all {processedCount - reviewedCount} pending card{processedCount - reviewedCount !== 1 ? "s" : ""} first
-                                </p>
-                            )}
-                            {!submitting && flaggedCount > 0 && (
-                                <p className="text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                                <Flag size={11} />
-                                Resolve {flaggedCount} flagged card{flaggedCount > 1 ? "s" : ""} first
-                                </p>
-                            )}
-                            {error && (
-                                <p className="text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                                {error}
-                                </p>
-                            )}
-
-                            {!submitting && (
-                                <button
-                                disabled={!canSubmit}
-                                onClick={handleSubmitForProofing}
-                                className={cn(
-                                    "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all",
-                                    canSubmit
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-200"
-                                    : "bg-gray-100 text-gray-400 cursor-not-allowed",
+                                {error && (
+                                    <p role="alert" className="text-[12px] text-red-600">{error}</p>
                                 )}
-                                >
-                                <ArrowRight size={14} />
-                                Ready for Institution Proofing
-                                </button>
-                            )}
-
-                            {/* After successful submission — button is replaced with waiting state */}
-                            {submitted && (
-                                <div className="w-full flex flex-col items-center gap-2 py-3 px-4 rounded-xl bg-amber-50 border border-amber-200">
-                                <div className="flex items-center gap-2">
-                                    <Clock size={14} className="text-amber-500" />
-                                    <span className="text-[13px] font-semibold text-amber-800">Waiting for Institution</span>
-                                </div>
-                                <p className="text-[11px] text-amber-600 text-center leading-snug">
-                                    Proof submitted. The institution will review and either approve or request revisions.
+                                <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+                                    Awaiting institution approval. Resolve any outstanding photo issues in Manual Review.
                                 </p>
-                                </div>
-                            )}
                             </div>
                         </>
                     )}
 
-
-                    {/* APPROVED — awaiting institution */}
                     {status === "APPROVED" && (
-                        <>
-                            <div className="px-5 pt-5 pb-4 border-b border-gray-100 flex-1">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Clock size={15} className="text-amber-500" />
-                                    <span className="text-[12px] font-bold text-gray-900 uppercase tracking-widest">Awaiting Approval</span>
-                                </div>
-                                <p className="text-[12px] text-gray-500 leading-relaxed mb-4">
-                                    Proof submitted to institution. Waiting for their sign-off before printing.
-                                </p>
-                                <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-start gap-2">
-                                    <Lock size={12} className="text-gray-400 mt-0.5 shrink-0" />
-                                    <p className="text-[11px] text-gray-500 leading-snug">
-                                        Printing is locked until institution approval is recorded.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="p-5">
-                                <p className="text-[12px] text-gray-400 text-center py-4">
-                                    Waiting for institution to approve via their portal.
-                                </p>
-                            </div>
-                        </>
+                        <p className="p-5 text-[12px] text-emerald-700">
+                            This batch is approved and ready for printing.
+                        </p>
                     )}
 
                     {/* PRINTING */}

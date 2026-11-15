@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { isAxiosError } from 'axios'
 import {
     ChevronRight, CreditCard, CheckCircle2, RotateCcw,
     ArrowLeft, Check,
@@ -16,16 +17,18 @@ interface ProofStudent {
     student_id: string
     department?: string
     role?: string
-    processed_photo?: string
+    is_approved: boolean
+    processed_photo?: string | null
+    processed_photo_back?: string | null
     photo_status: string
     fail_reason?: string
 }
 
 export default function InstitutionProofingPage() {
-    const { orders } = useOrders()
+    const { orders, updateStatus } = useOrders()
 
     // Proofing orders = those in PROOFING status
-    const proofingOrders = orders.filter((o) => o.status === 'PROOFING' || o.status === 'PENDING APPROVAL')
+    const proofingOrders = orders.filter((o) => o.status === 'PROOFING')
 
     const [stage, setStage] = useState<'orders' | 'detail'>('orders')
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
@@ -35,25 +38,42 @@ export default function InstitutionProofingPage() {
     const [cardStatuses, setCardStatuses] = useState<Record<number, CardReviewStatus>>({})
     const [batchApproved, setBatchApproved] = useState(false)
     const [approvingBatch, setApprovingBatch] = useState(false)
+    const [requiresBack, setRequiresBack] = useState(false)
+    const [loadError, setLoadError] = useState<string | null>(null)
+    const [batchError, setBatchError] = useState<string | null>(null)
+    const rosterRequest = useRef(0)
 
     const fetchStudents = useCallback(async (orderId: number) => {
+        const request = ++rosterRequest.current
         setLoadingStudents(true)
+        setLoadError(null)
         try {
-            const res = await api.get(`/orders/${orderId}/students/`)
-            const data: ProofStudent[] = res.data
+            const [subjects, layout] = await Promise.all([
+                api.get<(Omit<ProofStudent, 'name'> & { full_name: string; processed_photo_url?: string | null })[]>(`/orders/${orderId}/students/`),
+                api.get<{ BACK?: unknown }>(`/orders/${orderId}/layout/`).catch((error: unknown) => {
+                    if (isAxiosError(error) && error.response?.status === 404) return null
+                    throw error
+                }),
+            ])
+            if (request !== rosterRequest.current) return
+
+            const data = subjects.data.map((row) => ({
+                ...row,
+                name: row.full_name,
+                processed_photo: row.processed_photo_url ?? row.processed_photo,
+            }))
             setStudents(data)
-            // Seed statuses from existing backend state
-            const initialStatuses: Record<number, CardReviewStatus> = {}
-            data.forEach((s) => {
-                if (s.photo_status === 'PROCESSED') initialStatuses[s.id] = 'approved'
-                else if (s.photo_status === 'REVISION') initialStatuses[s.id] = 'revision'
-                else initialStatuses[s.id] = 'pending'
-            })
-            setCardStatuses(initialStatuses)
-        } catch (err) {
-            console.error('Failed to load students', err)
+            setRequiresBack(Boolean(layout?.data.BACK))
+            setCardStatuses(Object.fromEntries(data.map((student) => [
+                student.id,
+                student.photo_status === 'MANUAL_REVIEW' ? 'revision'
+                    : student.photo_status === 'PROCESSED' && student.is_approved ? 'approved'
+                        : 'pending',
+            ])))
+        } catch {
+            if (request === rosterRequest.current) setLoadError('Could not load cards and layout. Try refreshing.')
         } finally {
-            setLoadingStudents(false)
+            if (request === rosterRequest.current) setLoadingStudents(false)
         }
     }, [])
 
@@ -61,7 +81,10 @@ export default function InstitutionProofingPage() {
         setSelectedOrder(order)
         setStage('detail')
         setBatchApproved(false)
-        fetchStudents(order.id)
+        setBatchError(null)
+        setStudents([])
+        setCardStatuses({})
+        void fetchStudents(order.id)
     }
 
     const handleApprove = (studentId: number) => {
@@ -69,19 +92,44 @@ export default function InstitutionProofingPage() {
         setPreviewStudent(null)
     }
 
-    const handleRevise = (studentId: number, _reason: string, _note: string) => {
+    const handleRevise = (studentId: number) => {
         setCardStatuses((prev) => ({ ...prev, [studentId]: 'revision' }))
+        setStudents((prev) => prev.map((student) => student.id === studentId
+            ? { ...student, is_approved: false, photo_status: 'MANUAL_REVIEW' }
+            : student))
         setPreviewStudent(null)
     }
 
+    const hasRequiredRenders = (student: ProofStudent) =>
+        Boolean(student.processed_photo?.trim() &&
+            (!requiresBack || student.processed_photo_back?.trim()))
+
+    const blockedCount = students.filter((student) =>
+        student.photo_status !== 'PROCESSED' || !hasRequiredRenders(student)
+    ).length
+    const canApproveBatch = selectedOrder?.status === 'PROOFING' && students.length > 0 &&
+        blockedCount === 0 && !loadingStudents && !loadError && !batchApproved && !approvingBatch
+
     const handleApproveBatch = async () => {
-        if (!selectedOrder) return
+        if (!selectedOrder || !canApproveBatch) return
         setApprovingBatch(true)
+        setBatchError(null)
         try {
             await api.post(`/orders/${selectedOrder.id}/approve/`)
             setBatchApproved(true)
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Failed to approve batch.')
+            setSelectedOrder({ ...selectedOrder, status: 'APPROVED' })
+            setCardStatuses(Object.fromEntries(students.map((student) => [student.id, 'approved'])))
+            updateStatus(selectedOrder.id, 'APPROVED')
+        } catch (error) {
+            const data = isAxiosError(error) ? error.response?.data : undefined
+            if (data?.error === 'Batch is incomplete') {
+                setBatchError(data.total === 0
+                    ? 'The batch has no subjects to approve.'
+                    : `Batch is incomplete. Unresolved subjects: ${data.unresolved}. Missing required renders: ${data.missing_rendered_output}.`)
+                await fetchStudents(selectedOrder.id)
+            } else {
+                setBatchError(data?.error || 'Failed to approve batch.')
+            }
         } finally {
             setApprovingBatch(false)
         }
@@ -208,6 +256,8 @@ export default function InstitutionProofingPage() {
                         hue: getHue(previewStudent.id),
                     }}
                     reviewStatus={cardStatuses[previewStudent.id] ?? 'pending'}
+                    readOnly={order.status !== 'PROOFING'}
+                    canApprove={previewStudent.photo_status === 'PROCESSED' && hasRequiredRenders(previewStudent)}
                     onApprove={() => handleApprove(previewStudent.id)}
                     onRevise={handleRevise}
                     onClose={() => setPreviewStudent(null)}
@@ -219,7 +269,7 @@ export default function InstitutionProofingPage() {
                 <nav className="flex items-center gap-1.5 text-[12px] mb-3">
                     <span className="text-[#9ba3af]">Institution</span>
                     <ChevronRight size={11} className="text-[#c8cbd9]" />
-                    <button onClick={() => setStage('orders')} className="text-[#9ba3af] hover:text-[#004ac6] transition-colors">
+                    <button onClick={() => setStage('orders')} disabled={approvingBatch} className="text-[#9ba3af] hover:text-[#004ac6] transition-colors">
                         Proofing & Approvals
                     </button>
                     <ChevronRight size={11} className="text-[#c8cbd9]" />
@@ -227,7 +277,7 @@ export default function InstitutionProofingPage() {
                 </nav>
                 <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                        <button onClick={() => setStage('orders')}
+                        <button onClick={() => setStage('orders')} disabled={approvingBatch}
                             className="w-9 h-9 flex items-center justify-center rounded-lg border border-[#e2e8f0] hover:bg-[#f8fafc] transition-colors mt-0.5 shrink-0">
                             <ArrowLeft size={15} className="text-[#64748b]" />
                         </button>
@@ -259,26 +309,39 @@ export default function InstitutionProofingPage() {
                                 </div>
                             )}
                         </div>
+                        {order.status === 'PROOFING' && (
+                            <button type="button" disabled={loadingStudents || approvingBatch}
+                                onClick={() => { setBatchError(null); void fetchStudents(order.id) }}
+                                className="text-sm font-medium text-[#004ac6] disabled:opacity-50">
+                                Refresh cards
+                            </button>
+                        )}
                         <button
                             onClick={handleApproveBatch}
-                            disabled={pendingCount > 0 || batchApproved || approvingBatch || students.length === 0}
+                            disabled={!canApproveBatch}
                             className={cn(
                                 'flex items-center gap-2 text-[14px] font-medium px-4 py-2.5 rounded-lg transition-colors shadow-sm',
                                 batchApproved
                                     ? 'bg-[#dcfce7] text-[#166534] border border-[#bbf7d0]'
-                                    : pendingCount > 0 || students.length === 0
+                                    : !canApproveBatch
                                         ? 'bg-[#f1f5f9] text-[#9ba3af] cursor-not-allowed'
                                         : 'bg-[#004ac6] text-white hover:bg-[#003da6]'
                             )}>
                             <CheckCircle2 size={15} />
                             {batchApproved ? 'Batch Approved'
                                 : approvingBatch ? 'Approving…'
-                                    : pendingCount > 0 ? `${pendingCount} Pending Review`
+                                    : blockedCount > 0 ? `${blockedCount} cards need attention`
                                         : 'Approve Batch'}
                         </button>
                     </div>
                 </div>
             </div>
+
+            {(loadError || batchError) && (
+                <p role="alert" className="mx-8 mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                    {loadError || batchError}
+                </p>
+            )}
 
             {/* Stats strip */}
             <div className="px-8 py-3 bg-[#f8fafc] border-b border-[#f1f5f9] flex items-center gap-6">
@@ -316,7 +379,7 @@ export default function InstitutionProofingPage() {
                             return (
                                 <div
                                     key={student.id}
-                                    onClick={() => setPreviewStudent(student)}
+                                    onClick={() => { if (!approvingBatch) setPreviewStudent(student) }}
                                     className={cn(
                                         'bg-white rounded-xl overflow-hidden border transition-all hover:shadow-lg cursor-pointer',
                                         status === 'approved' ? 'border-[#bbf7d0] ring-1 ring-[rgba(34,197,94,0.2)]' :

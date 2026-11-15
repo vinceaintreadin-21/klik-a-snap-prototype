@@ -6,7 +6,7 @@ export default function InstitutionLayout({ children }: { children: ReactNode })
     return (
         <div className="flex min-h-screen bg-[#f7f8fa]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             <InstitutionSidebar />
-            <div style={{ marginLeft: 200, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ marginLeft: 200, minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <InstitutionTopbar />
                 <main style={{ marginTop: 56, flex: 1 }}>
                     {children}

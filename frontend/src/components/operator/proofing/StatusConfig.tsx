@@ -1,12 +1,12 @@
-import { FileCheck, Clock, Printer, CheckCircle2 } from "lucide-react";
+import { FileCheck, Printer, CheckCircle2 } from "lucide-react";
 import type { OperatorOrderStatus } from "./proofingTypes";
 
 export const STATUS_CONFIG: Record<
   OperatorOrderStatus,
   { label: string; color: string; bg: string; icon: React.ElementType }
 > = {
-  PROOFING: { label: "Reviewing", color: "text-blue-700", bg: "bg-blue-50 border-blue-200", icon: FileCheck },
-  APPROVED: { label: "Awaiting Approval", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: Clock },
+  PROOFING: { label: "Awaiting Approval", color: "text-blue-700", bg: "bg-blue-50 border-blue-200", icon: FileCheck },
+  APPROVED: { label: "Approved", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: CheckCircle2 },
   PRINTING: { label: "Printing", color: "text-purple-700", bg: "bg-purple-50 border-purple-200", icon: Printer },
   COMPLETED: { label: "Completed", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: CheckCircle2 },
 };

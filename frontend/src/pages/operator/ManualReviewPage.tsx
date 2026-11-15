@@ -1,7 +1,7 @@
 /**
  * ManualReviewPage — operator manual review workspace.
  * Visual design: QUEUEBITS_UI/ManualReviewView.tsx
- * Data: real API — useStudentsForOrder, useManualLinkPhoto, manual-crop, request-revision
+ * Data: real API — useStudentsForOrder, useManualLinkPhoto, manual-crop, reject-photo
  */
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
@@ -942,6 +942,8 @@ function ReviewInterface({
   const [currentIdx, setCurrentIdx] = useState(0)
   const [resolvedIds, setResolvedIds] = useState<Set<number>>(new Set())
   const [rejectedIds,  setRejectedIds]  = useState<Set<number>>(new Set())
+  const rejectInFlight = useRef(false)
+  const [rejectError, setRejectError] = useState<string | null>(null)
   const [crop, setCrop] = useState<CropBox>({ x: 20, y: 8, w: 60, h: 72 })
 
   const reviewStudents = useMemo(
@@ -977,13 +979,19 @@ function ReviewInterface({
   }
 
   const handleReject = async () => {
-    if (!current) return
+    if (!current || rejectInFlight.current) return
+    rejectInFlight.current = true
+    setRejectError(null)
     try {
-      await api.post(`/students/${current.id}/request-revision/`, { reason: 'rejected' })
-    } catch { /* non-fatal */ }
-    setRejectedIds(prev => new Set([...prev, current.id]))
-    setCrop({ x: 20, y: 8, w: 60, h: 72 })
-    if (currentIdx < filtered.length - 1) setCurrentIdx(i => i + 1)
+      await api.post(`/students/${current.id}/reject-photo/`)
+      setRejectedIds(prev => new Set([...prev, current.id]))
+      setCrop({ x: 20, y: 8, w: 60, h: 72 })
+      if (currentIdx < filtered.length - 1) setCurrentIdx(i => i + 1)
+    } catch (error: any) {
+      setRejectError(error.response?.data?.error || 'Failed to reject the photo.')
+    } finally {
+      rejectInFlight.current = false
+    }
   }
 
   const resolvedCount = resolvedIds.size + rejectedIds.size
@@ -1003,8 +1011,13 @@ function ReviewInterface({
           <Check size={28} className="text-emerald-400" />
         </div>
         <div className="text-lg font-semibold">
-          {filter === 'all' ? 'All items resolved' : `All ${ISSUE_LABELS[filter as IssueType]} items resolved`}
+          {rejectedIds.size > 0
+            ? 'Review queue checked'
+            : filter === 'all' ? 'All items resolved' : `All ${ISSUE_LABELS[filter as IssueType]} items resolved`}
         </div>
+        {rejectedIds.size > 0 && (
+          <p className="text-sm text-white/70">Rejected photos still need replacements before the batch can be approved.</p>
+        )}
         <div className="flex gap-2">
           {filter !== 'all' && (
             <button onClick={() => { setFilter('all'); setCurrentIdx(0) }}
@@ -1100,6 +1113,12 @@ function ReviewInterface({
             <ArrowRight size={12} />
           </button>
         </div>
+      )}
+
+      {rejectError && (
+        <p role="alert" className="mx-5 my-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {rejectError}
+        </p>
       )}
 
       {/* Main area */}
