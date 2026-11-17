@@ -9,7 +9,7 @@ export default function AdminTopbar() {
     : 'AD'
 
   return (
-    <header className="fixed top-0 left-[220px] right-0 z-9 h-[60px] bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-8">
+    <header className="fixed top-0 left-[var(--sidebar-width)] right-0 z-9 h-[60px] bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-8">
       {/* Left: page context */}
       <div className="flex items-center gap-4">
         <div>

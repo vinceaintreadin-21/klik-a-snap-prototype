@@ -1,3 +1,4 @@
+import LayoutLoading from '../../components/operator/LayoutLoading'
 import { useState, useRef, useCallback } from 'react'
 import {
   Users, Calendar, Clock, Search, ChevronRight,
@@ -8,7 +9,7 @@ import {
   LayoutTemplate, ArrowLeft, Plus, Trash2,
 } from 'lucide-react'
 import { useOrders } from '../../context/OrderContext'
-import { useLayoutConfig } from '../../hooks/useLayoutConfig'
+import { isLayoutTextField, useLayoutConfig } from '../../hooks/useLayoutConfig'
 import type { ElementKey, ElementProps } from '../../hooks/useLayoutConfig'
 import { cn } from '../../lib/utils'
 
@@ -92,22 +93,24 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
 
 // ── Element metadata ───────────────────────────────────────────────────────────
 
-const ELEMENT_LABELS: Record<ElementKey, string> = {
+const ELEMENT_LABELS: Partial<Record<ElementKey, string>> = {
   photo: 'Student Photo',
   name: 'Full Name',
   section: 'Grade / Section',
   qr: 'QR Code',
   barcode: 'Barcode',
-  student_id: 'Student ID',
+  student_id: 'Internal ID',
   school_name: 'School Name',
   batch_name: 'Batch Name',
   signature_line: 'Signature Line',
 }
 
+const fieldLabel = (key: ElementKey) => ELEMENT_LABELS[key] ?? key.slice('extra:'.length).replace(/_/g, ' ')
+
 const PALETTE: { key: ElementKey; icon: React.ElementType; label: string }[] = [
   { key: 'photo', icon: User, label: 'Student Photo' },
   { key: 'name', icon: Type, label: 'Full Name' },
-  { key: 'student_id', icon: CreditCard, label: 'Student ID' },
+  { key: 'student_id', icon: CreditCard, label: 'Internal ID' },
   { key: 'section', icon: Type, label: 'Grade/Section' },
   { key: 'school_name', icon: Type, label: 'School Name' },
   { key: 'batch_name', icon: Type, label: 'Batch Name' },
@@ -212,7 +215,7 @@ function ResizableElement({
     }
 
     // Text fields can be shorter than photos or codes.
-    const isText = !['photo', 'qr', 'barcode'].includes(elementKey)
+    const isText = isLayoutTextField(elementKey)
     const minWidth = Math.min(20, cardWidth)
     const minHeight = Math.min(isText ? 12 : 20, cardHeight)
 
@@ -367,10 +370,10 @@ function ResizableElement({
       }}
       className={cn(
         'absolute flex items-center justify-center',
-        'border border-dashed select-none outline-none',
+        'select-none outline-none ring-1 ring-inset',
         selected
-          ? 'border-blue-500 bg-blue-50/40 z-20'
-          : 'border-gray-300 hover:border-blue-400 z-10',
+          ? 'ring-blue-500 bg-blue-50/40 z-20'
+          : 'ring-gray-300 hover:ring-blue-400 z-10',
       )}
       style={{
         left: el.x,
@@ -386,7 +389,9 @@ function ResizableElement({
       }}
     >
       <span
-        className="pointer-events-none text-center px-1"
+        className={cn('pointer-events-none', isLayoutTextField(elementKey)
+          ? 'absolute left-0 top-0 whitespace-nowrap text-left'
+          : 'px-1 text-center')}
         style={{
           fontSize: 'inherit',
           color: 'inherit',
@@ -457,28 +462,40 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
   const [side, setSide] = useState<'FRONT' | 'BACK'>('FRONT')
 
   const {
-    bgImage, loading, saved,
+    bgImage, loading, loadingLayouts, layoutLoadError, saved,
     selectedElement, setSelectedElement,
     previewImage, setPreviewImage, previewing,
     cardWidth, setCardWidth,
     cardHeight, setCardHeight,
     zoom, setZoom,
     toggles, setToggles,
-    elements, presets,
+    elements, presets, importedFields, fieldLoadError,
     activeFields,
     addField, removeField,
     updateProp, handleElementDrag, handleFileChange,
     patchElement,
-    saveLayout, handlePreview,
+    publishLayouts, handlePreview,
   } = useLayoutConfig({ orderId: order.id, side, onClose: onBack })
 
-  const textFields: ElementKey[] = ['name', 'section', 'student_id', 'school_name', 'batch_name', 'signature_line']
+  const palette = [...PALETTE, ...importedFields.map(key => ({ key, icon: Type, label: fieldLabel(key) }))]
   const sel = selectedElement ? elements[selectedElement] : null
 
   const handleResize = useCallback((key: ElementKey, patch: Partial<ElementProps>) => {
     if (selectedElement !== key) setSelectedElement(key)
     patchElement(key, patch)
   }, [selectedElement, setSelectedElement, patchElement])
+
+  if (loadingLayouts || layoutLoadError) {
+    return (
+      <div className="relative grid h-[calc(100dvh-60px)] place-items-center">
+        {layoutLoadError ? (
+          <p role="alert" className="px-6 text-center text-sm text-slate-600">
+            Could not load the layouts. Reopen the order to retry.
+          </p>
+        ) : <LayoutLoading />}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-60px)] bg-white overflow-hidden">
@@ -545,9 +562,9 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
           <Eye size={14} />
           {previewing ? 'Rendering…' : 'Preview'}
         </button>
-        <button onClick={saveLayout} disabled={loading} className="flex items-center gap-1.5 text-[13px] font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg transition-all shadow-sm shadow-blue-200 disabled:opacity-60 ml-1">
+        <button onClick={publishLayouts} disabled={loading} className="flex items-center gap-1.5 text-[13px] font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg transition-all shadow-sm shadow-blue-200 disabled:opacity-60 ml-1">
           <Save size={14} />
-          {loading ? 'Saving…' : 'Publish Template'}
+          {loading ? 'Publishing…' : 'Publish Layouts'}
         </button>
       </div>
 
@@ -562,7 +579,8 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
           </div>
 
           <div className="px-3 py-3 flex flex-col gap-1 flex-1">
-            {PALETTE.map(({ key, icon: Icon, label }) => {
+            {fieldLoadError && <p role="alert" className="px-3 text-xs text-red-700">Could not load imported fields.</p>}
+            {palette.map(({ key, icon: Icon, label }) => {
               const onCanvas = activeFields.includes(key)
               return (
                 <div key={key} className={cn(
@@ -690,7 +708,7 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
                       el={el}
                       selected={selectedElement === key}
                       zoom={zoom}
-                      label={ELEMENT_LABELS[key]}
+                      label={fieldLabel(key)}
                       cardWidth={cardWidth}
                       cardHeight={cardHeight}
                       onSelect={() => setSelectedElement(key)}
@@ -712,7 +730,7 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
             {sel && selectedElement ? (
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[12px] font-semibold text-gray-700 truncate">{ELEMENT_LABELS[selectedElement]}</span>
+                  <span className="text-[12px] font-semibold text-gray-700 truncate">{fieldLabel(selectedElement)}</span>
                   <button onClick={() => removeField(selectedElement)} title="Remove" className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors shrink-0">
                     <Trash2 size={12} />
                   </button>
@@ -760,7 +778,7 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
                   ))}
                 </div>
 
-                {textFields.includes(selectedElement) && (
+                {isLayoutTextField(selectedElement) && (
                   <div className="mt-3 space-y-2">
                     <div>
                       <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Font Size ({(sel as any).fontSize ?? 16}px)</div>
@@ -835,7 +853,7 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
                       selectedElement === key ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent',
                     )}>
                     <span className={cn('text-[12px] flex-1 truncate', selectedElement === key ? 'text-blue-700 font-medium' : 'text-gray-600')}>
-                      {ELEMENT_LABELS[key]}
+                      {fieldLabel(key)}
                     </span>
                     <div className="flex items-center gap-0.5 shrink-0">
                       <button className="w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200 text-gray-300 transition-colors"><ChevronUp size={10} /></button>

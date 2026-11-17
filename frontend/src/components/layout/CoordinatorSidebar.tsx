@@ -1,12 +1,11 @@
+import CollapsibleSidebar, { type SidebarToggleProps } from './CollapsibleSidebar'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
 import { useOrders } from '../../context/OrderContext'
 import {
     LayoutDashboard, Search, Users, UserPlus, CheckSquare,
-    LogOut, Camera,
 } from 'lucide-react'
+import SidebarNavButton from './SidebarNavButton'
 import { cn } from '../../lib/utils'
-import { getInitials } from '../coordinator/coordinatorTypes'
 import type { ActiveBatch } from './CoordinatorLayout'
 
 interface NavItem {
@@ -24,38 +23,30 @@ const NAV_ITEMS: NavItem[] = [
     { key: 'proofing', icon: CheckSquare, label: 'Proofing', path: '/coordinator/proofing' },
 ]
 
-interface CoordinatorSidebarProps {
+interface CoordinatorSidebarProps extends SidebarToggleProps {
     activeBatch?: ActiveBatch | null
 }
 
-export default function CoordinatorSidebar({ activeBatch }: CoordinatorSidebarProps) {
+export default function CoordinatorSidebar({ activeBatch, ...toggleProps }: CoordinatorSidebarProps) {
     const navigate = useNavigate()
     const location = useLocation()
-    const { user, logout } = useAuth()
     const { clearOrders } = useOrders()
 
     const isActive = (path: string) =>
         location.pathname === path ||
         (path !== '/coordinator/dashboard' && location.pathname.startsWith(path))
 
-    const initials = user?.username ? getInitials(user.username) : 'CO'
-
     return (
-        <aside className="hidden md:flex fixed left-0 top-0 h-full w-[200px] bg-white border-r border-[#e2e8f0] flex-col z-20 shadow-sm">
-
-            {/* Logo */}
-            <div className="flex items-center gap-2.5 px-4 py-5 border-b border-[#e8eaed]">
-                <div className="w-8 h-8 rounded-lg bg-[#004ac6] flex items-center justify-center shrink-0">
-                    <Camera size={14} className="text-white" />
-                </div>
-                <div>
-                    <div className="text-[13px] font-bold text-[#0b1c30] tracking-tight leading-none">Photo Day</div>
-                    <div className="text-[9px] font-semibold text-[#004ac6] tracking-[0.08em] uppercase leading-none mt-0.5">Coordinator</div>
-                </div>
-            </div>
-
+        <CollapsibleSidebar
+            {...toggleProps}
+            brand="Photo Day"
+            role="Coordinator"
+            avatarClassName="bg-[#004ac6]"
+            onLogout={clearOrders}
+            desktopOnly
+        >
             {/* Active batch badge */}
-            <div className="mx-3 mt-3 mb-1 bg-[#e8eeff] rounded-xl px-3 py-2.5">
+            <div className={cn('mx-3 mt-3 mb-1 bg-[#e8eeff] rounded-xl px-3 py-2.5', toggleProps.collapsed && 'md:hidden')}>
                 <div className="text-[10px] font-bold text-[#004ac6] uppercase tracking-[0.4px] mb-0.5">Active Batch</div>
                 <div className="text-[12px] font-semibold text-[#0b1c30] leading-tight truncate">
                     {activeBatch?.school_name ?? '—'}
@@ -70,11 +61,14 @@ export default function CoordinatorSidebar({ activeBatch }: CoordinatorSidebarPr
                 {NAV_ITEMS.map((item) => {
                     const active = isActive(item.path)
                     return (
-                        <button
+                        <SidebarNavButton
                             key={item.key}
+                            collapsed={toggleProps.collapsed}
+                            label={item.label}
+                            aria-current={active ? 'page' : undefined}
                             onClick={() => navigate(item.path)}
                             className={cn(
-                                'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-all duration-150 relative',
+                                'gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-all duration-150',
                                 active
                                     ? 'bg-[#e8eeff] text-[#004ac6] font-semibold'
                                     : 'text-[#64748b] hover:bg-[#f8fafc] font-normal'
@@ -86,32 +80,10 @@ export default function CoordinatorSidebar({ activeBatch }: CoordinatorSidebarPr
                                 size={15}
                                 className={cn('shrink-0', active ? 'text-[#004ac6]' : 'text-[#9ba3af]')}
                             />
-                            <span className="text-left leading-tight">{item.label}</span>
-                        </button>
+                        </SidebarNavButton>
                     )
                 })}
             </nav>
-
-            {/* User profile */}
-            <div className="px-4 py-4 border-t border-[#e8eaed]">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#004ac6] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-                        {initials}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="text-[12px] font-semibold text-[#0b1c30] truncate">
-                            {user?.username ?? 'Coordinator'}
-                        </div>
-                        <div className="text-[10px] text-[#9ba3af]">Coordinator</div>
-                    </div>
-                    <button
-                        onClick={() => logout(clearOrders)}
-                        className="text-[#9ba3af] hover:text-red-500 transition-colors shrink-0"
-                        title="Sign out">
-                        <LogOut size={13} />
-                    </button>
-                </div>
-            </div>
-        </aside>
+        </CollapsibleSidebar>
     )
 }

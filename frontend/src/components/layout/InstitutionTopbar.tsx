@@ -8,8 +8,7 @@ export default function InstitutionTopbar() {
 
     return (
         <header
-            className="fixed top-0 right-0 z-10 h-[56px] bg-white border-b border-[#e8eaed] flex items-center justify-between px-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-            style={{ left: 200 }}>
+            className="fixed top-0 left-[var(--sidebar-width)] right-0 z-10 h-[56px] bg-white border-b border-[#e8eaed] flex items-center justify-between px-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
 
             {/* Search */}
             <div className="relative w-[280px]">

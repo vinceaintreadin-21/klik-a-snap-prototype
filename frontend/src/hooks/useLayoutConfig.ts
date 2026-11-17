@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, createRef } from 'react'
 import api from '../utils/api'
 
-export type ElementKey =
+type BuiltInElementKey =
   | 'photo' | 'name' | 'section' | 'qr' | 'barcode'
   | 'student_id' | 'school_name' | 'batch_name' | 'signature_line'
+
+export type ElementKey = BuiltInElementKey | `extra:${string}`
 
 export type LayoutSide = 'FRONT' | 'BACK'
 
@@ -17,7 +19,7 @@ export interface ElementProps {
 }
 
 // Sensible defaults when a field is first dropped onto the canvas
-const FIELD_DROP_DEFAULTS: Record<ElementKey, ElementProps> = {
+const FIELD_DROP_DEFAULTS: Record<string, ElementProps> = {
   photo: { x: 50, y: 50, w: 150, h: 200 },
   name: { x: 50, y: 270, w: 220, h: 30, fontSize: 22, color: '#000000' },
   section: { x: 50, y: 310, w: 160, h: 25, fontSize: 16, color: '#333333' },
@@ -28,6 +30,17 @@ const FIELD_DROP_DEFAULTS: Record<ElementKey, ElementProps> = {
   batch_name: { x: 50, y: 415, w: 200, h: 25, fontSize: 14, color: '#555555' },
   signature_line: { x: 50, y: 600, w: 200, h: 20, fontSize: 13, color: '#000000' },
 }
+
+const FIELD_KEYS: Partial<Record<ElementKey, string>> = {
+  name: 'full_name', section: 'grade_level', qr: 'qr_code', barcode: 'barcode',
+  student_id: 'student_id', school_name: 'school_name', batch_name: 'batch_name',
+  signature_line: 'signature_line',
+}
+
+const fieldDefaults = (key: ElementKey) => FIELD_DROP_DEFAULTS[key] ?? FIELD_DROP_DEFAULTS.name
+
+export const isLayoutTextField = (key: ElementKey) =>
+  !['photo', 'qr', 'barcode', 'signature_line'].includes(key)
 
 const defaultToggles = (side: LayoutSide) =>
   side === 'FRONT'
@@ -77,6 +90,47 @@ const initSideState = (side: LayoutSide): SideState => ({
   saved: false,
 })
 
+function layoutForm(side: LayoutSide, { bgFile, cardWidth, cardHeight, toggles, elements, activeFields }: SideState) {
+  const form = new FormData()
+  if (bgFile) form.append('background_image', bgFile)
+  form.append('side', side)
+  form.append('card_width', String(Math.round(cardWidth)))
+  form.append('card_height', String(Math.round(cardHeight)))
+  for (const [key, value] of Object.entries(toggles)) form.append(key, String(value))
+
+  const photo = elements.photo ?? fieldDefaults('photo')
+  form.append('show_photo', String(activeFields.includes('photo')))
+  form.append('photo_x', String(Math.round(photo.x)))
+  form.append('photo_y', String(Math.round(photo.y)))
+  form.append('photo_width', String(Math.round(photo.w)))
+  form.append('photo_height', String(Math.round(photo.h)))
+
+  const config: Record<string, Record<string, string | number>> = {}
+  for (const key of activeFields) {
+    const element = elements[key]
+    if (key === 'photo' || !element) continue
+    const position = {
+      x: Math.round(element.x), y: Math.round(element.y),
+      width: Math.round(element.w), height: Math.round(element.h),
+    }
+    const fieldKey = FIELD_KEYS[key] ?? key
+    if (key === 'qr') {
+      config[fieldKey] = { ...position, size: position.width }
+    } else if (isLayoutTextField(key)) {
+      config[fieldKey] = {
+        ...position,
+        font_size: Math.round(element.fontSize ?? 16),
+        color: element.color ?? '#000000',
+        text_anchor: 'top_left',
+      }
+    } else {
+      config[fieldKey] = position
+    }
+  }
+  form.append('fields_config', JSON.stringify(config))
+  return form
+}
+
 interface UseLayoutConfigProps {
   orderId: number
   side?: LayoutSide
@@ -92,15 +146,17 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
   const current = side === 'FRONT' ? frontState : backState
   const setCurrent = useCallback(
     (updater: SideState | ((prev: SideState) => SideState)) => {
-      if (side === 'FRONT') setFrontState(updater as any)
-      else setBackState(updater as any)
+      const setSideState = side === 'FRONT' ? setFrontState : setBackState
+      setSideState(previous => ({
+        ...(typeof updater === 'function' ? updater(previous) : updater),
+        saved: false,
+      }))
     },
     [side],
   )
 
   // Convenience accessors
   const bgImage = current.bgImage
-  const bgFile = current.bgFile
   const activeFields = current.activeFields
   const elements = current.elements
   const toggles = current.toggles
@@ -121,11 +177,12 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
 
   const setBgImage = (v: string | null) => setCurrent((p) => ({ ...p, bgImage: v }))
   const setBgFile = (v: File | null) => setCurrent((p) => ({ ...p, bgFile: v }))
-  const setSaved = (v: boolean) => setCurrent((p) => ({ ...p, saved: v }))
   const setCardWidth = (v: number) => setCurrent((p) => ({ ...p, cardWidth: v }))
   const setCardHeight = (v: number) => setCurrent((p) => ({ ...p, cardHeight: v }))
 
   const [loading, setLoading] = useState(false)
+  const [loadingLayouts, setLoadingLayouts] = useState(true)
+  const [layoutLoadError, setLayoutLoadError] = useState(false)
   const [selectedElement, setSelectedElement] = useState<ElementKey | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState(false)
@@ -139,6 +196,7 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
   useEffect(() => {
     setPreviewImage(null)
     setPreviewing(false)
+    setSelectedElement(null)
     return () => {
       // Ignore responses from a previous side/order or an unmounted editor.
       previewRequestId.current += 1
@@ -146,18 +204,30 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
   }, [orderId, side])
   const [zoom, setZoom] = useState(1)
 
-  // Stable refs — keyed by element key
-  const refs: Record<ElementKey, React.RefObject<any>> = {
-    photo: useRef(null),
-    name: useRef(null),
-    section: useRef(null),
-    qr: useRef(null),
-    barcode: useRef(null),
-    student_id: useRef(null),
-    school_name: useRef(null),
-    batch_name: useRef(null),
-    signature_line: useRef(null),
+  const refs = useRef(new Map<ElementKey, React.RefObject<HTMLDivElement | null>>())
+  const getElementRef = (key: ElementKey) => {
+    const existing = refs.current.get(key)
+    if (existing) return existing
+    const ref = createRef<HTMLDivElement>()
+    refs.current.set(key, ref)
+    return ref
   }
+
+  const [importedFields, setImportedFields] = useState<ElementKey[]>([])
+  const [fieldLoadError, setFieldLoadError] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    setImportedFields([])
+    setFieldLoadError(false)
+    api.get<{ extra_data?: Record<string, unknown> }[]>(`/orders/${orderId}/students/`)
+      .then(({ data }) => {
+        if (cancelled) return
+        const keys = new Set(data.flatMap(subject => Object.keys(subject.extra_data ?? {})))
+        setImportedFields(Array.from(keys, key => `extra:${key}` as const))
+      })
+      .catch(() => { if (!cancelled) setFieldLoadError(true) })
+    return () => { cancelled = true }
+  }, [orderId])
 
   const presets = [
     { label: 'Standard (638×1012)', width: 638, height: 1012 },
@@ -165,80 +235,58 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
     { label: 'Wide (800×1000)', width: 800, height: 1000 },
   ]
 
-  // ── Load existing layout from API ──────────────────────────────────────────
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get(`/orders/${orderId}/layout/`)
-        const layout = res.data[side]
-        if (!layout) return   // no saved layout for this side — keep empty canvas
+    let cancelled = false
+    setLoadingLayouts(true)
+    setLayoutLoadError(false)
+    setFrontState(initSideState('FRONT'))
+    setBackState(initSideState('BACK'))
 
-        const cfg: Record<string, any> = layout.fields_config ?? {}
-
-        // Reconstruct which fields were placed from fields_config + photo
-        const loadedFields: ElementKey[] = []
-        const loadedElements: Partial<Record<ElementKey, ElementProps>> = {}
-
-        // Photo is separate from fields_config
-        if (layout.photo_width > 0 || layout.photo_height > 0) {
-          loadedFields.push('photo')
-          loadedElements.photo = {
-            x: layout.photo_x ?? 50,
-            y: layout.photo_y ?? 50,
-            w: layout.photo_width ?? 150,
-            h: layout.photo_height ?? 200,
-          }
-        }
-
-        const cfgKeyMap: Partial<Record<string, ElementKey>> = {
-          full_name: 'name',
-          grade_level: 'section',
-          qr_code: 'qr',
-          barcode: 'barcode',
-          student_id: 'student_id',
-          school_name: 'school_name',
-          batch_name: 'batch_name',
-          signature_line: 'signature_line',
-        }
-
-        for (const [cfgKey, elementKey] of Object.entries(cfgKeyMap)) {
-          if (cfg[cfgKey]) {
-            const f = cfg[cfgKey]
-            loadedFields.push(elementKey!)
-            loadedElements[elementKey!] = {
-              x: f.x ?? FIELD_DROP_DEFAULTS[elementKey!].x,
-              y: f.y ?? FIELD_DROP_DEFAULTS[elementKey!].y,
-              w: f.width ?? f.size ?? FIELD_DROP_DEFAULTS[elementKey!].w,
-              h: f.height ?? f.size ?? FIELD_DROP_DEFAULTS[elementKey!].h,
-              fontSize: f.font_size ?? (FIELD_DROP_DEFAULTS[elementKey!] as any).fontSize,
-              color: f.color ?? (FIELD_DROP_DEFAULTS[elementKey!] as any).color,
+    api.get(`/orders/${orderId}/layout/`)
+      .then(({ data }) => {
+        if (cancelled) return
+        for (const layoutSide of ['FRONT', 'BACK'] as const) {
+          const layout = data[layoutSide]
+          if (!layout) continue
+          const draft = initSideState(layoutSide)
+          draft.saved = true
+          draft.cardWidth = layout.card_width
+          draft.cardHeight = layout.card_height
+          draft.bgImage = layout.background_image_url
+          if (layout.show_photo ?? (layout.photo_width > 0 && layout.photo_height > 0)) {
+            draft.activeFields.push('photo')
+            draft.elements.photo = {
+              x: layout.photo_x, y: layout.photo_y, w: layout.photo_width, h: layout.photo_height,
             }
           }
+          const config = layout.fields_config as Record<string, Record<string, number | string>> | undefined
+          for (const [fieldKey, field] of Object.entries(config ?? {})) {
+            const builtIn = Object.entries(FIELD_KEYS).find(([, value]) => value === fieldKey)?.[0]
+            const key = (builtIn ?? (fieldKey.startsWith('extra:') ? fieldKey : `extra:${fieldKey}`)) as ElementKey
+            const defaults = fieldDefaults(key)
+            draft.activeFields.push(key)
+            draft.elements[key] = {
+              x: Number(field.x ?? defaults.x), y: Number(field.y ?? defaults.y),
+              w: Number(field.width ?? field.size ?? defaults.w),
+              h: Number(field.height ?? field.size ?? defaults.h),
+              fontSize: Number(field.font_size ?? defaults.fontSize ?? 16),
+              color: String(field.color ?? defaults.color ?? '#000000'),
+            }
+          }
+          for (const key of Object.keys(draft.toggles) as (keyof SideState['toggles'])[]) {
+            draft.toggles[key] = layout[key] ?? draft.toggles[key]
+          }
+          if (layoutSide === 'FRONT') setFrontState(draft)
+          else setBackState(draft)
         }
+      })
+      .catch(error => {
+        if (!cancelled && error.response?.status !== 404) setLayoutLoadError(true)
+      })
+      .finally(() => { if (!cancelled) setLoadingLayouts(false) })
 
-        setCurrent((prev) => ({
-          ...prev,
-          saved: true,
-          cardWidth: layout.card_width ?? 638,
-          cardHeight: layout.card_height ?? 1012,
-          bgImage: layout.background_image_url ?? prev.bgImage,
-          activeFields: loadedFields,
-          elements: loadedElements,
-          toggles: {
-            show_full_name: layout.show_full_name ?? defaultToggles(side).show_full_name,
-            show_student_id: layout.show_student_id ?? defaultToggles(side).show_student_id,
-            show_grade_level: layout.show_grade_level ?? defaultToggles(side).show_grade_level,
-            show_school_name: layout.show_school_name ?? defaultToggles(side).show_school_name,
-            show_school_year: layout.show_school_year ?? defaultToggles(side).show_school_year,
-            show_signature_line: layout.show_signature_line ?? defaultToggles(side).show_signature_line,
-            show_qr_code: layout.show_qr_code ?? defaultToggles(side).show_qr_code,
-            show_barcode: layout.show_barcode ?? defaultToggles(side).show_barcode,
-          },
-        }))
-      } catch { /* 404 = no layout yet, keep empty canvas — that's expected */ }
-    }
-    load()
-  }, [orderId, side]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { cancelled = true }
+  }, [orderId])
 
   // ── Add a field to the canvas ──────────────────────────────────────────────
   const addField = useCallback((key: ElementKey) => {
@@ -252,7 +300,7 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
       activeFields: [...prev.activeFields, key],
       elements: {
         ...prev.elements,
-        [key]: FIELD_DROP_DEFAULTS[key],
+        [key]: fieldDefaults(key),
       },
     }))
     setSelectedElement(key)
@@ -276,7 +324,7 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
     if (!selectedElement) return
     setElements((prev) => ({
       ...prev,
-      [selectedElement]: { ...(prev[selectedElement] ?? FIELD_DROP_DEFAULTS[selectedElement]), [prop]: value },
+      [selectedElement]: { ...(prev[selectedElement] ?? fieldDefaults(selectedElement)), [prop]: value },
     }))
   }, [selectedElement, setElements])
 
@@ -284,14 +332,14 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
   const patchElement = useCallback((key: ElementKey, patch: Partial<ElementProps>) => {
     setElements((prev) => ({
       ...prev,
-      [key]: { ...(prev[key] ?? FIELD_DROP_DEFAULTS[key]), ...patch },
+      [key]: { ...(prev[key] ?? fieldDefaults(key)), ...patch },
     }))
   }, [setElements])
 
   const handleElementDrag = useCallback((key: ElementKey, x: number, y: number) => {
     setElements((prev) => ({
       ...prev,
-      [key]: { ...(prev[key] ?? FIELD_DROP_DEFAULTS[key]), x, y },
+      [key]: { ...(prev[key] ?? fieldDefaults(key)), x, y },
     }))
   }, [setElements])
 
@@ -300,66 +348,53 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
     if (file) { setBgFile(file); setBgImage(URL.createObjectURL(file)) }
   }
 
-  // ── Save to backend ───────────────────────────────────────────────────────
-  const saveLayout = async () => {
-    if (!bgFile && !bgImage) return alert('Upload a background image first.')
-    setLoading(true)
-
-    const formData = new FormData()
-    if (bgFile) formData.append('background_image', bgFile)
-    formData.append('side', side)
-    formData.append('card_width', cardWidth.toString())
-    formData.append('card_height', cardHeight.toString())
-
-    Object.entries(toggles).forEach(([k, v]) => formData.append(k, v.toString()))
-
-    // Photo placement
-    const photo = elements.photo ?? FIELD_DROP_DEFAULTS.photo
-    formData.append('photo_x', Math.round(photo.x).toString())
-    formData.append('photo_y', Math.round(photo.y).toString())
-    formData.append('photo_width', Math.round(photo.w).toString())
-    formData.append('photo_height', Math.round(photo.h).toString())
-
-    // Only include fields that are actually on the canvas in fields_config
-    const cfg: Record<string, any> = {}
-    for (const key of activeFields) {
-      if (key === 'photo') continue  // photo is sent separately above
-      const el = elements[key]
-      if (!el) continue
-      const cfgKeyMap: Partial<Record<ElementKey, string>> = {
-        name: 'full_name',
-        section: 'grade_level',
-        qr: 'qr_code',
-        barcode: 'barcode',
-        student_id: 'student_id',
-        school_name: 'school_name',
-        batch_name: 'batch_name',
-        signature_line: 'signature_line',
+  const saveSide = async (layoutSide: LayoutSide, draft: SideState) => {
+    const { data } = await api.post(`/orders/${orderId}/layout/create/`, layoutForm(layoutSide, draft))
+    const setSideState = layoutSide === 'FRONT' ? setFrontState : setBackState
+    setSideState(previous => {
+      if (previous !== draft) return previous
+      return {
+        ...previous,
+        saved: true,
+        bgImage: data.background_image_url ?? previous.bgImage,
+        bgFile: data.background_image_url ? null : previous.bgFile,
       }
-      const cfgKey = cfgKeyMap[key]
-      if (!cfgKey) continue
-      if (key === 'qr') {
-        cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), size: Math.round(el.w) }
-      } else if (key === 'barcode') {
-        cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), width: Math.round(el.w), height: Math.round(el.h) }
-      } else if (key === 'signature_line') {
-        cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), width: Math.round(el.w) }
-      } else {
-        cfg[cfgKey] = { x: Math.round(el.x), y: Math.round(el.y), font_size: el.fontSize ?? 16, color: el.color ?? '#000000' }
-      }
+    })
+  }
+
+  const publish = async (drafts: [LayoutSide, SideState][]) => {
+    if (loading || loadingLayouts || layoutLoadError) return
+    const configured = drafts.filter(([, draft]) => draft.bgImage || draft.bgFile)
+    if (!configured.length) {
+      alert('Upload a background image first.')
+      return
     }
-    formData.append('fields_config', JSON.stringify(cfg))
 
+    setLoading(true)
+    const published: string[] = []
+    const failures: string[] = []
     try {
-      await api.post(`/orders/${orderId}/layout/create/`, formData)
-      setSaved(true)
-      alert(`${side === 'FRONT' ? 'Front' : 'Back'} template published`)
-    } catch {
-      alert('Save failed')
+      for (const [layoutSide, draft] of configured) {
+        const label = layoutSide === 'FRONT' ? 'Front' : 'Back'
+        try {
+          await saveSide(layoutSide, draft)
+          published.push(label)
+        } catch (error) {
+          const message = (error as { response?: { data?: { error?: string } } }).response?.data?.error
+          failures.push(`${label}: ${message ?? 'Save failed'}`)
+        }
+      }
+      alert([
+        published.length && `Published: ${published.join(', ')}.`,
+        failures.length && failures.join('\n'),
+      ].filter(Boolean).join('\n'))
     } finally {
       setLoading(false)
     }
   }
+
+  const saveLayout = () => publish([[side, current]])
+  const publishLayouts = () => publish([['FRONT', frontState], ['BACK', backState]])
 
   // ── Preview ───────────────────────────────────────────────────────────────
   const handlePreview = async () => {
@@ -372,72 +407,9 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
     setPreviewing(true)
 
     try {
-      const photo = elements.photo ?? FIELD_DROP_DEFAULTS.photo
-      const cfg: Record<string, Record<string, string | number>> = {}
-
-      const fieldKeys: Partial<Record<ElementKey, string>> = {
-        name: 'full_name',
-        section: 'grade_level',
-        qr: 'qr_code',
-        barcode: 'barcode',
-        student_id: 'student_id',
-        school_name: 'school_name',
-        batch_name: 'batch_name',
-        signature_line: 'signature_line',
-      }
-
-      for (const key of activeFields) {
-        if (key === 'photo') continue
-
-        const element = elements[key]
-        const fieldKey = fieldKeys[key]
-        if (!element || !fieldKey) continue
-
-        const field: Record<string, string | number> = {
-          x: Math.round(element.x),
-          y: Math.round(element.y),
-        }
-
-        if (key === 'qr') {
-          field.size = Math.round(element.w)
-        } else if (key === 'barcode') {
-          field.width = Math.round(element.w)
-          field.height = Math.round(element.h)
-        } else if (key === 'signature_line') {
-          field.width = Math.round(element.w)
-        } else {
-          field.font_size = Math.round(element.fontSize ?? 16)
-          field.color = element.color ?? '#000000'
-        }
-
-        cfg[fieldKey] = field
-      }
-
-      const formData = new FormData()
-
-      formData.append('side', side)
-      formData.append('card_width', String(Math.round(cardWidth)))
-      formData.append('card_height', String(Math.round(cardHeight)))
-      formData.append('photo_x', String(Math.round(photo.x)))
-      formData.append('photo_y', String(Math.round(photo.y)))
-      formData.append('photo_width', String(Math.round(photo.w)))
-      formData.append('photo_height', String(Math.round(photo.h)))
-      formData.append('fields_config', JSON.stringify(cfg))
-      formData.append('show_photo', String(activeFields.includes('photo')))
-
-      Object.entries(toggles).forEach(([key, value]) => {
-        formData.append(key, String(value))
-      })
-
-      // A newly selected background is previewed without saving/uploading it
-      // to permanent storage first.
-      if (bgFile) {
-        formData.append('background_image', bgFile)
-      }
-
       const response = await api.post(
         `/orders/${orderId}/layout/preview/`,
-        formData,
+        layoutForm(side, current),
         { responseType: 'blob' },
       )
 
@@ -483,18 +455,18 @@ export const useLayoutConfig = ({ orderId, side: sideProp, onClose: _onClose }: 
   }
 
   return {
-    bgImage, loading, saved,
+    bgImage, loading, loadingLayouts, layoutLoadError, saved,
     selectedElement, setSelectedElement,
     previewImage, setPreviewImage, previewing,
     cardWidth, setCardWidth,
     cardHeight, setCardHeight,
     zoom, setZoom,
     toggles, setToggles,
-    elements, refs, presets,
+    elements, getElementRef, presets, importedFields, fieldLoadError,
     activeFields,
     addField, removeField,
     updateProp, handleElementDrag, handleFileChange,
     patchElement,
-    saveLayout, handlePreview,
+    saveLayout, publishLayouts, handlePreview,
   }
 }

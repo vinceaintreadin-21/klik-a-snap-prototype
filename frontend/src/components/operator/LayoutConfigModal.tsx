@@ -1,11 +1,12 @@
+import LayoutLoading from './LayoutLoading';
 import Draggable from 'react-draggable';
-import { useLayoutConfig } from '../../hooks/useLayoutConfig';
+import { isLayoutTextField, useLayoutConfig } from '../../hooks/useLayoutConfig';
 import type { ElementKey } from '../../hooks/useLayoutConfig';
 
 const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () => void }) => {
   const {
     bgImage,
-    loading,
+    loading, loadingLayouts, layoutLoadError,
     selectedElement,
     setSelectedElement,
     previewImage,
@@ -21,7 +22,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
     setToggles,
     elements,
     activeFields,
-    refs,
+    getElementRef, importedFields,
     presets,
     addField,
     updateProp,
@@ -31,10 +32,25 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
     handlePreview,
   } = useLayoutConfig({ orderId, onClose });
 
-  const textFields: ElementKey[] = ['name', 'section', 'student_id', 'school_name', 'batch_name', 'signature_line'];
+  const fieldLabel = (key: ElementKey) => key.replace(/^extra:/, '').replace(/_/g, ' ');
 
   // Safe access: only read element data when something is selected AND present
   const sel = selectedElement ? elements[selectedElement] : null;
+
+  if (loadingLayouts || layoutLoadError) {
+    return (
+      <div className="fixed inset-0 z-[9999] grid place-items-center bg-white">
+        <button type="button" onClick={onClose} className="absolute top-6 left-6 text-sm text-blue-700 hover:underline">
+          Close
+        </button>
+        {layoutLoadError ? (
+          <p role="alert" className="px-6 text-center text-sm text-slate-600">
+            Could not load the layouts. Reopen the order to retry.
+          </p>
+        ) : <LayoutLoading />}
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-white z-[9999] flex flex-col overflow-hidden font-sans text-gray-900">
@@ -94,7 +110,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
                   </>
                 )}
 
-                {textFields.includes(selectedElement) && (
+                {isLayoutTextField(selectedElement) && (
                   <>
                     <label className="text-xs font-bold block border-t pt-4">Font Size</label>
                     <input
@@ -126,7 +142,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
           <div>
             <h3 className="text-[10px] font-black text-gray-400 uppercase mb-2">Elements</h3>
             <div className="grid grid-cols-2 gap-1.5">
-              {(['photo', 'name', 'section', 'student_id', 'school_name', 'batch_name', 'qr', 'barcode', 'signature_line'] as ElementKey[]).map((key) => {
+              {(['photo', 'name', 'section', 'student_id', 'school_name', 'batch_name', 'qr', 'barcode', 'signature_line', ...importedFields] as ElementKey[]).map((key) => {
                 const onCanvas = activeFields.includes(key)
                 return (
                   <button
@@ -137,7 +153,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
                         : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:bg-indigo-50'
                       }`}
                   >
-                    {onCanvas ? '✓ ' : '+ '}{key.replace(/_/g, ' ')}
+                    {onCanvas ? '✓ ' : '+ '}{fieldLabel(key)}
                   </button>
                 )
               })}
@@ -235,7 +251,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
                 return (
                   <Draggable
                     key={key}
-                    nodeRef={refs[key]}
+                    nodeRef={getElementRef(key)}
                     bounds="parent"
                     scale={zoom}
                     position={{ x: el.x, y: el.y }}
@@ -243,8 +259,8 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
                     onStop={(_, d) => handleElementDrag(key, d.x, d.y)}
                   >
                     <div
-                      ref={refs[key]}
-                      className={`absolute cursor-move flex items-center justify-center border-2 border-dashed ${selectedElement === key ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-400'
+                      ref={getElementRef(key)}
+                      className={`absolute left-0 top-0 cursor-move flex ring-1 ring-inset ${isLayoutTextField(key) ? "items-start justify-start whitespace-nowrap" : "items-center justify-center"} ${selectedElement === key ? 'ring-indigo-600 bg-indigo-50/50' : 'ring-gray-400'
                         }`}
                       style={{
                         width: el.w,
@@ -253,7 +269,7 @@ const LayoutConfigModal = ({ orderId, onClose }: { orderId: number; onClose: () 
                         fontSize: `${(el as any).fontSize || 10}px`,
                       }}
                     >
-                      {key}
+                      {fieldLabel(key)}
                     </div>
                   </Draggable>
                 )

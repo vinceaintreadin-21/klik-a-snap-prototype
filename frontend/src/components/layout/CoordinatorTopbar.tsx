@@ -1,18 +1,17 @@
-import { Bell, UserPlus, Camera } from 'lucide-react'
+import { Bell, UserPlus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import QueueBitsLogo from '../shared/QueueBitsLogo'
 
 export default function CoordinatorTopbar() {
     const navigate = useNavigate()
 
     return (
         <header
-            className="fixed top-0 left-0 md:left-[200px] right-0 h-[56px] bg-white border-b border-[#e8eaed] flex items-center px-4 md:px-6 justify-between z-10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            className="fixed top-0 left-0 md:left-[var(--sidebar-width)] right-0 h-[56px] bg-white border-b border-[#e8eaed] flex items-center px-4 md:px-6 justify-between z-10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
 
             {/* Mobile logo — hidden on desktop (sidebar handles branding) */}
             <div className="flex items-center gap-2 md:hidden">
-                <div className="w-7 h-7 rounded-lg bg-[#004ac6] flex items-center justify-center">
-                    <Camera size={13} className="text-white" />
-                </div>
+                <QueueBitsLogo className="size-7 shrink-0" />
                 <span className="text-[13px] font-bold text-[#0b1c30]">Photo Day</span>
             </div>
             <div className="hidden md:block" />

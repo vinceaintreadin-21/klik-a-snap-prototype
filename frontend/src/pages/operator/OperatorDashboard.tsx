@@ -203,7 +203,7 @@ const OperatorDashboard = () => {
   }
 
   return (
-    <div className="px-8 py-7 space-y-6 max-w-[1400px] w-full">
+    <div className="w-full space-y-6 px-8 py-7">
 
       {/* Page header */}
       <div>
@@ -301,7 +301,7 @@ const OperatorDashboard = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50/60">
-                  {['Order ID', 'School / Batch', 'Status', 'Students', 'Progress', 'Deadline', 'Actions'].map((col) => (
+                  {['Order ID', 'Batch Name', 'Status', 'Students', 'Progress', 'Deadline', 'Actions'].map((col) => (
                     <th key={col} className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-6 py-3">
                       {col}
                     </th>

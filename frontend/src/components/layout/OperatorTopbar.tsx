@@ -22,8 +22,7 @@ export default function OperatorTopbar() {
 
   return (
     <header
-      className="fixed top-0 right-0 z-10 h-[60px] bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-8"
-      style={{ left: 220 }}
+      className="fixed top-0 left-[var(--sidebar-width)] right-0 z-10 h-[60px] bg-white border-b border-gray-100 shadow-sm flex items-center justify-between px-8"
     >
       {/* Left: page context */}
       <div>
