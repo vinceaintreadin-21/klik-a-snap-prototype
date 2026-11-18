@@ -80,9 +80,9 @@ export default function SidebarProfile({
         title="Profile"
         onClick={() => setMenuOpen(open => !open)}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600',
+          'flex w-full items-center gap-2.5 rounded-lg py-2 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600',
           menuOpen && 'bg-gray-100',
-          collapsed && 'md:justify-center md:px-0',
+          collapsed ? 'justify-center' : 'px-2',
         )}
       >
         <span
@@ -94,11 +94,11 @@ export default function SidebarProfile({
         >
           {username.slice(0, 2).toUpperCase()}
         </span>
-        <span className={cn('min-w-0 flex-1', collapsed && 'md:hidden')}>
+        <span className={cn('min-w-0 flex-1', collapsed && 'hidden')}>
           <span className="block truncate text-[13px] font-medium text-gray-900">{username}</span>
           <span className="block text-[11px] text-gray-500">{role}</span>
         </span>
-        <ChevronUp size={14} aria-hidden="true" className={cn('shrink-0 text-gray-400', collapsed && 'md:hidden')} />
+        <ChevronUp size={14} aria-hidden="true" className={cn('shrink-0 text-gray-400', collapsed && 'hidden')} />
       </button>
 
       <div

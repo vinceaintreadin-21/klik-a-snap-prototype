@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useId, type ReactNode, type Ref } from 'react'
 import { PanelLeftClose } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import QueueBitsLogo from '../shared/QueueBitsLogo'
@@ -7,6 +7,8 @@ import SidebarProfile from './SidebarProfile'
 export interface SidebarToggleProps {
   collapsed: boolean
   onToggle: () => void
+  panelWidth?: number
+  toggleRef?: Ref<HTMLButtonElement>
 }
 
 interface CollapsibleSidebarProps extends SidebarToggleProps {
@@ -19,7 +21,8 @@ interface CollapsibleSidebarProps extends SidebarToggleProps {
 }
 
 export default function CollapsibleSidebar({
-  brand, role, desktopOnly = false, collapsed, onToggle, avatarClassName, onLogout, children,
+  brand, role, desktopOnly = false, collapsed, onToggle, panelWidth, toggleRef,
+  avatarClassName, onLogout, children,
 }: CollapsibleSidebarProps) {
   const contentId = useId()
   const label = (
@@ -37,21 +40,17 @@ export default function CollapsibleSidebar({
         'fixed left-0 top-0 z-20 h-full w-[var(--sidebar-width)] flex-col border-r border-gray-100 bg-white shadow-sm',
         desktopOnly ? 'hidden md:flex' : 'flex',
       )}
+      style={{ width: panelWidth }}
     >
-      {!desktopOnly && (
-        <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-5 md:hidden">
-          <QueueBitsLogo className="size-9 shrink-0" />
-          {label}
-        </div>
-      )}
       <button
+        ref={toggleRef}
         type="button"
         onClick={onToggle}
         aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${brand} navigation`}
         aria-expanded={!collapsed}
         aria-controls={contentId}
         className={cn(
-          'group relative hidden w-full shrink-0 items-center gap-3 border-b border-gray-100 py-5 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 md:flex',
+          'group relative flex w-full shrink-0 items-center gap-3 border-b border-gray-100 py-5 text-left hover:bg-gray-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600',
           collapsed ? 'justify-center' : 'px-4',
         )}
       >

@@ -1,5 +1,5 @@
 import { useAuth } from '../../context/AuthContext'
-import { Bell, Settings, Search } from 'lucide-react'
+import { Bell, Settings } from 'lucide-react'
 
 export default function AdminTopbar() {
   const { user } = useAuth()
@@ -20,16 +20,6 @@ export default function AdminTopbar() {
 
       {/* Right */}
       <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative mr-2">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search orders, institutions..."
-            className="pl-8 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 placeholder:text-gray-400 transition-all w-64"
-          />
-        </div>
-
         {/* Bell */}
         <button className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors border border-gray-100">
           <Bell size={16} />

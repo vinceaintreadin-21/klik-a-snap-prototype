@@ -100,7 +100,7 @@ export default function AdminSidebar(toggleProps: SidebarToggleProps) {
         </SidebarNavButton>
 
         {logsOpen && (
-          <div className={cn('pl-5 space-y-0.5', toggleProps.collapsed && 'md:pl-0')}>
+          <div className={cn('space-y-0.5', !toggleProps.collapsed && 'pl-5')}>
             {LOGS_ITEMS.map((item) => {
               const active = isActive(item.path)
               return (

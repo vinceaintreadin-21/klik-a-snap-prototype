@@ -1,15 +1,13 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import AdminSidebar from './AdminSidebar'
 import AdminTopbar from './AdminTopbar'
+import ResponsiveSidebarLayout from './ResponsiveSidebarLayout'
 
 interface Props {
   children: ReactNode
 }
 
 export default function AdminLayout({ children }: Props) {
-  const [collapsed, setCollapsed] = useState(false)
-  const sidebarWidthClass = collapsed ? 'md:[--sidebar-width:64px]' : ''
-
   return (
     <>
       <style>{`
@@ -24,19 +22,16 @@ export default function AdminLayout({ children }: Props) {
         }
       `}</style>
 
-      <div className={`[--sidebar-width:220px] ${sidebarWidthClass}`} style={{
-        display: 'flex', minHeight: '100vh',
-        background: '#F7F8FA', fontFamily: "'DM Sans', sans-serif",
-      }}>
-        <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed(previous => !previous)} />
-
-        <div style={{ marginLeft: 'calc(var(--sidebar-width) + 10px)', minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <AdminTopbar />
-          <main style={{ marginTop: 60, padding: '32px 28px', flex: 1 }}>
-            {children}
-          </main>
-        </div>
-      </div>
+      <ResponsiveSidebarLayout
+        sidebarWidth={220}
+        contentGutter={10}
+        renderSidebar={props => <AdminSidebar {...props} />}
+      >
+        <AdminTopbar />
+        <main style={{ marginTop: 60, padding: '32px 28px', flex: 1 }}>
+          {children}
+        </main>
+      </ResponsiveSidebarLayout>
     </>
   )
 }
