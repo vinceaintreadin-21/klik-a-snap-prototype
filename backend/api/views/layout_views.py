@@ -64,7 +64,7 @@ def create_layout(request, order_id):
         bg_url  = None
 
         if bg_file:
-            # Upload FIRST — only delete existing layout after upload succeeds
+            # Keep the existing layout intact if the upload fails.
             upload_result = cloudinary.uploader.upload(
                 bg_file,
                 folder='id_backgrounds',
@@ -72,7 +72,7 @@ def create_layout(request, order_id):
             )
             bg_url = upload_result['secure_url']
         else:
-            # No new file — preserve existing background URL before deleting
+            # Reuse the saved background when no replacement is supplied.
             existing = IDLayout.objects.filter(order=order, side=side).first()
             if existing:
                 bg_url = existing.background_image_url
@@ -80,13 +80,8 @@ def create_layout(request, order_id):
         if not bg_url:
             return Response({'error': 'background_image is required'}, status=400)
 
-        # Safe to delete now — upload already succeeded (or no upload needed)
-        IDLayout.objects.filter(order=order, side=side).delete()
-
-        layout = IDLayout.objects.create(
-            order=order,
-            side=side,
-            background_image_url=bg_url, 
+        defaults = dict(
+            background_image_url=bg_url,
             card_width=request.data.get('card_width', 638),
             card_height=request.data.get('card_height', 1012),
             photo_x=request.data.get('photo_x', 169),
@@ -103,10 +98,15 @@ def create_layout(request, order_id):
             show_qr_code=to_bool(request.data.get('show_qr_code', True)),
             show_barcode=to_bool(request.data.get('show_barcode', False)),
         )
+        if 'show_photo' in request.data:
+            defaults['show_photo'] = to_bool(request.data['show_photo'])
+
+        layout, _ = IDLayout.objects.update_or_create(order=order, side=side, defaults=defaults)
 
         return Response({
             'message': 'Layout saved successfully.',
             'layout_id': layout.id,
+            'background_image_url': layout.background_image_url,
         }, status=201)
 
     except Order.DoesNotExist:
@@ -139,6 +139,7 @@ def get_layout(request, order_id):
             'photo_y': layout.photo_y,
             'photo_width': layout.photo_width,
             'photo_height': layout.photo_height,
+            'show_photo': layout.show_photo,
             'fields_config': layout.fields_config,
             'show_full_name': layout.show_full_name,
             'show_student_id': layout.show_student_id,
@@ -295,6 +296,11 @@ def preview_layout(request, order_id):
             'address': 'Sample Address',
             'emergency_contact_name': 'MARIA DELA CRUZ',
             'contact_info_number': '09123456789',
+            **{
+                key[len('extra:'):]: key[len('extra:'):].replace('_', ' ').title()
+                for key in data['fields_config']
+                if key.startswith('extra:')
+            },
         },
     )
 

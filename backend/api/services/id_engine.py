@@ -376,6 +376,11 @@ def _render_id_card(cropped_path_or_bytes, subject, layout, *, background_bytes=
         color = f.get('color', '#000000')
         x, y  = f['x'], f['y']
 
+        if f.get('text_anchor') == 'top_left':
+            left, top, _, _ = draw.textbbox((0, 0), text, font=font)
+            draw.text((x - left, y - top), text, fill=color, font=font)
+            return
+
         if f.get('align') == 'center':
             bbox   = draw.textbbox((0, 0), text, font=font)
             text_w = bbox[2] - bbox[0]
@@ -427,7 +432,13 @@ def _render_id_card(cropped_path_or_bytes, subject, layout, *, background_bytes=
     
     extra_data = getattr(subject, 'extra_data', None) or {}
     for field_key, value in extra_data.items():
-        if field_key not in CORE_FIELDS and field_key in cfg and value:
+        if value is None or value == '':
+            continue
+        imported_key = f'extra:{field_key}'
+        if imported_key in cfg:
+            place_text(imported_key, str(value))
+        # Keep rendering custom fields in layouts saved before the prefix was added.
+        if field_key not in CORE_FIELDS and field_key in cfg:
             place_text(field_key, str(value))
     
     if preview: 

@@ -5,11 +5,15 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase, override_settings
-from PIL import Image
+from django.test import SimpleTestCase, TestCase, override_settings
+from PIL import Image, ImageChops
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from api.views.layout_views import preview_layout
+from api.models.id_layout import IDLayout
+from api.models.orders import Order
+from api.models.subjects import Subject
+from api.services.id_engine import _render_id_card
+from api.views.layout_views import create_layout, get_layout, preview_layout
 
 
 @override_settings(DEBUG=False)
@@ -99,3 +103,65 @@ class LayoutPreviewTests(SimpleTestCase):
             ]:
                 with self.subTest(invalid=invalid):
                     self.assertEqual(self.preview(**invalid).status_code, 400)
+
+    def test_preview_renders_unfamiliar_imported_column_at_configured_position(self):
+        config = '{"extra:employee_number":{"x":25,"y":40,"font_size":12,"text_anchor":"top_left"}}'
+        with patch('api.utils.permissions.check_order_access', return_value=(
+            SimpleNamespace(id=42), None
+        )):
+            response = self.preview(side='BACK', show_photo='false', fields_config=config)
+        self.assertEqual(response.status_code, 200)
+        image = Image.open(BytesIO(response.content)).convert('RGB')
+        visible = ImageChops.difference(image, Image.new('RGB', image.size, 'white')).getbbox()
+        self.assertIsNotNone(visible)
+        self.assertGreaterEqual(visible[0], 25)
+        self.assertGreaterEqual(visible[1], 40)
+
+
+@override_settings(DEBUG=False)
+class SavedLayoutTests(TestCase):
+    def test_saved_back_omits_photo_and_renders_imported_id(self):
+        operator = User.objects.create_user('layout-operator')
+        operator.profile.role = 'OPERATOR'
+        operator.profile.save()
+        order = Order.objects.create(
+            assigned_operator=operator, school_name='Example', batch_name='Test'
+        )
+        background_url = 'https://example.test/back.png'
+        existing = IDLayout.objects.create(order=order, side='BACK', background_image_url=background_url)
+        factory = APIRequestFactory()
+        request = factory.post('/save/', {
+            'side': 'BACK',
+            'show_photo': 'false',
+            'card_width': 200,
+            'card_height': 100,
+            'fields_config': '{"extra:student_id":{"x":20,"y":30,"font_size":12,"text_anchor":"top_left"}}',
+        }, format='multipart')
+        force_authenticate(request, operator)
+
+        response = create_layout(request, order.pk)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['layout_id'], existing.pk)
+        existing.refresh_from_db()
+        self.assertFalse(existing.show_photo)
+
+        request = factory.get('/layout/')
+        force_authenticate(request, operator)
+        result = get_layout(request, order.pk)
+        self.assertFalse(result.data['BACK']['show_photo'])
+
+        background = BytesIO()
+        Image.new('RGB', (200, 100), 'white').save(background, 'PNG')
+        subject = Subject(
+            order=order, full_name='Example Person', student_id='INTERNAL',
+            extra_data={'student_id': 'E-0004'},
+        )
+        with patch('cloudinary.uploader.upload') as upload:
+            upload.return_value = {'secure_url': 'https://example.test/rendered.png'}
+            _render_id_card(None, subject, existing, background_bytes=background.getvalue())
+        rendered = Image.open(BytesIO(upload.call_args.args[0].getvalue())).convert('RGB')
+        difference = ImageChops.difference(rendered, Image.new('RGB', rendered.size, 'white'))
+        self.assertIsNotNone(difference.getbbox())
+        self.assertGreaterEqual(difference.getbbox()[0], 20)
+        self.assertGreaterEqual(difference.getbbox()[1], 30)
+        self.assertEqual(rendered.getpixel((170, 85)), (255, 255, 255))

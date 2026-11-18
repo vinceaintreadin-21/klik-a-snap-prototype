@@ -32,6 +32,7 @@ class IDLayout(models.Model):
     photo_y = models.PositiveIntegerField(default=180)
     photo_width = models.PositiveIntegerField(default=300)
     photo_height = models.PositiveIntegerField(default=350)
+    show_photo = models.BooleanField(default=True)
     
     # Field placement config (stored as JSON)
     # Shape: { "full_name": {"x": 100, "y": 560, "font_size": 28, "color": "#000000", "align": "center"}, ... }

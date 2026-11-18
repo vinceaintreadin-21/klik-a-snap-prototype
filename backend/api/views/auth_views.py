@@ -125,7 +125,7 @@ def login_user(request):
     if not user_obj:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    user = authenticate(request, username=identifier, password=password)
+    user = authenticate(request, username=user_obj.get_username(), password=password)
     
     if user is None:
         if not user_obj.is_active:
