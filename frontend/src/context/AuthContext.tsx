@@ -14,7 +14,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (credentials: any) => Promise<void>;
+  login: (credentials: { username: string; password: string }, remember?: boolean) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: (onLogout?: () => void) => Promise<void>; 
   loading: boolean;
@@ -74,14 +74,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [logout]);
 
   // 2. Login Logic
-  const login = async (credentials: any) => {
+  const login = async (credentials: { username: string; password: string }, remember = false) => {
     const res = await api.post('/auth/login/', credentials);
     const { access, refresh } = res.data.tokens;
 
-    storeTokens(access, refresh);
+    storeTokens(access, refresh, remember);
 
-    const profile = await api.get('auth/me/');
-    setUser(profile.data);
+    try {
+      const profile = await api.get('auth/me/');
+      setUser(profile.data);
+    } catch (error) {
+      clearTokens();
+      throw error;
+    }
   };
 
   // 3. Register Logic (Now auto-logs in based on your refined backend)

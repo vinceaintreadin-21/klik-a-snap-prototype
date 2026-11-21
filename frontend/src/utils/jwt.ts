@@ -44,21 +44,31 @@ export const isTokenExpiringSoon = (
   return exp - Date.now() / 1000 < thresholdSeconds;
 };
 
-export const getAccessToken = (): string | null => localStorage.getItem(ACCESS_TOKEN_KEY);
-export const getRefreshToken = (): string | null => localStorage.getItem(REFRESH_TOKEN_KEY);
+export const getAccessToken = (): string | null =>
+  sessionStorage.getItem(ACCESS_TOKEN_KEY) ?? localStorage.getItem(ACCESS_TOKEN_KEY);
+export const getRefreshToken = (): string | null =>
+  sessionStorage.getItem(REFRESH_TOKEN_KEY) ?? localStorage.getItem(REFRESH_TOKEN_KEY);
 
-export const storeTokens = (access: string, refresh?: string): void => {
-  localStorage.setItem(ACCESS_TOKEN_KEY, access);
-  if (refresh) localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+export const storeTokens = (access: string, refresh?: string, remember?: boolean): void => {
+  const persistent = remember ?? !(sessionStorage.getItem(ACCESS_TOKEN_KEY) || sessionStorage.getItem(REFRESH_TOKEN_KEY));
+  const storage = persistent ? localStorage : sessionStorage;
+  const otherStorage = persistent ? sessionStorage : localStorage;
+  otherStorage.removeItem(ACCESS_TOKEN_KEY);
+  otherStorage.removeItem(REFRESH_TOKEN_KEY);
+  storage.setItem(ACCESS_TOKEN_KEY, access);
+  if (refresh) storage.setItem(REFRESH_TOKEN_KEY, refresh);
 };
 
 export const clearTokens = (): void => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY);
 };
 
 // Drops only the access token, keeping the refresh token so the next call can
 // still renew. Used when a token is rejected but the session is still valid.
 export const clearAccessToken = (): void => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
 };

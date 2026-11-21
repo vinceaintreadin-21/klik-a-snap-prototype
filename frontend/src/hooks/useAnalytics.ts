@@ -131,3 +131,40 @@ export const useAvgTurnaround = () => {
     useEffect(() => { fetch() }, [])
     return { data, loading, error, refetch: fetch }
 }
+
+export function usePipelineMetrics() {
+  const [data, setData] = useState<{
+      total_attempts: number
+      processed: number
+      manual_review: number
+      unexpected_errors: number
+      success_rate: number | null
+      manual_review_rate: number | null
+      avg_elapsed_ms: number | null
+      scored_attempts: number
+      confidence_bins: { range: string; count: number }[]
+  } | null>(null)
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    api.get('/admin/analytics/pipeline-metrics', {
+      signal: controller.signal,
+    })
+      .then(({ data }) => setData(data))
+      .catch(() => {
+        if (!controller.signal.aborted) {
+            setError('Could not load pipeline metrics.')
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [])
+
+return { data, loading, error }
+}

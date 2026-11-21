@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OrderProvider } from './context/OrderContext';
 import Login from './pages/Login';
+import { getAccessToken } from './utils/jwt';
 import Register from './pages/Register';
 // Institution
 import InstitutionLayout from './components/layout/InstitutionLayout';
@@ -52,7 +53,7 @@ const RootRedirect = () => {
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  const token = localStorage.getItem('access_token');
+  const token = getAccessToken();
   if (loading) return <div className="flex justify-center items-center h-screen">Loading session...</div>;
   if (!user && !token) return <Navigate to="/login" replace />;
   return <>{children}</>;
@@ -60,7 +61,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  const token = localStorage.getItem('access_token');
+  const token = getAccessToken();
   if (loading) return <div className="flex justify-center items-center h-screen">Loading session...</div>;
   if (user || token) return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -145,6 +146,7 @@ function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/reset-password/:uid/:token" element={<Login />} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
           {/* Coordinator invite — fully public, no auth guard */}

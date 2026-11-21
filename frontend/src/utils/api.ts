@@ -13,7 +13,7 @@ const api = axios.create({
 
 // Endpoints that must never carry an Authorization header — they are how we
 // obtain the header in the first place.
-const AUTH_ENDPOINTS = ['auth/login/', 'auth/register/', 'auth/logout/', 'auth/refresh/'];
+const AUTH_ENDPOINTS = ['auth/login/', 'auth/register/', 'auth/logout/', 'auth/refresh/', 'auth/password-reset/'];
 
 const isAuthEndpoint = (url?: string): boolean =>
   !!url && AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));

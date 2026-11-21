@@ -1,17 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, ChevronRight, MoreHorizontal,
-  ShoppingBag, CheckCircle2, Clock, AlertTriangle, Activity,
+  ShoppingBag, CheckCircle2, Clock, AlertTriangle,
 } from 'lucide-react'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, Legend,
+  Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import {
   useAnalyticsOverview,
   useOrdersPerMonth,
   useManualReviewRate,
   useAvgTurnaround,
+  usePipelineMetrics
 } from '../../hooks/useAnalytics'
 import { useAdminOrders } from '../../hooks/useAdminOrders'
 import { useOperators } from '../../hooks/useOperators'
@@ -98,70 +99,76 @@ function ChartSkeleton({ height = 220 }: { height?: number }) {
 // ── AI Confidence placeholder ──────────────────────────────────────────────────
 // This chart is intentionally a stub — ready for the AI pipeline metrics endpoint.
 
-const AI_CONFIDENCE_PLACEHOLDER = [
-  { score: '0.5', count: 0 },
-  { score: '0.6', count: 0 },
-  { score: '0.7', count: 0 },
-  { score: '0.8', count: 0 },
-  { score: '0.9', count: 0 },
-  { score: '1.0', count: 0 },
-]
 
 function AIConfidenceChart() {
-  return (
-    <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-sm flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-[15px] font-bold text-[#0b1c30]">AI Match Confidence</h3>
-          <p className="text-[12px] text-[#64748b] mt-0.5">Distribution of face-match confidence scores</p>
-        </div>
-        <button className="p-1 rounded hover:bg-gray-50">
-          <MoreHorizontal size={16} className="text-[#94a3b8]" />
-        </button>
-      </div>
+    const { data, loading, error } = usePipelineMetrics()
 
-      {/* Coming soon overlay */}
-      <div className="relative flex-1">
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={AI_CONFIDENCE_PLACEHOLDER} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="score" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-              {AI_CONFIDENCE_PLACEHOLDER.map((_, i) => (
-                <Cell key={i} fill="#e2e8f0" />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+    const metrics = data ? [
+        { label: 'Attempts', value: data.total_attempts.toLocaleString() },
+        { label: 'Success rate', value: `${data.success_rate ?? 0}%` },
+        { label: 'Sent to review', value: `${data.manual_review_rate ?? 0}%` },
+        {
+            label: 'Avg. time per attempt',
+            value: data.avg_elapsed_ms === null
+                ? '—'
+                : `${(data.avg_elapsed_ms / 1000).toFixed(2)} s`,
+        },
+    ] : []
 
-        {/* Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-[1px] rounded-lg">
-          <div className="w-9 h-9 rounded-xl bg-[#eff4ff] flex items-center justify-center mb-2">
-            <Activity size={16} className="text-[#004ac6]" />
-          </div>
-          <p className="text-[13px] font-semibold text-[#0b1c30]">AI Pipeline Metrics</p>
-          <p className="text-[11px] text-[#64748b] mt-0.5 text-center px-4">
-            Confidence distribution will appear once<br />the AI pipeline is instrumented.
-          </p>
-        </div>
-      </div>
+    return (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="text-[15px] font-bold text-slate-900">
+                AI Processing Metrics 
+            </h3>
 
-      {/* Score legend */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#f1f5f9]">
-        {[
-          { label: 'High (≥0.9)',   color: '#1d4ed8' },
-          { label: 'Mid (0.7–0.9)', color: '#93c5fd' },
-          { label: 'Low (<0.7)',    color: '#e2e8f0' },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} />
-            <span className="text-[11px] text-[#64748b]">{s.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+            {loading ? (
+                <p role="status" className="mt-3 text-sm text-slate-500">
+                    Loading pipeline metrics…
+                </p>
+            ) : error ? (
+                <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>
+            ) : !data?.total_attempts ? (
+                <p className="mt-3 text-sm text-slate-500">
+                    No processing attempts recorded yet.
+                </p>
+            ) : (
+                <>
+                    <dl className="my-4 grid grid-cols-2 gap-3">
+                        {metrics.map(({ label, value }) => (
+                            <div key={label}>
+                                <dt className="text-xs text-slate-500">{label}</dt>
+                                <dd className="font-semibold text-slate-900">{value}</dd>
+                            </div>
+                        ))}
+                    </dl>
+
+                    <h4 className="text-sm font-semibold text-slate-900">
+                        Face Detection Confidence
+                    </h4>
+                    <p className="mb-3 text-xs text-slate-500">
+                        {data.scored_attempts} of {data.total_attempts} attempts scored
+                        {' · '}{data.unexpected_errors} unexpected errors
+                    </p>
+
+                    {data.scored_attempts === 0 ? (
+                        <p className="text-sm text-slate-500">
+                            No MediaPipe scores recorded yet.
+                        </p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={180}>
+                            <BarChart data={data.confidence_bins}>
+                                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                                <XAxis dataKey="range" tick={{ fontSize: 11 }} />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Bar dataKey="count" name="Attempts" fill="#1d4ed8" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </>
+            )}
+        </section>
+    )
 }
 
 // ── Orders by institution (derived from orders list) ───────────────────────────
