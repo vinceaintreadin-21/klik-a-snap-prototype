@@ -2,8 +2,11 @@ import cv2
 import numpy as np
 import requests
 import os
+import logging
 from django.conf import settings
 from django.http import JsonResponse
+from time import perf_counter
+from django.db import DatabaseError
 from io import BytesIO
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -11,12 +14,15 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from api.models.subjects import Subject      
 from api.models.orders import Order
+from api.models.processing_attempt import ProcessingAttempt
 
 from PIL import Image, ImageDraw, ImageFont
 import qrcode
 import barcode
 from barcode.writer import ImageWriter
 import io
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────
 # PRINT-SHEET CONSTANTS
@@ -117,8 +123,35 @@ def manual_crop_photo(request, order_id, subject_id):
     except Exception as runtime_error:
         return JsonResponse({'error': f'ID Card Rendering Crash context: {runtime_error}'}, status=500)
 
-
 def process_single_photo(image_path, order_id):
+    started = perf_counter()
+    attempt = ProcessingAttempt(
+        order_id=order_id,
+        outcome=ProcessingAttempt.Outcome.ERROR,
+        fail_reason="unexpected_error",
+    )
+
+    try:
+        subject, outcome = _process_single_photo(
+            image_path, order_id, attempt
+        )
+        attempt.subject = subject
+        attempt.outcome = outcome
+        if subject is not None:
+            attempt.fail_reason = subject.fail_reason
+        return subject, outcome
+    finally:
+        attempt.elapsed_ms = round((perf_counter() - started) * 1000)
+
+        try:
+            attempt.save()
+        except DatabaseError:
+            logger.exception(
+                "Could not save photo processing metrics for order %s",
+                order_id,
+            )
+
+def _process_single_photo(image_path, order_id, attempt):
     """
     Logic loop with fail_reason tracking:
     'no_qr', 'qr_not_found', 'no_face', 'no_layout', 'error'
@@ -191,7 +224,10 @@ def process_single_photo(image_path, order_id):
         subject.original_photo_url = image_path
 
     # --- Step 3: Crop face ---
-    cropped_path, face_found = _crop_face(order_id, img, image_path)
+    attempt.subject = subject
+    cropped_path, face_found, detector, confidence = _crop_face(order_id, img, image_path)
+    attempt.detector = detector 
+    attempt.face_confidence = confidence
 
     if not cropped_path or not face_found:
         subject.photo_status = Subject.PhotoStatus.MANUAL_REVIEW
@@ -253,10 +289,13 @@ def _crop_face(order_id, img, image_path):
             urllib.request.urlretrieve(url, model_path)
         except Exception as e:
             print(f"ERROR: Failed downloading face detection model asset: {e}")
-            return None, False
+            return None, False, "", None
 
     h, w         = img.shape[:2]
+    
     face_detected = False
+    detector_name = "mediapipe"
+    confidence = None
 
     try:
         import mediapipe as mp
@@ -281,10 +320,16 @@ def _crop_face(order_id, img, image_path):
                     y  = max(0, bbox.origin_y - int(0.18 * h))
                     x2 = min(w, bbox.origin_x + bbox.width  + int(0.05 * w))
                     y2 = min(h, bbox.origin_y + bbox.height + int(0.10 * h))
+                    if detection.categories: 
+                        confidence = float(detection.categories[0].score)
                     face_detected = True
                     break
+    
 
     except Exception as e:
+        director_name = "haar"
+        confidence = None
+        
         print(f"DEBUG: MediaPipe Tasks init failed ({e}). Falling back to Haar Cascades...")
         try:
             cc_path      = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
@@ -311,14 +356,14 @@ def _crop_face(order_id, img, image_path):
 
     if not settings.DEBUG:
         _, buf = cv2.imencode('.jpg', cropped)
-        return buf.tobytes(), face_detected
+        return buf.tobytes(), face_detected, face_detected, detector_name, confidence
     else:
         out_dir  = os.path.join(settings.MEDIA_ROOT, 'cropped_faces')
         os.makedirs(out_dir, exist_ok=True)
         filename = f"cropped_{os.path.basename(image_path.split('/')[-1].split('?')[0])}"
         out      = os.path.join(out_dir, filename)
         cv2.imwrite(out, cropped)
-        return out, face_detected
+        return out, face_detected, face_detected, detector_name, confidence
 
 
 def _render_id_card(cropped_path_or_bytes, subject, layout, *, background_bytes=None, preview=False):

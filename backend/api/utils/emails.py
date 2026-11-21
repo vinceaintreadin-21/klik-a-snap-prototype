@@ -24,6 +24,7 @@ def send_transactional_email(subject: str, message: str, recipient_list: list[st
                 "subject": subject,
                 "textContent": message,
             },
+            timeout=20,
         )
         response.raise_for_status()  # raises an exception on 4xx/5xx so errors don't fail silently
         return response.json()

@@ -83,9 +83,14 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'auth': '5/minute'
-    }
+        'auth': '5/minute',
+        'password_reset': '1/minute',
+        'password_reset_confirm': '5/minute',
+    },
+    'NUM_PROXIES': int(os.getenv('NUM_PROXIES', '0')),
 }
+
+PASSWORD_RESET_TIMEOUT = 3600
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -146,7 +151,7 @@ CHANNEL_LAYERS = {
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",

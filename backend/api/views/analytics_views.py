@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -9,6 +10,7 @@ from api.models.user_profile import UserProfile
 from api.models.institution import Institution
 from api.models.subjects import Subject
 from api.models.orders import Order
+from api.models.processing_attempt import ProcessingAttempt
 from django.db.models.functions import TruncMonth
 from django.db.models import Count
 from django.db.models import Avg, F, ExpressionWrapper, DurationField
@@ -148,4 +150,57 @@ def get_avg_turnaround(request):
         'completed_order_count': completed_count,
     })
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_pipeline_metrics(request):
+    if not is_admin(request.user):
+        return Response({
+            "error": "Admin access required"
+        }, status=403)
 
+    scored = Q(
+        detector="mediapipe",
+        face_confidence__gte=0,
+        face_confidence__lte=1
+    )
+
+    stats = ProcessingAttempt.objects.aggregate(
+        total=Count("pk"),
+        processed=Count(
+            "pk", filter=Q(outcome=ProcessingAttempt.Outcome.PROCESSED)
+        ),
+        manual_review=Count(
+            "pk", filter=Q(outcome=ProcessingAttempt.Outcome.MANUAL_REVIEW)
+        ),
+        errors=Count(
+            "pk", filter=Q(outcome=ProcessingAttempt.Outcome.ERROR)
+        ),
+        avg_elapsed_ms=Avg("elapsed_ms"),
+        low=Count("pk", filter=scored & Q(face_confidence__lt=0.70)),
+        medium=Count(
+            "pk",
+            filter=scored & Q(face_confidence__gte=0.70, face_confidence__lt=0.90),
+        ),
+        high=Count("pk", filter=scored & Q(face_confidence__gte=0.90)),
+    )
+
+    total = stats["total"]
+    average = stats["avg_elapsed_ms"]
+
+    return Response({
+        "total_attempts": total,
+        "processed": stats["processed"],
+        "manual_review": stats["manual_review"],
+        "unexpected_errors": stats["errors"],
+        "success_rate": round(stats["processed"] * 100 / total, 2) if total else None,
+        "manual_review_rate": (
+            round(stats["manual_review"] * 100 / total, 2) if total else None
+        ),
+        "avg_elapsed_ms": round(average, 1) if average is not None else None,
+        "scored_attempts": stats["low"] + stats["medium"] + stats["high"],
+        "confidence_bins": [
+            {"range": "Below 70%", "count": stats["low"]},
+            {"range": "70% to <90%", "count": stats["medium"]},
+            {"range": "90%–100%", "count": stats["high"]},
+        ],
+    })

@@ -380,7 +380,7 @@ def _process_linked_photo(subject):
                 subject.save()
                 return
 
-            cropped_path, face_found = _crop_face(
+            cropped_path, face_found, _, _ = _crop_face(
                 subject.order_id, img, subject.original_photo_url
             )
 

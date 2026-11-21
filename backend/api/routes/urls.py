@@ -1,4 +1,5 @@
 from django.urls import path
+from api.views.auth_views import request_password_reset, confirm_password_reset
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from api.views.order_views import (
@@ -31,7 +32,7 @@ from api.views.institution_views import (
 
 from api.views.analytics_views import (
     get_analytics_overview, get_orders_per_month, get_manual_review_rate,
-    get_avg_turnaround,
+    get_avg_turnaround, get_pipeline_metrics
 )
 
 from api.views.logs_views import (
@@ -55,6 +56,8 @@ urlpatterns = [
     # Auth routes
     path('auth/register/', register_user, name='register'),
     path('auth/login/', login_user, name='login'),
+    path('auth/password-reset/', request_password_reset, name='password-reset'),
+    path('auth/password-reset/confirm/', confirm_password_reset, name='password-reset-confirm'),
     path('auth/logout/', logout_user, name='logout'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', get_user_profile, name='user_profile'),
@@ -148,4 +151,6 @@ urlpatterns = [
     path('students/<int:student_id>/process-linked/', process_linked_photo, name='process-linked-photo'),
     
     path('orders/<int:order_id>/print-sheets/download/', download_print_sheets, name='download_print_sheets'),
+
+    path('admin/analytics/pipeline-metrics', get_pipeline_metrics, name='pipeline-metrics')
 ]       
