@@ -2,7 +2,7 @@
 
 # QueueBits
 
-### Institutional ID Production Management
+### AI-Assisted ID Card Production and Order Management System
 
 A centralized platform for Klik-A-Snap to manage subject records, photo processing, ID layouts, approvals, and production.
 
@@ -16,7 +16,7 @@ A centralized platform for Klik-A-Snap to manage subject records, photo processi
 
 ## Project Overview
 
-QueueBits connects the people involved in institutional ID production through four dedicated workspaces.
+QueueBits connects the people involved in ID production through four dedicated workspaces.
 
 The application supports the production cycle from subject-list submission and QR preparation to photo matching, proofing, institution approval, printing, and completion.
 
