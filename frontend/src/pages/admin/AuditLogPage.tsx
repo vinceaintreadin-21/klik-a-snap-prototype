@@ -28,7 +28,7 @@ function Pager({ total, page, onPage }: { total: number; page: number; onPage: (
         {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
           <button key={p} onClick={() => onPage(p)}
             className={cn('w-7 h-7 flex items-center justify-center rounded text-[12px] font-medium transition-colors',
-              page === p ? 'bg-[#004ac6] text-white' : 'text-[#434655] hover:bg-white border border-transparent hover:border-[#e2e8f0]')}>
+              page === p ? 'bg-[#7e22ce] text-white' : 'text-[#434655] hover:bg-white border border-transparent hover:border-[#e2e8f0]')}>
             {p}
           </button>
         ))}
@@ -84,13 +84,13 @@ const AuditLogPage = () => {
       {/* Header */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5 text-[12px]">
-          <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#004ac6] transition-colors">
+          <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#7e22ce] transition-colors">
             Dashboard
           </button>
           <ChevronRight size={10} className="text-[#94a3b8]" />
           <span className="text-[#64748b]">Logs</span>
           <ChevronRight size={10} className="text-[#94a3b8]" />
-          <span className="text-[#004ac6] font-medium">Audit Log</span>
+          <span className="text-[#7e22ce] font-medium">Audit Log</span>
         </div>
         <h1 className="text-[24px] font-bold text-[#0b1c30] tracking-tight">Audit Log</h1>
         <p className="text-[13px] text-[#64748b]">
@@ -115,13 +115,13 @@ const AuditLogPage = () => {
               placeholder="Search by admin, action, model, or ID…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6]"
+              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce]"
             />
           </div>
 
           <div className="relative">
             <select value={actionF} onChange={(e) => { setActionF(e.target.value); setPage(1) }}
-              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[13px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#004ac6]">
+              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[13px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#7e22ce]">
               <option value="">Action Type: All</option>
               {actions.map((a) => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
             </select>
@@ -130,7 +130,7 @@ const AuditLogPage = () => {
 
           <div className="relative">
             <select value={targetModel} onChange={(e) => { setTargetModel(e.target.value); setPage(1) }}
-              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[13px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#004ac6]">
+              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[13px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#7e22ce]">
               <option value="">Module: All</option>
               {models.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -152,7 +152,7 @@ const AuditLogPage = () => {
           </button>
 
           {hasFilter && (
-            <button onClick={clear} className="text-[12px] font-semibold text-[#004ac6] hover:underline">
+            <button onClick={clear} className="text-[12px] font-semibold text-[#7e22ce] hover:underline">
               Clear
             </button>
           )}
@@ -163,7 +163,7 @@ const AuditLogPage = () => {
       <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-14 flex flex-col items-center gap-3">
-            <div className="w-7 h-7 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
             <p className="text-[13px] text-[#64748b]">Loading audit log…</p>
           </div>
         ) : error ? (
@@ -235,7 +235,7 @@ const AuditLogPage = () => {
                           {log.details && Object.keys(log.details).length > 0 ? (
                             <button
                               title={JSON.stringify(log.details, null, 2)}
-                              className="text-[12px] font-medium text-[#004ac6] hover:underline"
+                              className="text-[12px] font-medium text-[#7e22ce] hover:underline"
                             >
                               View
                             </button>

@@ -1,3 +1,5 @@
+import ViewModeToggle, { type ViewMode } from "../../components/shared/ViewModeToggle";
+import OperatorOrderTable from "../../components/operator/OperatorOrderTable";
 import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import {
@@ -22,6 +24,7 @@ export function ExportView() {
   const [selectedOrder, setSelectedOrder] = useState<ExportOrder | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<ViewMode>("grid");
 
   useEffect(() => {
     fetchExportOrders()
@@ -60,9 +63,9 @@ export function ExportView() {
   });
 
   return (
-    <div className="flex flex-col h-screen bg-[#F7F8FA]">
+    <div className="flex flex-col h-screen bg-[#f5f3ff]">
       <header className="sticky top-0 bg-white border-b border-gray-100 shadow-sm z-10">
-        <div className="flex items-center gap-4 px-8 py-3">
+        <div className="flex flex-wrap items-center gap-4 px-8 py-3">
           <h1 className="text-[15px] font-semibold text-gray-900">Export</h1>
           <div className="flex items-center gap-1">
             {FILTER_TABS.map((tab) => (
@@ -91,6 +94,7 @@ export function ExportView() {
               className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 placeholder:text-gray-400 transition-all"
             />
           </div>
+          <ViewModeToggle value={view} onChange={setView} />
         </div>
       </header>
 
@@ -102,13 +106,19 @@ export function ExportView() {
             <div className="py-16 text-center text-sm text-gray-400">No orders found</div>
           )}
 
-          {!loading && !error && filteredOrders.length > 0 && (
+          {!loading && !error && filteredOrders.length > 0 && (view === 'list' ? (
+            <OperatorOrderTable
+              orders={filteredOrders}
+              onSelect={setSelectedOrder}
+              actionLabel={order => isExportEnabled(getOrderStatus(order)) ? 'Export' : 'View'}
+            />
+          ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {filteredOrders.map((order) => (
                 <OrderCard key={order.id} order={order} onSelect={setSelectedOrder} />
               ))}
             </div>
-          )}
+          ))}
         </div>
       </main>
     </div>

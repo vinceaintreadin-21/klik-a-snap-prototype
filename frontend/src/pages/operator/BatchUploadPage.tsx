@@ -1,3 +1,6 @@
+import ViewModeToggle, { type ViewMode } from '../../components/shared/ViewModeToggle'
+import OperatorOrderTable from '../../components/operator/OperatorOrderTable'
+import { useOrderSelection } from '../../hooks/useOrderSelection'
 /**
  * BatchUploadPage — 3-step batch upload wizard.
  * Visual design: QUEUEBITS_UI/BatchUploadView.tsx
@@ -5,7 +8,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useOrders } from '../../context/OrderContext'
 import api from '../../utils/api'
 import {
@@ -135,8 +138,9 @@ function PhotoThumb({ file, onRemove }: { file: UploadedFile; onRemove: (id: str
 // ── Step 1 — Order Selection ──────────────────────────────────────────────────
 
 function Step1({ orders, onNext }: { orders: any[]; onNext: (order: any) => void }) {
+  const [view, setView] = useState<ViewMode>('list')
   return (
-    <div className="max-w-2xl mx-auto py-8 px-6">
+    <div className="max-w-6xl mx-auto py-8 px-6">
       <div className="mb-7">
         <h2 className="text-xl font-bold text-gray-900 mb-1">Select an Order</h2>
         <p className="text-sm text-gray-500">Choose which order you want to upload student photos for.</p>
@@ -152,7 +156,13 @@ function Step1({ orders, onNext }: { orders: any[]; onNext: (order: any) => void
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="mb-4 flex justify-end">
+        <ViewModeToggle value={view} onChange={setView} />
+      </div>
+      {view === 'list' ? (
+        <OperatorOrderTable orders={orders} onSelect={onNext} actionLabel="Start Upload" />
+      ) : (
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {orders.map((order) => {
           const hasUploads = (order.uploaded_count ?? 0) > 0
           return (
@@ -207,6 +217,7 @@ function Step1({ orders, onNext }: { orders: any[]; onNext: (order: any) => void
           )
         })}
       </div>
+      )}
     </div>
   )
 }
@@ -226,6 +237,7 @@ function Step2({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragging,  setDragging]  = useState(false)
+  const [view, setView] = useState<ViewMode>('grid')
   const [uploading, setUploading] = useState(false)
 
   const uploaded = files.filter(f => f.status === 'ok').length
@@ -288,8 +300,9 @@ function Step2({
 
         {/* Batch progress bar */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <h3 className="text-sm font-semibold text-gray-800">Batch Progress</h3>
+            <ViewModeToggle value={view} onChange={setView} />
             <div className="flex items-center gap-4 text-[12px]">
               <span className="text-gray-400">
                 Total <span className="font-semibold text-gray-700 ml-1">{total.toLocaleString()}</span>
@@ -379,11 +392,33 @@ function Step2({
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-2.5">
+            {view === 'list' ? (
+              <div className="overflow-x-auto rounded-xl border border-purple-100 bg-white">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-purple-50 text-xs text-slate-500">
+                    <tr>{['File', 'Size', 'Status', 'Actions'].map(label => <th key={label} scope="col" className="px-3 py-3">{label}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-50">
+                    {files.map(file => (
+                      <tr key={file.id}>
+                        <td className="px-3 py-3">{file.name}</td>
+                        <td className="whitespace-nowrap px-3 py-3">{file.size}</td>
+                        <td className="px-3 py-3">{file.status === 'ok' ? 'Uploaded' : file.status}</td>
+                        <td className="px-3 py-3">
+                          <button type="button" aria-label={`Remove ${file.name}`} onClick={() => onFileRemove(file.id)} className="text-red-600 hover:underline">Remove</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {files.map(f => (
                 <PhotoThumb key={f.id} file={f} onRemove={onFileRemove} />
               ))}
             </div>
+            )}
           </div>
         )}
       </div>
@@ -570,10 +605,12 @@ function Step3({
 
 export default function BatchUploadPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { orders } = useOrders()
+  const directOrderId = (location.state as { orderId?: number } | null)?.orderId
 
-  const [step,  setStep]  = useState<Step>(1)
-  const [order, setOrder] = useState<any | null>(null)
+  const [step,  setStep]  = useState<Step>(directOrderId ? 2 : 1)
+  const { selectedOrder: order, setSelectedOrder: setOrder } = useOrderSelection()
   const [files, setFiles] = useState<UploadedFile[]>([])
 
   const handleFilesAdd = (incoming: UploadedFile[]) => {
@@ -590,7 +627,7 @@ export default function BatchUploadPage() {
   )
 
   const uploaded = files.filter(f => f.status === 'ok').length
-  const canAdvance = step === 1 ? !!order : step === 2 ? files.length > 0 : false
+  const canAdvance = !!order && files.length > 0
 
   return (
     <div className="flex flex-col h-[calc(100vh-60px)]">
@@ -616,6 +653,11 @@ export default function BatchUploadPage() {
 
       {/* ── Step content ── */}
       <div className="flex-1 overflow-hidden">
+        {step === 2 && !order && (
+          <p role="status" className="p-8 text-sm text-gray-500">
+            {orders.length ? 'The selected order is unavailable. Return to the dashboard to choose an order.' : 'Loading the selected order…'}
+          </p>
+        )}
         {step === 1 && (
           <Step1
             orders={uploadableOrders}
@@ -639,33 +681,33 @@ export default function BatchUploadPage() {
         )}
       </div>
 
-      {/* ── Footer nav (steps 1 & 2 only) ── */}
-      {step < 3 && (
+      {/* ── Upload step navigation ── */}
+      {step === 2 && (
         <div className="flex-shrink-0 bg-white border-t border-gray-100 px-8 py-3 flex items-center justify-between shadow-sm">
           <button
             onClick={() =>
-              step === 1 ? navigate('/operator/dashboard') : setStep(s => (s - 1) as Step)
+              directOrderId ? navigate('/operator/dashboard') : setStep(1)
             }
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
             <ChevronLeft size={15} />
-            {step === 1 ? 'Cancel' : 'Back'}
+            {directOrderId ? 'Back to Dashboard' : 'Back'}
           </button>
 
           {/* Centre: records ready count (matches QUEUEBITS reference) */}
           <span className="text-[12px] text-gray-400">
-            {step === 2 && uploaded > 0
+            {uploaded > 0
               ? `${uploaded} of ${order?.student_count.toLocaleString()} records ready`
               : null
             }
           </span>
 
           <button
-            onClick={() => setStep(s => (s + 1) as Step)}
+            onClick={() => setStep(3)}
             disabled={!canAdvance}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-xl transition-all shadow-sm shadow-blue-200"
           >
-            {step === 2 ? 'Continue to Confirm' : 'Continue'}
+            Continue to Confirm
             <ChevronRight size={14} />
           </button>
         </div>

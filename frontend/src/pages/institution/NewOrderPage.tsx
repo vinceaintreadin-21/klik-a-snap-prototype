@@ -101,7 +101,7 @@ function PreviewRowEditor({ columns, row, onSave, onClose }: {
                             Cancel
                         </button>
                         <button type="submit" disabled={!name}
-                            className="rounded-lg bg-[#004ac6] px-3 py-2 text-sm font-medium text-white hover:bg-[#003da6] disabled:opacity-50">
+                            className="rounded-lg bg-[#7e22ce] px-3 py-2 text-sm font-medium text-white hover:bg-[#6b21a8] disabled:opacity-50">
                             Save changes
                         </button>
                     </div>
@@ -118,12 +118,12 @@ function StepIndicator({ step, current }: { step: OrderStep; current: OrderStep 
         <div className="flex items-center gap-2">
             <div className={cn(
                 'w-9 h-9 rounded-full flex items-center justify-center text-[14px] font-bold transition-all',
-                isDone || isActive ? 'bg-[#004ac6] text-white' : 'bg-[#f1f5f9] text-[#9ba3af]'
+                isDone || isActive ? 'bg-[#7e22ce] text-white' : 'bg-[#f1f5f9] text-[#9ba3af]'
             )}>
                 {isDone ? <Check size={16} /> : step}
             </div>
             <span className={cn('text-[13px] font-medium',
-                isActive ? 'text-[#004ac6]' : isDone ? 'text-[#374151]' : 'text-[#9ba3af]')}>
+                isActive ? 'text-[#7e22ce]' : isDone ? 'text-[#374151]' : 'text-[#9ba3af]')}>
                 {step === 1 ? 'Upload List' : step === 2 ? 'Review & Confirm' : 'Generate QR Codes'}
             </span>
         </div>
@@ -131,7 +131,7 @@ function StepIndicator({ step, current }: { step: OrderStep; current: OrderStep 
 }
 
 function StepDivider({ done }: { done: boolean }) {
-    return <div className="flex-1 h-px mx-3" style={{ background: done ? '#004ac6' : '#e2e8f0' }} />
+    return <div className="flex-1 h-px mx-3" style={{ background: done ? '#7e22ce' : '#e2e8f0' }} />
 }
 
 export default function NewOrderPage() {
@@ -274,7 +274,7 @@ export default function NewOrderPage() {
                 <nav className="flex items-center gap-1.5 text-[12px] mb-3">
                     <span className="text-[#9ba3af]">Institution</span>
                     <ChevronRight size={11} className="text-[#c8cbd9]" />
-                    <button onClick={() => navigate('/client/orders')} className="text-[#9ba3af] hover:text-[#004ac6]">Orders</button>
+                    <button onClick={() => navigate('/client/orders')} className="text-[#9ba3af] hover:text-[#7e22ce]">Orders</button>
                     <ChevronRight size={11} className="text-[#c8cbd9]" />
                     <span className="text-[#374151] font-medium">New Order</span>
                 </nav>
@@ -291,7 +291,7 @@ export default function NewOrderPage() {
                 </div>
             </div>
 
-            <div className="p-8 flex flex-col gap-6 bg-[#f7f8fa] flex-1">
+            <div className="p-8 flex flex-col gap-6 bg-[#f5f3ff] flex-1">
                 {/* Stepper */}
                 <div className="flex items-center bg-white border border-[#e2e8f0] rounded-2xl px-8 py-5 shadow-[0px_1px_2px_rgba(0,0,0,0.04)]">
                     <StepIndicator step={1} current={step} />
@@ -313,7 +313,7 @@ export default function NewOrderPage() {
                                 </p>
                                 <div className="flex flex-col gap-2 pt-1">
                                     <div className="flex items-center gap-2 text-[12px] text-[#64748b]">
-                                        <Info size={13} className="text-[#004ac6] shrink-0" />Max file size: 25 MB
+                                        <Info size={13} className="text-[#7e22ce] shrink-0" />Max file size: 25 MB
                                     </div>
                                     <div className="flex items-center gap-2 text-[12px] text-[#64748b]">
                                         <FileText size={13} className="text-[#9ba3af] shrink-0" />Formats: .csv, .xlsx, .xls
@@ -333,7 +333,7 @@ export default function NewOrderPage() {
                                         placeholder="e.g. 2024 Undergraduate Batch"
                                         value={batchName}
                                         onChange={(e) => setBatchName(e.target.value)}
-                                        className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-[14px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors"
+                                        className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-[14px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors"
                                     />
                                 </div>
 
@@ -345,9 +345,9 @@ export default function NewOrderPage() {
                                     onClick={() => !file && fileInputRef.current?.click()}
                                     className={cn(
                                         'border-2 border-dashed rounded-2xl flex flex-col items-center justify-center min-h-[220px] transition-all cursor-pointer',
-                                        isDragOver ? 'border-[#004ac6] bg-[#eff4ff]' :
+                                        isDragOver ? 'border-[#7e22ce] bg-[#faf5ff]' :
                                             file ? 'border-[#22c55e] bg-[#f0fdf4] cursor-default' :
-                                                'border-[#e2e8f0] bg-white hover:border-[#004ac6] hover:bg-[#f8faff] shadow-[0px_1px_2px_rgba(0,0,0,0.04)]'
+                                                'border-[#e2e8f0] bg-white hover:border-[#7e22ce] hover:bg-[#f8faff] shadow-[0px_1px_2px_rgba(0,0,0,0.04)]'
                                     )}>
                                     <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={(e) => {
                                         const f = e.target.files?.[0]
@@ -369,13 +369,13 @@ export default function NewOrderPage() {
                                         </>
                                     ) : (
                                         <>
-                                            <div className="w-14 h-14 rounded-2xl bg-[#e8eeff] flex items-center justify-center mb-3">
-                                                <Upload size={24} className="text-[#004ac6]" />
+                                            <div className="w-14 h-14 rounded-2xl bg-[#f3e8ff] flex items-center justify-center mb-3">
+                                                <Upload size={24} className="text-[#7e22ce]" />
                                             </div>
                                             <p className="text-[15px] font-semibold text-[#0b1c30]">Drag and drop your student list</p>
                                             <p className="text-[13px] text-[#9ba3af] mt-1">or click to browse from your computer</p>
                                             <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
-                                                className="mt-4 bg-[#004ac6] text-white text-[14px] font-medium px-5 py-2.5 rounded-lg hover:bg-[#003da6] transition-colors">
+                                                className="mt-4 bg-[#7e22ce] text-white text-[14px] font-medium px-5 py-2.5 rounded-lg hover:bg-[#6b21a8] transition-colors">
                                                 Select File
                                             </button>
                                         </>
@@ -399,7 +399,7 @@ export default function NewOrderPage() {
                             <button
                                 onClick={handleParseAndContinue}
                                 disabled={!file || !batchName.trim() || parsing}
-                                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#004ac6] text-white text-[13px] font-medium hover:bg-[#003da6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#7e22ce] text-white text-[13px] font-medium hover:bg-[#6b21a8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
                                 {parsing ? <><Loader2 size={14} className="animate-spin" /> Parsing…</> : <>Continue to Review <ChevronRight size={14} /></>}
                             </button>
                         </div>
@@ -418,7 +418,7 @@ export default function NewOrderPage() {
                             <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3.5">
                                 <div className="flex items-center gap-2.5">
                                     <h2 id="data-preview-title" className="text-sm font-semibold text-slate-900">Data Preview</h2>
-                                    <span className="rounded-full bg-[#e8eeff] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#004ac6]">
+                                    <span className="rounded-full bg-[#f3e8ff] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7e22ce]">
                                         Parsed results
                                     </span>
                                 </div>
@@ -480,7 +480,7 @@ export default function NewOrderPage() {
                                                             aria-label={`${hasError ? 'Fix error in' : 'Edit'} row ${row.row}`}
                                                             onClick={() => setEditingRow(row)}
                                                             className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold disabled:opacity-50',
-                                                                hasError ? 'text-red-700 hover:bg-red-100' : 'text-[#004ac6] hover:bg-blue-100')}>
+                                                                hasError ? 'text-red-700 hover:bg-red-100' : 'text-[#7e22ce] hover:bg-blue-100')}>
                                                             {hasError ? <AlertCircle size={13} /> : <Pencil size={13} />}
                                                             {hasError ? 'Fix error' : 'Edit'}
                                                         </button>
@@ -510,7 +510,7 @@ export default function NewOrderPage() {
                                         className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-blue-50 disabled:opacity-40">
                                         <ChevronLeft size={13} />
                                     </button>
-                                    <span className="font-semibold tabular-nums text-[#004ac6]">{currentPage} / {pageCount}</span>
+                                    <span className="font-semibold tabular-nums text-[#7e22ce]">{currentPage} / {pageCount}</span>
                                     <button type="button" aria-label="Next page" disabled={currentPage === pageCount}
                                         onClick={() => setPage(currentPage + 1)}
                                         className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-blue-50 disabled:opacity-40">
@@ -520,7 +520,7 @@ export default function NewOrderPage() {
                                 <label className="flex cursor-pointer items-center gap-2 text-slate-700">
                                     <input type="checkbox" checked={showIssuesOnly}
                                         onChange={(event) => { setShowIssuesOnly(event.target.checked); setPage(1) }}
-                                        className="size-4 accent-[#004ac6]" />
+                                        className="size-4 accent-[#7e22ce]" />
                                     Show errors only
                                 </label>
                             </footer>
@@ -540,7 +540,7 @@ export default function NewOrderPage() {
                                 <button
                                     onClick={handleCreateOrder}
                                     disabled={errorRows.length > 0 || creatingOrder || parsedRows.length === 0}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#004ac6] text-white text-[13px] font-medium hover:bg-[#003da6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#7e22ce] text-white text-[13px] font-medium hover:bg-[#6b21a8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
                                     {creatingOrder
                                         ? <><Loader2 size={14} className="animate-spin" /> Creating Order…</>
                                         : <>Create Order & Generate QR <ChevronRight size={14} /></>}
@@ -554,8 +554,8 @@ export default function NewOrderPage() {
                 {step === 3 && (
                     <div className="flex flex-col items-center justify-center flex-1 gap-6 py-8">
                         <div className="bg-white border border-[#e2e8f0] rounded-2xl p-10 flex flex-col items-center gap-5 w-[480px] shadow-[0px_4px_24px_rgba(0,74,198,0.08)]">
-                            <div className="w-20 h-20 rounded-2xl bg-[#e8eeff] flex items-center justify-center">
-                                <QrCode size={40} className="text-[#004ac6]" />
+                            <div className="w-20 h-20 rounded-2xl bg-[#f3e8ff] flex items-center justify-center">
+                                <QrCode size={40} className="text-[#7e22ce]" />
                             </div>
                             <div className="text-center">
                                 <h3 className="text-[22px] font-bold text-[#0b1c30]">Order Created!</h3>
@@ -582,8 +582,8 @@ export default function NewOrderPage() {
                                 className={cn(
                                     'w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[15px] font-semibold transition-all shadow-sm',
                                     downloadedQR ? 'bg-[#dcfce7] text-[#166534] border border-[#bbf7d0]' :
-                                        downloadingQR ? 'bg-[#004ac6] text-white opacity-70 cursor-wait' :
-                                            'bg-[#004ac6] text-white hover:bg-[#003da6]'
+                                        downloadingQR ? 'bg-[#7e22ce] text-white opacity-70 cursor-wait' :
+                                            'bg-[#7e22ce] text-white hover:bg-[#6b21a8]'
                                 )}>
                                 {downloadedQR ? <><CheckCircle2 size={18} /> Downloaded Successfully</> :
                                     downloadingQR ? <><Loader2 size={18} className="animate-spin" /> Preparing…</> :

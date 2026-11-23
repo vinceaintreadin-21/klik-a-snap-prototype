@@ -60,7 +60,7 @@ function ProgressHero({
     total: number
 }) {
     return (
-        <div className="bg-[#004ac6] rounded-2xl p-5 md:p-6 text-white shadow-[0_4px_24px_rgba(0,74,198,0.25)]">
+        <div className="bg-[#7e22ce] rounded-2xl p-5 md:p-6 text-white shadow-[0_4px_24px_rgba(0,74,198,0.25)]">
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <div className="text-[36px] md:text-[48px] font-black leading-none">{pct}%</div>
@@ -122,7 +122,7 @@ function NextUpList({
                     </div>
                     <button
                         onClick={() => onMark(s.id)}
-                        className="flex items-center gap-1.5 bg-[#004ac6] text-white text-[12px] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#003da6] transition-colors shadow-sm shrink-0">
+                        className="flex items-center gap-1.5 bg-[#7e22ce] text-white text-[12px] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm shrink-0">
                         <Camera size={12} />
                         Mark
                     </button>
@@ -150,7 +150,7 @@ function RecentList({
                 <span className="text-[14px] font-semibold text-[#0b1c30]">Recently Photographed</span>
                 <button
                     onClick={onViewAll}
-                    className="text-[12px] text-[#004ac6] hover:underline font-medium">
+                    className="text-[12px] text-[#7e22ce] hover:underline font-medium">
                     View All
                 </button>
             </div>
@@ -172,8 +172,8 @@ function RecentList({
                         {s.qr_code_url && (
                             <button
                                 onClick={() => onShowQR(s)}
-                                className="p-1 rounded hover:bg-[#e8eeff] transition-colors">
-                                <Search size={11} className="text-[#004ac6]" />
+                                className="p-1 rounded hover:bg-[#f3e8ff] transition-colors">
+                                <Search size={11} className="text-[#7e22ce]" />
                             </button>
                         )}
                     </div>
@@ -200,7 +200,7 @@ function OrderSwitcher({
             <select
                 value={selected ?? ''}
                 onChange={(e) => onChange(Number(e.target.value))}
-                className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#004ac6] transition-colors">
+                className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#7e22ce] transition-colors">
                 {orders.map((o) => (
                     <option key={o.id} value={o.id}>
                         {o.school_name} — {o.batch_name}
@@ -303,14 +303,14 @@ export default function CoordinatorDashboardPage() {
                 <div className="grid grid-cols-3 gap-3">
                     <StatCard icon={CheckCircle2} value={photographed} label="Photographed" iconBg="#f0fdf4" iconColor="#22c55e" />
                     <StatCard icon={Clock} value={pending} label="Pending" iconBg="#fff9f0" iconColor="#d97706" />
-                    <StatCard icon={UserPlus} value={walkIns} label="Walk-ins" iconBg="#e8eeff" iconColor="#004ac6" />
+                    <StatCard icon={UserPlus} value={walkIns} label="Walk-ins" iconBg="#f3e8ff" iconColor="#7e22ce" />
                 </div>
 
                 {/* Quick search shortcut */}
                 <button
                     onClick={() => navigate('/coordinator/lookup')}
-                    className="w-full flex items-center gap-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 hover:border-[#004ac6] hover:bg-[#f0f4ff] transition-all group">
-                    <Search size={16} className="text-[#9ba3af] group-hover:text-[#004ac6] transition-colors" />
+                    className="w-full flex items-center gap-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 hover:border-[#7e22ce] hover:bg-[#f0f4ff] transition-all group">
+                    <Search size={16} className="text-[#9ba3af] group-hover:text-[#7e22ce] transition-colors" />
                     <span className="text-[14px] text-[#9ba3af] group-hover:text-[#64748b] transition-colors">
                         Search a subject to show QR code...
                     </span>

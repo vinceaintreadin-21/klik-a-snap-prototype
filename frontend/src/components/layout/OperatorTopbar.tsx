@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 
 // Route → title/subtitle mapping
 const ROUTE_META: Record<string, { title: string; subtitle: string }> = {
-  '/operator/dashboard':     { title: 'Operator Workspace',  subtitle: 'Manage your production queue.'         },
+  '/operator/dashboard':     { title: 'Order Dashboard',  subtitle: 'Manage your production queue.'         },
   '/operator/layout-builder':{ title: 'Layout Builder',      subtitle: 'Configure ID card layouts for orders.' },
   '/operator/batch-upload':  { title: 'Batch Upload',        subtitle: 'Upload subject photos in bulk.'        },
   '/operator/pipeline':      { title: 'Pipeline',            subtitle: 'Live status of your active batches.'   },

@@ -23,7 +23,7 @@ export default function CoordinatorTopbar() {
                 </button>
                 <button
                     onClick={() => navigate('/coordinator/quick-add')}
-                    className="flex items-center gap-1.5 bg-[#004ac6] text-white text-[13px] font-medium px-3 py-1.5 rounded-lg hover:bg-[#003da6] transition-colors shadow-sm">
+                    className="flex items-center gap-1.5 bg-[#7e22ce] text-white text-[13px] font-medium px-3 py-1.5 rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm">
                     <UserPlus size={13} />
                     <span className="hidden sm:inline">Quick Add</span>
                 </button>

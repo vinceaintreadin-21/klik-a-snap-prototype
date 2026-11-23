@@ -74,7 +74,7 @@ function TablePager({ total, page, totalPages, onPage }: {
         {pages.map((p) => (
           <button key={p} onClick={() => onPage(p)}
             className={cn('w-8 h-8 flex items-center justify-center rounded text-[13px] font-medium transition-colors',
-              page === p ? 'bg-[#004ac6] text-white' : 'text-[#434655] hover:bg-white border border-transparent hover:border-[#e2e8f0]')}>
+              page === p ? 'bg-[#7e22ce] text-white' : 'text-[#434655] hover:bg-white border border-transparent hover:border-[#e2e8f0]')}>
             {p}
           </button>
         ))}
@@ -124,7 +124,7 @@ function AccountStatusModal({
               : `${inst.name} is now active and can place new orders immediately.`}
           </p>
           <button onClick={onClose}
-            className="px-6 py-2.5 rounded-lg bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] transition-colors">
+            className="px-6 py-2.5 rounded-lg bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] transition-colors">
             Done
           </button>
         </div>
@@ -163,8 +163,8 @@ function AccountStatusModal({
 
         {/* Institution card */}
         <div className="mx-6 mb-4 flex items-center gap-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3">
-          <div className="w-10 h-10 rounded-lg bg-[#e5eeff] flex items-center justify-center shrink-0">
-            <Building2 size={18} className="text-[#004ac6]" />
+          <div className="w-10 h-10 rounded-lg bg-[#f3e8ff] flex items-center justify-center shrink-0">
+            <Building2 size={18} className="text-[#7e22ce]" />
           </div>
           <div className="min-w-0">
             <div className="text-[15px] font-semibold text-[#0b1c30] truncate">{inst.name}</div>
@@ -196,7 +196,7 @@ function AccountStatusModal({
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Describe the reason for suspension…"
                 rows={2}
-                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] resize-none focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] resize-none focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
               />
             </div>
           )}
@@ -282,8 +282,8 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#e5eeff] flex items-center justify-center">
-              <Building2 size={16} className="text-[#004ac6]" />
+            <div className="w-9 h-9 rounded-xl bg-[#f3e8ff] flex items-center justify-center">
+              <Building2 size={16} className="text-[#7e22ce]" />
             </div>
             <div>
               <h2 className="text-[18px] font-bold text-[#0b1c30]">Add Institution</h2>
@@ -302,13 +302,13 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
             <label className="text-[12px] font-bold text-[#64748b] tracking-[0.55px] uppercase block mb-2">Logo</label>
             <label className={cn(
               'flex items-center gap-3 border-2 border-dashed rounded-xl px-4 py-3 cursor-pointer transition-colors',
-              logoPreview ? 'border-[#004ac6] bg-[#eff4ff]' : 'border-[#e2e8f0] hover:border-[#004ac6] hover:bg-[#f8fafc]',
+              logoPreview ? 'border-[#7e22ce] bg-[#faf5ff]' : 'border-[#e2e8f0] hover:border-[#7e22ce] hover:bg-[#f8fafc]',
             )}>
               {logoPreview ? (
                 <img src={logoPreview} alt="logo" className="w-10 h-10 rounded-lg object-cover shrink-0" />
               ) : (
-                <div className="w-10 h-10 rounded-lg bg-[#e5eeff] flex items-center justify-center shrink-0">
-                  <Upload size={16} className="text-[#004ac6]" />
+                <div className="w-10 h-10 rounded-lg bg-[#f3e8ff] flex items-center justify-center shrink-0">
+                  <Upload size={16} className="text-[#7e22ce]" />
                 </div>
               )}
               <div className="min-w-0">
@@ -335,7 +335,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
                   onChange={handleChange}
                   required={f.required}
                   disabled={loading}
-                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
                 />
               </div>
             ))}
@@ -350,7 +350,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
               onChange={handleChange}
               rows={2}
               disabled={loading}
-              className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] resize-none focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] resize-none focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
             />
           </div>
 
@@ -368,7 +368,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
                 onChange={handleChange}
                 disabled={loading}
                 placeholder="e.g. 10"
-                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
               />
             </div>
             <div>
@@ -381,7 +381,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
                 value={form.contract_ends_at}
                 onChange={handleChange}
                 disabled={loading}
-                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
               />
             </div>
           </div>
@@ -397,7 +397,7 @@ function CreateInstitutionModal({ onClose, onSuccess }: { onClose: () => void; o
               Cancel
             </button>
             <button type="submit" disabled={loading || !form.name || !form.email || !form.contact_person}
-              className="px-5 py-2 rounded-lg bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] disabled:opacity-40 transition-colors flex items-center gap-2">
+              className="px-5 py-2 rounded-lg bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] disabled:opacity-40 transition-colors flex items-center gap-2">
               {loading
                 ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating…</>
                 : <><Building2 size={14} /> Add Institution</>}
@@ -478,15 +478,15 @@ function InstitutionCard({
   return (
     <div className={cn(
       'bg-white rounded-2xl border p-4 flex flex-col gap-3 transition-all hover:shadow-md cursor-default',
-      selected ? 'border-[#004ac6] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]' : 'border-[#c3c6d7]',
+      selected ? 'border-[#7e22ce] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]' : 'border-[#c3c6d7]',
     )}>
       <div className="flex items-start gap-2.5">
         <input type="checkbox" checked={selected} onChange={onToggle}
-          className="w-4 h-4 rounded border-[#c3c6d7] accent-[#004ac6] cursor-pointer shrink-0 mt-0.5" />
-        <div className="w-9 h-9 rounded-lg bg-[#e5eeff] flex items-center justify-center shrink-0">
+          className="w-4 h-4 rounded border-[#c3c6d7] accent-[#7e22ce] cursor-pointer shrink-0 mt-0.5" />
+        <div className="w-9 h-9 rounded-lg bg-[#f3e8ff] flex items-center justify-center shrink-0">
           {inst.logo_url
             ? <img src={inst.logo_url} alt={inst.name} className="w-full h-full object-cover rounded-lg" />
-            : <Building2 size={16} className="text-[#004ac6]" />}
+            : <Building2 size={16} className="text-[#7e22ce]" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[14px] font-semibold text-[#0b1c30] truncate">{inst.name}</div>
@@ -631,17 +631,17 @@ const InstitutionsPage = () => {
       <div className="flex items-end justify-between">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-[12px]">
-            <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#004ac6] transition-colors">
+            <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#7e22ce] transition-colors">
               Dashboard
             </button>
             <ChevronRight size={10} className="text-[#94a3b8]" />
-            <span className="text-[#004ac6] font-medium">Institutions</span>
+            <span className="text-[#7e22ce] font-medium">Institutions</span>
           </div>
           <h1 className="text-[24px] font-bold text-[#0b1c30] tracking-tight">Institution Management</h1>
         </div>
         <button
           onClick={() => setModal('create')}
-          className="flex items-center gap-2 bg-[#004ac6] text-white text-[14px] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#003da6] transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-[#7e22ce] text-white text-[14px] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm"
         >
           <Plus size={14} />
           Register Institution
@@ -673,7 +673,7 @@ const InstitutionsPage = () => {
               placeholder="Search institutions, contacts…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6]"
+              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce]"
             />
           </div>
 
@@ -684,7 +684,7 @@ const InstitutionsPage = () => {
             <select
               value={statusF}
               onChange={(e) => setStatusF(e.target.value as InstStatus | '')}
-              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[14px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#004ac6]"
+              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[14px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#7e22ce]"
             >
               <option value="">All Statuses</option>
               <option value="ACTIVE">Active</option>
@@ -697,7 +697,7 @@ const InstitutionsPage = () => {
 
           <button onClick={() => { setSearch(''); setStatusF('') }}
             disabled={!search && !statusF}
-            className="text-[12px] font-semibold text-[#004ac6] hover:underline disabled:opacity-30 disabled:no-underline">
+            className="text-[12px] font-semibold text-[#7e22ce] hover:underline disabled:opacity-30 disabled:no-underline">
             Clear
           </button>
 
@@ -711,12 +711,12 @@ const InstitutionsPage = () => {
             <button onClick={() => setView('table')}
               className={cn('w-8 h-8 flex items-center justify-center rounded transition-colors',
                 view === 'table' ? 'bg-white shadow-sm' : 'hover:bg-white/50')}>
-              <List size={16} className={view === 'table' ? 'text-[#004ac6]' : 'text-[#94a3b8]'} />
+              <List size={16} className={view === 'table' ? 'text-[#7e22ce]' : 'text-[#94a3b8]'} />
             </button>
             <button onClick={() => setView('grid')}
               className={cn('w-8 h-8 flex items-center justify-center rounded transition-colors',
                 view === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-white/50')}>
-              <LayoutGrid size={16} className={view === 'grid' ? 'text-[#004ac6]' : 'text-[#94a3b8]'} />
+              <LayoutGrid size={16} className={view === 'grid' ? 'text-[#7e22ce]' : 'text-[#94a3b8]'} />
             </button>
           </div>
         </div>
@@ -732,7 +732,7 @@ const InstitutionsPage = () => {
         <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
           {/* Bulk bar */}
           {rowSel.size > 0 && (
-            <div className="bg-[#004ac6] flex items-center justify-between px-6 py-2.5">
+            <div className="bg-[#7e22ce] flex items-center justify-between px-6 py-2.5">
               <div className="flex items-center gap-4">
                 <span className="text-white text-[13px] font-medium">{rowSel.size} selected</span>
                 <div className="w-px h-4 bg-white/30" />
@@ -749,7 +749,7 @@ const InstitutionsPage = () => {
 
           {loading ? (
             <div className="py-14 flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
               <p className="text-[13px] text-[#64748b]">Loading institutions…</p>
             </div>
           ) : filtered.length === 0 ? (
@@ -762,7 +762,7 @@ const InstitutionsPage = () => {
                     <tr className="bg-[#f8fafc] border-b border-[#f1f5f9]">
                       <th className="w-12 px-5 py-3">
                         <input type="checkbox" checked={allRowsSel} onChange={toggleAll}
-                          className="w-4 h-4 rounded border-[#cbd5e1] accent-[#004ac6] cursor-pointer" />
+                          className="w-4 h-4 rounded border-[#cbd5e1] accent-[#7e22ce] cursor-pointer" />
                       </th>
                       <th className="w-14 px-3 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase">Logo</th>
                       <th className="text-left px-4 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase">Institution</th>
@@ -780,13 +780,13 @@ const InstitutionsPage = () => {
                         <tr key={inst.id} className={cn('border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors', isSel && 'bg-[#f8fafc]')}>
                           <td className="w-12 px-5 py-4">
                             <input type="checkbox" checked={isSel} onChange={() => toggleRow(inst.id)}
-                              className="w-4 h-4 rounded border-[#cbd5e1] accent-[#004ac6] cursor-pointer" />
+                              className="w-4 h-4 rounded border-[#cbd5e1] accent-[#7e22ce] cursor-pointer" />
                           </td>
                           <td className="px-3 py-4">
-                            <div className="w-10 h-10 rounded-lg bg-[#e5eeff] flex items-center justify-center overflow-hidden">
+                            <div className="w-10 h-10 rounded-lg bg-[#f3e8ff] flex items-center justify-center overflow-hidden">
                               {inst.logo_url
                                 ? <img src={inst.logo_url} alt={inst.name} className="w-full h-full object-cover" />
-                                : <Building2 size={16} className="text-[#004ac6]" />}
+                                : <Building2 size={16} className="text-[#7e22ce]" />}
                             </div>
                           </td>
                           <td className="px-4 py-4 min-w-[200px]">

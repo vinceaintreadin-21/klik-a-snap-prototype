@@ -32,7 +32,7 @@ const SessionTimeoutModal = ({ secondsRemaining, onStay, onLogout }: Props) => {
 
         <div
           className={`text-[32px] font-bold tabular-nums mb-6 ${
-            urgent ? 'text-[#dc2626]' : 'text-[#004ac6]'
+            urgent ? 'text-[#dc2626]' : 'text-[#7e22ce]'
           }`}
           role="timer"
           aria-live="polite"
@@ -43,7 +43,7 @@ const SessionTimeoutModal = ({ secondsRemaining, onStay, onLogout }: Props) => {
         <div className="flex gap-3 w-full">
           <button
             onClick={onStay}
-            className="flex-1 px-6 py-2.5 rounded-lg bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] transition-colors"
+            className="flex-1 px-6 py-2.5 rounded-lg bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] transition-colors"
           >
             Stay signed in
           </button>

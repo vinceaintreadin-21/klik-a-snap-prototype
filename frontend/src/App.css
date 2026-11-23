@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+/* Shared primary accent across operator, institution, coordinator and admin UI. */
+@theme {
+  --color-blue-50: #faf5ff;
+  --color-blue-100: #f3e8ff;
+  --color-blue-200: #e9d5ff;
+  --color-blue-300: #d8b4fe;
+  --color-blue-400: #c084fc;
+  --color-blue-500: #a855f7;
+  --color-blue-600: #9333ea;
+  --color-blue-700: #7e22ce;
+  --color-blue-800: #6b21a8;
+  --color-blue-900: #581c87;
+  --color-blue-950: #3b0764;
+  --color-indigo-50: #faf5ff;
+  --color-indigo-100: #f3e8ff;
+  --color-indigo-200: #e9d5ff;
+  --color-indigo-300: #d8b4fe;
+  --color-indigo-400: #c084fc;
+  --color-indigo-500: #a855f7;
+  --color-indigo-600: #9333ea;
+  --color-indigo-700: #7e22ce;
+  --color-indigo-800: #6b21a8;
+  --color-indigo-900: #581c87;
+  --color-indigo-950: #3b0764;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);

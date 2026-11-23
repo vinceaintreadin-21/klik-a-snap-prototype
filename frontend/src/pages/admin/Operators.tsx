@@ -28,7 +28,7 @@ const STATUS_CFG = {
 
 const WORKLOAD_CFG: Record<string, { barColor: string; labelColor: string; label: string }> = {
   Idle:   { barColor: 'transparent', labelColor: '#94a3b8', label: 'Idle'   },
-  Low:    { barColor: '#004ac6',     labelColor: '#004ac6', label: 'Low'    },
+  Low:    { barColor: '#7e22ce',     labelColor: '#7e22ce', label: 'Low'    },
   Medium: { barColor: '#f97316',     labelColor: '#ea580c', label: 'Medium' },
   High:   { barColor: '#ba1a1a',     labelColor: '#ba1a1a', label: 'High'   },
 }
@@ -100,7 +100,7 @@ function TablePager({
             className={cn(
               'w-8 h-8 flex items-center justify-center rounded text-[13px] font-medium transition-colors',
               page === p
-                ? 'bg-[#004ac6] text-white'
+                ? 'bg-[#7e22ce] text-white'
                 : 'text-[#434655] hover:bg-white border border-transparent hover:border-[#e2e8f0]',
             )}
           >
@@ -160,7 +160,7 @@ function AccountStatusModal({
           </p>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-lg bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] transition-colors"
+            className="px-6 py-2.5 rounded-lg bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] transition-colors"
           >
             Done
           </button>
@@ -304,8 +304,8 @@ function CreateOperatorModal({ onClose, onSuccess }: { onClose: () => void; onSu
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#eff4ff] flex items-center justify-center">
-              <UserPlus size={16} className="text-[#004ac6]" />
+            <div className="w-9 h-9 rounded-xl bg-[#faf5ff] flex items-center justify-center">
+              <UserPlus size={16} className="text-[#7e22ce]" />
             </div>
             <div>
               <h2 className="text-[18px] font-bold text-[#0b1c30]">Register Operator</h2>
@@ -331,7 +331,7 @@ function CreateOperatorModal({ onClose, onSuccess }: { onClose: () => void; onSu
                   placeholder="e.g. john.doe"
                   required
                   disabled={loading}
-                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
                 />
               </div>
               <div>
@@ -345,7 +345,7 @@ function CreateOperatorModal({ onClose, onSuccess }: { onClose: () => void; onSu
                   placeholder="e.g. john.doe@company.com"
                   required
                   disabled={loading}
-                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
                 />
               </div>
               {error && (
@@ -357,7 +357,7 @@ function CreateOperatorModal({ onClose, onSuccess }: { onClose: () => void; onSu
                   Cancel
                 </button>
                 <button type="submit" disabled={loading || !username.trim() || !email.trim()}
-                  className="px-5 py-2 rounded-lg bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] disabled:opacity-40 transition-colors flex items-center gap-2">
+                  className="px-5 py-2 rounded-lg bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] disabled:opacity-40 transition-colors flex items-center gap-2">
                   {loading
                     ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating…</>
                     : <><UserPlus size={14} /> Create Operator</>}
@@ -392,7 +392,7 @@ function CreateOperatorModal({ onClose, onSuccess }: { onClose: () => void; onSu
                       'px-3 py-2 rounded-xl border text-[13px] font-semibold transition-colors flex items-center gap-1.5',
                       copied
                         ? 'bg-[#f0fdf4] border-[#bbf7d0] text-[#166534]'
-                        : 'bg-[#004ac6] border-[#004ac6] text-white hover:bg-[#003da6]',
+                        : 'bg-[#7e22ce] border-[#7e22ce] text-white hover:bg-[#6b21a8]',
                     )}
                   >
                     {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
@@ -507,7 +507,7 @@ function ResetPasswordModal({ op, onClose }: { op: Operator; onClose: () => void
                       'px-3 py-2 rounded-xl border text-[13px] font-semibold transition-colors flex items-center gap-1.5',
                       copied
                         ? 'bg-[#f0fdf4] border-[#bbf7d0] text-[#166534]'
-                        : 'bg-[#004ac6] border-[#004ac6] text-white hover:bg-[#003da6]',
+                        : 'bg-[#7e22ce] border-[#7e22ce] text-white hover:bg-[#6b21a8]',
                     )}
                   >
                     {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
@@ -669,11 +669,11 @@ const Operators = () => {
       <div className="flex items-end justify-between">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-[12px]">
-            <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#004ac6] transition-colors">
+            <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#7e22ce] transition-colors">
               Dashboard
             </button>
             <ChevronRight size={10} className="text-[#94a3b8]" />
-            <span className="text-[#004ac6] font-medium">Operators</span>
+            <span className="text-[#7e22ce] font-medium">Operators</span>
           </div>
           <div className="flex items-center gap-3">
             <h1 className="text-[24px] font-bold text-[#0b1c30] tracking-tight">Operator Management</h1>
@@ -687,7 +687,7 @@ const Operators = () => {
         </div>
         <button
           onClick={() => setModal('create')}
-          className="flex items-center gap-2 bg-[#004ac6] text-white text-[14px] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#003da6] transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-[#7e22ce] text-white text-[14px] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm"
         >
           <UserPlus size={15} />
           Register Operator
@@ -718,7 +718,7 @@ const Operators = () => {
               placeholder="Filter by name, email…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6]"
+              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce]"
             />
           </div>
           <span className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">Status</span>
@@ -726,7 +726,7 @@ const Operators = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatus(e.target.value as 'all' | 'active' | 'inactive')}
-              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[14px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#004ac6]"
+              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[14px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#7e22ce]"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active</option>
@@ -737,7 +737,7 @@ const Operators = () => {
           <button
             onClick={() => { setSearch(''); setStatus('all') }}
             disabled={!search && statusFilter === 'all'}
-            className="px-3 py-2 text-[12px] font-semibold text-[#004ac6] hover:underline disabled:opacity-30 disabled:no-underline"
+            className="px-3 py-2 text-[12px] font-semibold text-[#7e22ce] hover:underline disabled:opacity-30 disabled:no-underline"
           >
             Clear
           </button>
@@ -759,7 +759,7 @@ const Operators = () => {
       <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
         {/* Bulk bar */}
         {rowSel.size > 0 && (
-          <div className="bg-[#004ac6] flex items-center justify-between px-6 py-2.5">
+          <div className="bg-[#7e22ce] flex items-center justify-between px-6 py-2.5">
             <div className="flex items-center gap-4">
               <span className="text-white text-[13px] font-medium">{rowSel.size} selected</span>
               <div className="w-px h-4 bg-white/30" />
@@ -775,7 +775,7 @@ const Operators = () => {
 
         {loading ? (
           <div className="py-14 flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
             <p className="text-[13px] text-[#64748b]">Loading operators…</p>
           </div>
         ) : filtered.length === 0 ? (
@@ -788,7 +788,7 @@ const Operators = () => {
                   <tr className="bg-[rgba(248,250,252,0.7)] border-b border-[#f1f5f9]">
                     <th className="w-12 px-5 py-3">
                       <input type="checkbox" checked={allRowsSel} onChange={toggleAll}
-                        className="w-4 h-4 rounded border-[#cbd5e1] accent-[#004ac6] cursor-pointer" />
+                        className="w-4 h-4 rounded border-[#cbd5e1] accent-[#7e22ce] cursor-pointer" />
                     </th>
                     <th className="text-left px-4 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.6px] uppercase">Operator</th>
                     <th className="text-center px-4 py-3 text-[11px] font-bold text-[#64748b] tracking-[0.6px] uppercase">Active Orders</th>
@@ -808,7 +808,7 @@ const Operators = () => {
                       <tr key={op.id} className={cn('border-t border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors', isSel && 'bg-[#f8fafc]')}>
                         <td className="w-12 px-5 py-3.5">
                           <input type="checkbox" checked={isSel} onChange={() => toggleRow(op.id)}
-                            className="w-4 h-4 rounded border-[#cbd5e1] accent-[#004ac6] cursor-pointer" />
+                            className="w-4 h-4 rounded border-[#cbd5e1] accent-[#7e22ce] cursor-pointer" />
                         </td>
                         <td className="px-4 py-3.5 min-w-[180px]">
                           <div className="flex items-center gap-3">
@@ -822,7 +822,7 @@ const Operators = () => {
                           </div>
                         </td>
                         <td className="text-center px-4 py-3.5">
-                          <span className="text-[16px] font-semibold text-[#004ac6]">{workload.pct > 0 ? Math.round(workload.pct / 10) : 0}</span>
+                          <span className="text-[16px] font-semibold text-[#7e22ce]">{workload.pct > 0 ? Math.round(workload.pct / 10) : 0}</span>
                         </td>
                         <td className="px-4 py-3.5">
                           <WorkloadBar pct={workload.pct} level={workload.level} />

@@ -56,8 +56,8 @@ export default function GenerateCoordinatorModal({ onClose, onSuccess }: Generat
                 {/* Header */}
                 <div className="flex items-start justify-between px-6 py-5 border-b border-[#f1f5f9]">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#e8eeff] flex items-center justify-center">
-                            <Link2 size={18} className="text-[#004ac6]" />
+                        <div className="w-10 h-10 rounded-xl bg-[#f3e8ff] flex items-center justify-center">
+                            <Link2 size={18} className="text-[#7e22ce]" />
                         </div>
                         <div>
                             <h2 className="text-[16px] font-bold text-[#0b1c30]">Generate New Coordinator</h2>
@@ -80,7 +80,7 @@ export default function GenerateCoordinatorModal({ onClose, onSuccess }: Generat
                                     placeholder="e.g. John Smith"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-[14px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors"
+                                    className="border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-[14px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors"
                                 />
                             </div>
 
@@ -92,7 +92,7 @@ export default function GenerateCoordinatorModal({ onClose, onSuccess }: Generat
                                     placeholder="e.g. j.smith@university.edu"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-[14px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors"
+                                    className="border border-[#e2e8f0] rounded-lg px-3 py-2.5 text-[14px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors"
                                 />
                             </div>
 
@@ -105,8 +105,8 @@ export default function GenerateCoordinatorModal({ onClose, onSuccess }: Generat
                                             className={cn(
                                                 'flex-1 py-2 rounded-lg border text-[13px] font-medium transition-all',
                                                 expiry === opt
-                                                    ? 'bg-[#004ac6] text-white border-[#004ac6]'
-                                                    : 'bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#004ac6] hover:text-[#004ac6]'
+                                                    ? 'bg-[#7e22ce] text-white border-[#7e22ce]'
+                                                    : 'bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#7e22ce] hover:text-[#7e22ce]'
                                             )}>
                                             {opt === '24h' ? '24 Hours' : opt === '48h' ? '48 Hours' : '7 Days'}
                                         </button>
@@ -136,7 +136,7 @@ export default function GenerateCoordinatorModal({ onClose, onSuccess }: Generat
                                 <button
                                     onClick={handleGenerate}
                                     disabled={!name.trim() || !email.trim() || loading}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#004ac6] text-white text-[13px] font-medium hover:bg-[#003da6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#7e22ce] text-white text-[13px] font-medium hover:bg-[#6b21a8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
                                     <Link2 size={14} />
                                     {loading ? 'Generating…' : 'Generate Link'}
                                 </button>
@@ -159,21 +159,21 @@ export default function GenerateCoordinatorModal({ onClose, onSuccess }: Generat
                                     <Link2 size={14} className="text-[#9ba3af] shrink-0" />
                                     <span className="flex-1 text-[12px] font-mono text-[#64748b] truncate">{generatedLink}</span>
                                     <button onClick={handleCopy}
-                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-[#e2e8f0] text-[12px] text-[#374151] hover:border-[#004ac6] transition-colors shrink-0">
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-[#e2e8f0] text-[12px] text-[#374151] hover:border-[#7e22ce] transition-colors shrink-0">
                                         {copied ? <><Check size={12} className="text-[#22c55e]" /> Copied</> : <><Copy size={12} /> Copy</>}
                                     </button>
                                 </div>
                             )}
 
                             <div className="flex items-center gap-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3">
-                                <div className="w-9 h-9 rounded-full bg-[#004ac6] flex items-center justify-center text-white text-[12px] font-bold shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-[#7e22ce] flex items-center justify-center text-white text-[12px] font-bold shrink-0">
                                     {initials}
                                 </div>
                                 <div className="min-w-0">
                                     <div className="text-[13px] font-semibold text-[#0b1c30] truncate">{name}</div>
                                     <div className="text-[11px] text-[#9ba3af] truncate">{email}</div>
                                 </div>
-                                <span className="text-[11px] font-medium text-[#1d4ed8] bg-[#eff6ff] px-2 py-0.5 rounded-full shrink-0">
+                                <span className="text-[11px] font-medium text-[#7e22ce] bg-[#eff6ff] px-2 py-0.5 rounded-full shrink-0">
                                     Expires {expiry === '24h' ? 'in 24h' : expiry === '48h' ? 'in 48h' : 'in 7 days'}
                                 </span>
                             </div>

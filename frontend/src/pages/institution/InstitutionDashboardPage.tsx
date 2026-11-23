@@ -13,7 +13,7 @@ import api from '../../utils/api'
 function ProgressBar({ pct, label }: { pct: number; label: string }) {
     const isHold = label === 'HOLD'
     const isDone = label === 'Done'
-    const barColor = isHold ? '#ba1a1a' : '#004ac6'
+    const barColor = isHold ? '#ba1a1a' : '#7e22ce'
     const labelColor = isHold ? '#ba1a1a' : isDone ? '#22c55e' : '#64748b'
     return (
         <div className="flex items-center gap-2 min-w-[140px]">
@@ -75,25 +75,25 @@ export default function InstitutionDashboardPage() {
                 </div>
             </div>
 
-            <div className="p-8 flex flex-col gap-6 bg-[#f7f8fa] min-h-full">
+            <div className="p-8 flex flex-col gap-6 bg-[#f5f3ff] min-h-full">
                 {/* Stat cards */}
                 <div className="grid grid-cols-4 gap-4">
                     {/* Active Orders */}
                     <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.04)]">
                         <div className="flex items-start justify-between mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-[#e8eeff] flex items-center justify-center">
-                                <ClipboardList size={18} className="text-[#004ac6]" />
+                            <div className="w-10 h-10 rounded-xl bg-[#f3e8ff] flex items-center justify-center">
+                                <ClipboardList size={18} className="text-[#7e22ce]" />
                             </div>
                             {activeOrders.length > 0 && (
-                                <span className="text-[11px] font-semibold text-[#004ac6] bg-[#e8eeff] px-2 py-0.5 rounded-full">
+                                <span className="text-[11px] font-semibold text-[#7e22ce] bg-[#f3e8ff] px-2 py-0.5 rounded-full">
                                     {activeOrders.length} active
                                 </span>
                             )}
                         </div>
                         <div className="text-[30px] font-bold text-[#0b1c30] leading-none">{activeOrders.length}</div>
                         <div className="text-[13px] text-[#64748b] mt-1.5 mb-3">Active Orders</div>
-                        <div className="h-[4px] bg-[#e8eeff] rounded-full overflow-hidden">
-                            <div className="h-full bg-[#004ac6] rounded-full" style={{ width: `${Math.min((activeOrders.length / Math.max(orders.length, 1)) * 100, 100)}%` }} />
+                        <div className="h-[4px] bg-[#f3e8ff] rounded-full overflow-hidden">
+                            <div className="h-full bg-[#7e22ce] rounded-full" style={{ width: `${Math.min((activeOrders.length / Math.max(orders.length, 1)) * 100, 100)}%` }} />
                         </div>
                     </div>
 
@@ -158,12 +158,12 @@ export default function InstitutionDashboardPage() {
                         <div className="flex items-center justify-between px-6 py-4 border-b border-[#f1f5f9]">
                             <div className="flex items-center gap-2.5">
                                 <span className="text-[15px] font-semibold text-[#0b1c30]">Recent Orders</span>
-                                <span className="bg-[#004ac6] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">{orders.length}</span>
+                                <span className="bg-[#7e22ce] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">{orders.length}</span>
                             </div>
                             <div className="flex items-center gap-2.5">
                                 <div className="relative">
                                     <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#374151] pl-3 pr-7 py-1.5 cursor-pointer focus:outline-none hover:border-[#004ac6] transition-colors">
+                                        className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[12px] text-[#374151] pl-3 pr-7 py-1.5 cursor-pointer focus:outline-none hover:border-[#7e22ce] transition-colors">
                                         <option>All Statuses</option>
                                         <option>PROCESSING</option>
                                         <option>PROOFING</option>
@@ -171,7 +171,7 @@ export default function InstitutionDashboardPage() {
                                     </select>
                                     <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ba3af] pointer-events-none" />
                                 </div>
-                                <button onClick={() => navigate('/client/orders')} className="text-[13px] text-[#004ac6] hover:underline font-medium">
+                                <button onClick={() => navigate('/client/orders')} className="text-[13px] text-[#7e22ce] hover:underline font-medium">
                                     View All →
                                 </button>
                             </div>
@@ -182,7 +182,7 @@ export default function InstitutionDashboardPage() {
                                 <ClipboardList size={28} className="text-[#c8cbd9]" />
                                 <p className="text-[14px] text-[#9ba3af]">No orders yet</p>
                                 <button onClick={() => navigate('/client/orders/new')}
-                                    className="text-[13px] text-[#004ac6] hover:underline font-medium">
+                                    className="text-[13px] text-[#7e22ce] hover:underline font-medium">
                                     Create your first order →
                                 </button>
                             </div>
@@ -206,7 +206,7 @@ export default function InstitutionDashboardPage() {
                                             return (
                                                 <tr key={order.id} className="border-b border-[#f8fafc] hover:bg-[#fafbfd] transition-colors">
                                                     <td className="px-6 py-4">
-                                                        <span className="font-mono text-[13px] font-semibold text-[#004ac6]">#{order.id}</span>
+                                                        <span className="font-mono text-[13px] font-semibold text-[#7e22ce]">#{order.id}</span>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="text-[13px] font-medium text-[#374151] truncate max-w-[140px]">{order.batch_name}</div>
@@ -229,8 +229,8 @@ export default function InstitutionDashboardPage() {
                                                                 className="p-1.5 rounded-lg hover:bg-[#f1f5f9] transition-colors" title="View">
                                                                 <Eye size={13} className="text-[#64748b]" />
                                                             </button>
-                                                            <button className="p-1.5 rounded-lg hover:bg-[#e8eeff] transition-colors" title="Download QR Codes">
-                                                                <QrCode size={13} className="text-[#004ac6]" />
+                                                            <button className="p-1.5 rounded-lg hover:bg-[#f3e8ff] transition-colors" title="Download QR Codes">
+                                                                <QrCode size={13} className="text-[#7e22ce]" />
                                                             </button>
                                                         </div>
                                                     </td>
@@ -275,7 +275,7 @@ export default function InstitutionDashboardPage() {
                                                     {order.student_count} IDs require verification before production.
                                                 </p>
                                                 <button onClick={() => navigate('/client/proofing')}
-                                                    className="text-[12px] font-semibold text-[#004ac6] hover:underline">
+                                                    className="text-[12px] font-semibold text-[#7e22ce] hover:underline">
                                                     Launch Proofing Tool →
                                                 </button>
                                             </div>
@@ -293,14 +293,14 @@ export default function InstitutionDashboardPage() {
                             {orders.length === 0 && (
                                 <div className="rounded-xl border border-[#e2e8f0] bg-white p-4">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-[#e8eeff] flex items-center justify-center shrink-0 mt-0.5">
-                                            <ClipboardList size={14} className="text-[#004ac6]" />
+                                        <div className="w-8 h-8 rounded-lg bg-[#f3e8ff] flex items-center justify-center shrink-0 mt-0.5">
+                                            <ClipboardList size={14} className="text-[#7e22ce]" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <span className="text-[13px] font-semibold text-[#0b1c30] leading-tight">Create your first order</span>
                                             <p className="text-[12px] text-[#64748b] leading-4 mt-1 mb-2.5">Upload a student list to begin ID card production.</p>
                                             <button onClick={() => navigate('/client/orders/new')}
-                                                className="text-[12px] font-semibold text-[#004ac6] hover:underline">
+                                                className="text-[12px] font-semibold text-[#7e22ce] hover:underline">
                                                 New Order →
                                             </button>
                                         </div>

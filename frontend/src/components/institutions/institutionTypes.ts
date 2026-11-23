@@ -51,7 +51,7 @@ export const STATUS_CFG: Record<string, { bg: string; text: string }> = {
 export const LINK_STATUS_CFG: Record<Coordinator['link_status'], { bg: string; dot: string; text: string }> = {
     Active: { bg: '#f0fdf4', dot: '#22c55e', text: '#15803d' },
     Expired: { bg: '#fef2f2', dot: '#ef4444', text: '#b91c1c' },
-    Pending: { bg: '#eff6ff', dot: '#3b82f6', text: '#1d4ed8' },
+    Pending: { bg: '#eff6ff', dot: '#a855f7', text: '#7e22ce' },
 }
 
 export const REVISION_REASONS = [

@@ -43,7 +43,7 @@ const OverrideStatusModal = ({ order, onClose, onSuccess }: Props) => {
           </p>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-lg bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] transition-colors"
+            className="px-6 py-2.5 rounded-lg bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] transition-colors"
           >
             Done
           </button>
@@ -102,7 +102,7 @@ const OverrideStatusModal = ({ order, onClose, onSuccess }: Props) => {
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full appearance-none border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2 text-[14px] text-[#0b1c30] bg-white cursor-pointer focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full appearance-none border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2 text-[14px] text-[#0b1c30] bg-white cursor-pointer focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
                 >
                   {ORDER_STATUSES.map((s) => (
                     <option key={s} value={s} disabled={s === order.status}>{s}</option>
@@ -126,7 +126,7 @@ const OverrideStatusModal = ({ order, onClose, onSuccess }: Props) => {
               onChange={(e) => setReason(e.target.value)}
               placeholder="Describe the reason for this override (min. 8 characters)…"
               rows={3}
-              className="w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] resize-none focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] resize-none focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
             />
             <div className="flex items-center justify-between mt-1.5">
               {reason.length > 0 && reason.trim().length < 8 ? (

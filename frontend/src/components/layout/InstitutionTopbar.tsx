@@ -18,7 +18,7 @@ export default function InstitutionTopbar() {
 
                 <button
                     onClick={() => navigate('/client/orders/new')}
-                    className="flex items-center gap-1.5 bg-[#004ac6] text-white text-[13px] font-medium px-4 py-[7px] rounded-lg hover:bg-[#003da6] transition-colors shadow-sm">
+                    className="flex items-center gap-1.5 bg-[#7e22ce] text-white text-[13px] font-medium px-4 py-[7px] rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm">
                     <Plus size={14} />
                     New Order
                 </button>

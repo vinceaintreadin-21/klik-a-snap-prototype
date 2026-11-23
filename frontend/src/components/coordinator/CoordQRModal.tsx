@@ -41,8 +41,8 @@ export default function CoordQRModal({ subject, onClose }: CoordQRModalProps) {
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-[#f1f5f9]">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[#e8eeff] flex items-center justify-center">
-                            <QrCode size={14} className="text-[#004ac6]" />
+                        <div className="w-7 h-7 rounded-lg bg-[#f3e8ff] flex items-center justify-center">
+                            <QrCode size={14} className="text-[#7e22ce]" />
                         </div>
                         <h3 className="text-[15px] font-bold text-[#0b1c30]">Subject QR Code</h3>
                     </div>
@@ -85,7 +85,7 @@ export default function CoordQRModal({ subject, onClose }: CoordQRModalProps) {
                     </div>
 
                     <button onClick={onClose}
-                        className="w-full py-3 rounded-xl bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] transition-colors">
+                        className="w-full py-3 rounded-xl bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] transition-colors">
                         Done
                     </button>
                 </div>

@@ -28,7 +28,7 @@ function ProgressCell({ done, total }: { done: number; total: number }) {
       <div className="h-1.5 rounded-full bg-[#d3e4fe] overflow-hidden w-full">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, background: pct === 100 ? '#166534' : '#004ac6' }}
+          style={{ width: `${pct}%`, background: pct === 100 ? '#166534' : '#7e22ce' }}
         />
       </div>
     </div>
@@ -67,7 +67,7 @@ const AdminOrderTable = ({
 
         {/* Bulk action bar */}
         {selected.size > 0 && (
-          <div className="bg-[#004ac6] flex items-center justify-between px-6 py-2.5">
+          <div className="bg-[#7e22ce] flex items-center justify-between px-6 py-2.5">
             <div className="flex items-center gap-4">
               <span className="text-white text-[13px] font-medium">{selected.size} selected</span>
               <div className="w-px h-4 bg-white/30" />
@@ -99,13 +99,13 @@ const AdminOrderTable = ({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] border-collapse">
               <thead>
-                <tr className="bg-[#eff4ff] border-b border-[#c3c6d7]">
+                <tr className="bg-[#faf5ff] border-b border-[#c3c6d7]">
                   <th className="w-12 px-4 py-3">
                     <input
                       type="checkbox"
                       checked={allSelected}
                       onChange={onToggleAll}
-                      className="w-4 h-4 rounded border-[#c3c6d7] accent-[#004ac6] cursor-pointer"
+                      className="w-4 h-4 rounded border-[#c3c6d7] accent-[#7e22ce] cursor-pointer"
                     />
                   </th>
                   <th className="text-left px-4 py-3 text-[11px] font-bold text-[#434655] uppercase tracking-wide whitespace-nowrap">
@@ -145,8 +145,8 @@ const AdminOrderTable = ({
                     <tr
                       key={order.id}
                       className={cn(
-                        'border-t border-[#e8edf5] hover:bg-[#eff4ff] transition-colors',
-                        isSel && 'bg-[#eff4ff]',
+                        'border-t border-[#e8edf5] hover:bg-[#faf5ff] transition-colors',
+                        isSel && 'bg-[#faf5ff]',
                       )}
                     >
                       {/* Checkbox */}
@@ -155,7 +155,7 @@ const AdminOrderTable = ({
                           type="checkbox"
                           checked={isSel}
                           onChange={() => onToggleRow(order.id)}
-                          className="w-4 h-4 rounded border-[#c3c6d7] accent-[#004ac6] cursor-pointer"
+                          className="w-4 h-4 rounded border-[#c3c6d7] accent-[#7e22ce] cursor-pointer"
                         />
                       </td>
 
@@ -171,7 +171,7 @@ const AdminOrderTable = ({
                       <td className="px-4 py-3.5 min-w-[180px]">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded shrink-0 bg-[#d3e4fe] flex items-center justify-center">
-                            <span className="text-[11px] font-bold text-[#004ac6]">{initials}</span>
+                            <span className="text-[11px] font-bold text-[#7e22ce]">{initials}</span>
                           </div>
                           <div className="min-w-0">
                             <div className="text-[13px] font-medium text-[#0b1c30] truncate leading-5">
@@ -234,14 +234,14 @@ const AdminOrderTable = ({
                         <div className="flex items-center justify-end gap-1">
                           <button
                             title="View"
-                            className="w-[28px] h-[28px] flex items-center justify-center rounded hover:bg-[#dce9ff] transition-colors"
+                            className="w-[28px] h-[28px] flex items-center justify-center rounded hover:bg-[#f3e8ff] transition-colors"
                           >
                             <Eye size={13.5} className="text-[#434655]" />
                           </button>
                           <button
                             title="Assign operator"
                             onClick={() => setAssignOrder(order)}
-                            className="w-[28px] h-[28px] flex items-center justify-center rounded hover:bg-[#dce9ff] transition-colors"
+                            className="w-[28px] h-[28px] flex items-center justify-center rounded hover:bg-[#f3e8ff] transition-colors"
                           >
                             <UserPlus size={13.5} className="text-[#434655]" />
                           </button>

@@ -1,3 +1,5 @@
+import ViewModeToggle, { type ViewMode } from "../../shared/ViewModeToggle";
+import OperatorOrderTable from "../OperatorOrderTable";
 import { useState, useMemo } from "react";
 import { ChevronRight, Users, Calendar, Search, AlertTriangle } from "lucide-react";
 import { cn } from "../../../lib/utils";
@@ -12,6 +14,7 @@ interface OrderQueueProps {
 export default function OrderQueue({ onSelect }: OrderQueueProps) {
     const { orders, progress } = useOrders()
     const [search, setSearch] = useState("")
+    const [view, setView] = useState<ViewMode>("grid")
 
     const proofingOrders = useMemo(
         () => (orders as OperatorOrder[]).filter(o => ["PROOFING", "APPROVED", "PRINTING", "COMPLETED"].includes(o.status)),
@@ -32,7 +35,7 @@ export default function OrderQueue({ onSelect }: OrderQueueProps) {
     return (
         <div className="flex flex-col h-full">
             <header className="sticky top-0 bg-white border-b border-gray-100 shadow-sm z-10">
-                <div className="flex items-center gap-4 px-8 py-3">
+                <div className="flex flex-wrap items-center gap-4 px-8 py-3">
                     <h1 className="text-[15px] font-semibold text-gray-900">Proofing</h1>
                     <div className="relative ml-auto w-56 shrink-0">
                         <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -44,6 +47,7 @@ export default function OrderQueue({ onSelect }: OrderQueueProps) {
                             className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 placeholder:text-gray-400 transition-all"
                         />
                     </div>
+                    <ViewModeToggle value={view} onChange={setView} />
                 </div>
             </header>
 
@@ -51,6 +55,13 @@ export default function OrderQueue({ onSelect }: OrderQueueProps) {
                 <div className="max-w-6xl mx-auto w-full">
                     {filtered.length === 0 ? (
                         <div className="py-16 text-center text-sm text-gray-400">No orders in proofing</div>
+                    ) : view === 'list' ? (
+                        <OperatorOrderTable
+                            orders={filtered}
+                            onSelect={onSelect}
+                            actionLabel="Open Proofing"
+                            renderDetail={order => `${progress[order.id]?.manual_review ?? 0} cards need review`}
+                        />
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {filtered.map(order => {

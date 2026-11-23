@@ -158,8 +158,8 @@ function IDPreviewModal({
                                 <ArrowLeft size={14} className="text-[#64748b]" />
                             </button>
                         )}
-                        <div className="w-8 h-8 rounded-lg bg-[#e8eeff] flex items-center justify-center">
-                            <CreditCard size={15} className="text-[#004ac6]" />
+                        <div className="w-8 h-8 rounded-lg bg-[#f3e8ff] flex items-center justify-center">
+                            <CreditCard size={15} className="text-[#7e22ce]" />
                         </div>
                         <div>
                             <h2 className="text-[15px] font-bold text-[#0b1c30]">
@@ -310,10 +310,10 @@ function ProofingOrderCard({
     onOpen: (o: CoordOrder) => void
 }) {
     return (
-        <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-[0px_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#c7d4f0] transition-all">
+        <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-[0px_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#d8b4fe] transition-all">
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#e8eeff] flex items-center justify-center shrink-0">
-                    <CreditCard size={22} className="text-[#004ac6]" />
+                <div className="w-12 h-12 rounded-xl bg-[#f3e8ff] flex items-center justify-center shrink-0">
+                    <CreditCard size={22} className="text-[#7e22ce]" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="text-[15px] font-bold text-[#0b1c30] truncate">{order.school_name}</div>
@@ -323,7 +323,7 @@ function ProofingOrderCard({
                 </div>
                 <button
                     onClick={() => onOpen(order)}
-                    className="flex items-center gap-2 bg-[#004ac6] text-white text-[13px] font-medium px-4 py-2 rounded-lg hover:bg-[#003da6] transition-colors shadow-sm shrink-0">
+                    className="flex items-center gap-2 bg-[#7e22ce] text-white text-[13px] font-medium px-4 py-2 rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm shrink-0">
                     Review IDs
                 </button>
             </div>
@@ -386,7 +386,7 @@ function ProofGridCard({
     const borderClass =
         status === 'approved' ? 'border-[#bbf7d0] ring-1 ring-[rgba(34,197,94,0.2)]' :
             status === 'revision' ? 'border-[#fca5a5] ring-1 ring-[rgba(239,68,68,0.2)]' :
-                'border-[#e2e8f0] hover:border-[#c7d4f0]'
+                'border-[#e2e8f0] hover:border-[#d8b4fe]'
 
     const badgeBorder =
         status === 'approved' ? 'border-[#bbf7d0]' :
@@ -544,10 +544,10 @@ export default function CoordinatorProofingPage() {
                     </p>
                 </div>
 
-                <div className="px-4 md:px-8 py-5 pb-[100px] md:pb-6 bg-[#f7f8fa] flex flex-col gap-3">
+                <div className="px-4 md:px-8 py-5 pb-[100px] md:pb-6 bg-[#f5f3ff] flex flex-col gap-3">
                     {loadingOrders ? (
                         <div className="flex items-center justify-center py-16">
-                            <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : proofingOrders.length === 0 ? (
                         <div className="bg-white border border-[#e2e8f0] rounded-2xl flex flex-col items-center justify-center py-16 gap-3 shadow-[0px_1px_2px_rgba(0,0,0,0.04)]">
@@ -584,7 +584,7 @@ export default function CoordinatorProofingPage() {
             <div className="px-4 md:px-8 pt-6 pb-4 border-b border-[#eceef0] bg-white">
                 <button
                     onClick={() => { setSelectedOrder(null); setSubjects([]); setCardStatuses({}) }}
-                    className="flex items-center gap-1.5 text-[12px] text-[#9ba3af] hover:text-[#004ac6] transition-colors mb-3">
+                    className="flex items-center gap-1.5 text-[12px] text-[#9ba3af] hover:text-[#7e22ce] transition-colors mb-3">
                     <ArrowLeft size={12} />
                     Back to orders
                 </button>
@@ -592,7 +592,7 @@ export default function CoordinatorProofingPage() {
                     <h1 className="text-[20px] md:text-[22px] font-bold text-[#0b1c30] tracking-[-0.3px]">
                         {selectedOrder.school_name}
                     </h1>
-                    <span className="bg-[#004ac6] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                    <span className="bg-[#7e22ce] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
                         {subjects.length} IDs
                     </span>
                     {pendingCount > 0 && (
@@ -614,12 +614,12 @@ export default function CoordinatorProofingPage() {
 
             {loadingSubjects ? (
                 <div className="flex items-center justify-center py-16">
-                    <div className="w-8 h-8 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
                 </div>
             ) : (
                 <>
                     {/* Mobile list */}
-                    <div className="md:hidden px-4 py-4 bg-[#f7f8fa] flex flex-col gap-3 pb-[100px]">
+                    <div className="md:hidden px-4 py-4 bg-[#f5f3ff] flex flex-col gap-3 pb-[100px]">
                         {subjects.map((s) => (
                             <ProofMobileCard
                                 key={s.id}
@@ -637,7 +637,7 @@ export default function CoordinatorProofingPage() {
                     </div>
 
                     {/* Desktop grid */}
-                    <div className="hidden md:block px-8 py-6 bg-[#f7f8fa]">
+                    <div className="hidden md:block px-8 py-6 bg-[#f5f3ff]">
                         <div className="grid grid-cols-5 xl:grid-cols-6 gap-4">
                             {subjects.map((s) => (
                                 <ProofGridCard

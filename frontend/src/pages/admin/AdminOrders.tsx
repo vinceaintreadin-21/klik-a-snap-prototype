@@ -35,7 +35,7 @@ function OrderGridCard({
   return (
     <div className={cn(
       'bg-white rounded-2xl border p-4 flex flex-col gap-3 transition-all hover:shadow-md',
-      selected ? 'border-[#004ac6] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]' : 'border-[#c3c6d7]',
+      selected ? 'border-[#7e22ce] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]' : 'border-[#c3c6d7]',
     )}>
       {/* Top row */}
       <div className="flex items-start justify-between gap-2">
@@ -44,10 +44,10 @@ function OrderGridCard({
             type="checkbox"
             checked={selected}
             onChange={onToggle}
-            className="w-4 h-4 rounded border-[#c3c6d7] accent-[#004ac6] cursor-pointer shrink-0"
+            className="w-4 h-4 rounded border-[#c3c6d7] accent-[#7e22ce] cursor-pointer shrink-0"
           />
           <div className="w-8 h-8 rounded bg-[#d3e4fe] flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-bold text-[#004ac6]">{initials}</span>
+            <span className="text-[11px] font-bold text-[#7e22ce]">{initials}</span>
           </div>
           <div className="min-w-0">
             <div className="text-[13px] font-semibold text-[#0b1c30] truncate">{order.institution__name}</div>
@@ -87,7 +87,7 @@ function OrderGridCard({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onAssign(order)}
-            className="text-[11px] font-medium text-[#004ac6] px-2 py-0.5 rounded hover:bg-[#eff4ff] transition-colors"
+            className="text-[11px] font-medium text-[#7e22ce] px-2 py-0.5 rounded hover:bg-[#faf5ff] transition-colors"
           >
             Assign
           </button>
@@ -185,12 +185,12 @@ const AdminOrders = () => {
           <div className="flex items-center gap-1.5 text-[12px]">
             <button
               onClick={() => navigate('/admin/dashboard')}
-              className="text-[#64748b] hover:text-[#004ac6] transition-colors"
+              className="text-[#64748b] hover:text-[#7e22ce] transition-colors"
             >
               Dashboard
             </button>
             <ChevronRight size={10} className="text-[#94a3b8]" />
-            <span className="text-[#004ac6] font-medium">Orders</span>
+            <span className="text-[#7e22ce] font-medium">Orders</span>
           </div>
           {/* Title + badge */}
           <div className="flex items-center gap-3">
@@ -207,19 +207,19 @@ const AdminOrders = () => {
             onClick={() => setViewMode('list')}
             className={cn(
               'flex items-center justify-center w-[30px] h-[28px] rounded transition-colors',
-              viewMode === 'list' ? 'bg-[#dce9ff]' : 'hover:bg-gray-100',
+              viewMode === 'list' ? 'bg-[#f3e8ff]' : 'hover:bg-gray-100',
             )}
           >
-            <List size={14} className={viewMode === 'list' ? 'text-[#004ac6]' : 'text-[#434655]'} />
+            <List size={14} className={viewMode === 'list' ? 'text-[#7e22ce]' : 'text-[#434655]'} />
           </button>
           <button
             onClick={() => setViewMode('grid')}
             className={cn(
               'flex items-center justify-center w-[30px] h-[28px] rounded transition-colors',
-              viewMode === 'grid' ? 'bg-[#dce9ff]' : 'hover:bg-gray-100',
+              viewMode === 'grid' ? 'bg-[#f3e8ff]' : 'hover:bg-gray-100',
             )}
           >
-            <LayoutGrid size={14} className={viewMode === 'grid' ? 'text-[#004ac6]' : 'text-[#434655]'} />
+            <LayoutGrid size={14} className={viewMode === 'grid' ? 'text-[#7e22ce]' : 'text-[#434655]'} />
           </button>
         </div>
       </div>
@@ -234,7 +234,7 @@ const AdminOrders = () => {
             placeholder="Search by order ID, school, batch, institution, operator…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] bg-white focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+            className="w-full border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] bg-white focus:outline-none focus:border-[#7e22ce] focus:ring-1 focus:ring-[#7e22ce]"
           />
         </div>
 
@@ -245,7 +245,7 @@ const AdminOrders = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none min-w-[140px] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[13px] text-[#0b1c30] bg-white pr-8 cursor-pointer focus:outline-none focus:border-[#004ac6]"
+              className="appearance-none min-w-[140px] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[13px] text-[#0b1c30] bg-white pr-8 cursor-pointer focus:outline-none focus:border-[#7e22ce]"
             >
               <option value="">Status: All</option>
               {ORDER_STATUSES.map((s) => (
@@ -260,7 +260,7 @@ const AdminOrders = () => {
             <select
               value={institutionFilter}
               onChange={(e) => setInstitutionFilter(e.target.value)}
-              className="appearance-none min-w-[160px] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[13px] text-[#0b1c30] bg-white pr-8 cursor-pointer focus:outline-none focus:border-[#004ac6]"
+              className="appearance-none min-w-[160px] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[13px] text-[#0b1c30] bg-white pr-8 cursor-pointer focus:outline-none focus:border-[#7e22ce]"
             >
               <option value="">Institution: All</option>
               {institutions.map((i) => (
@@ -291,7 +291,7 @@ const AdminOrders = () => {
           {/* Apply */}
           <button
             onClick={applyFilters}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#004ac6] text-white text-[13px] font-semibold hover:bg-[#003da6] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#7e22ce] text-white text-[13px] font-semibold hover:bg-[#6b21a8] transition-colors"
           >
             Apply
           </button>
@@ -308,7 +308,7 @@ const AdminOrders = () => {
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="text-[12px] font-semibold text-[#004ac6] px-2 hover:underline"
+              className="text-[12px] font-semibold text-[#7e22ce] px-2 hover:underline"
             >
               Clear filters
             </button>

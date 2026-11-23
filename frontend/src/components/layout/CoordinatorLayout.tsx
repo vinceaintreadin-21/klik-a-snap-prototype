@@ -32,7 +32,7 @@ export default function CoordinatorLayout({ children }: { children: ReactNode })
     }, [])
 
     return (
-        <div className={`min-h-screen bg-[#f7f8fa] [--sidebar-width:200px] ${sidebarWidthClass}`} style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className={`min-h-screen bg-[#f5f3ff] [--sidebar-width:200px] ${sidebarWidthClass}`} style={{ fontFamily: "'DM Sans', sans-serif" }}>
             <CoordinatorSidebar activeBatch={activeBatch} collapsed={collapsed} onToggle={() => setCollapsed(previous => !previous)} />
             <CoordinatorTopbar />
             <main className="md:ml-[var(--sidebar-width)] pt-[56px] min-h-screen pb-[72px] md:pb-0">

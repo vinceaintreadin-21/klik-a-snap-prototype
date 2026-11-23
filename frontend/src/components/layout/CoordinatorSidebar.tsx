@@ -41,13 +41,13 @@ export default function CoordinatorSidebar({ activeBatch, ...toggleProps }: Coor
             {...toggleProps}
             brand="Photo Day"
             role="Coordinator"
-            avatarClassName="bg-[#004ac6]"
+            avatarClassName="bg-[#7e22ce]"
             onLogout={clearOrders}
             desktopOnly
         >
             {/* Active batch badge */}
-            <div className={cn('mx-3 mt-3 mb-1 bg-[#e8eeff] rounded-xl px-3 py-2.5', toggleProps.collapsed && 'md:hidden')}>
-                <div className="text-[10px] font-bold text-[#004ac6] uppercase tracking-[0.4px] mb-0.5">Active Batch</div>
+            <div className={cn('mx-3 mt-3 mb-1 bg-[#f3e8ff] rounded-xl px-3 py-2.5', toggleProps.collapsed && 'md:hidden')}>
+                <div className="text-[10px] font-bold text-[#7e22ce] uppercase tracking-[0.4px] mb-0.5">Active Batch</div>
                 <div className="text-[12px] font-semibold text-[#0b1c30] leading-tight truncate">
                     {activeBatch?.school_name ?? '—'}
                 </div>
@@ -70,15 +70,15 @@ export default function CoordinatorSidebar({ activeBatch, ...toggleProps }: Coor
                             className={cn(
                                 'gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-all duration-150',
                                 active
-                                    ? 'bg-[#e8eeff] text-[#004ac6] font-semibold'
+                                    ? 'bg-[#f3e8ff] text-[#7e22ce] font-semibold'
                                     : 'text-[#64748b] hover:bg-[#f8fafc] font-normal'
                             )}>
                             {active && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#004ac6] rounded-full" />
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#7e22ce] rounded-full" />
                             )}
                             <item.icon
                                 size={15}
-                                className={cn('shrink-0', active ? 'text-[#004ac6]' : 'text-[#9ba3af]')}
+                                className={cn('shrink-0', active ? 'text-[#7e22ce]' : 'text-[#9ba3af]')}
                             />
                         </SidebarNavButton>
                     )

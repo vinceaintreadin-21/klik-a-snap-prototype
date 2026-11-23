@@ -28,7 +28,7 @@ export function fmtDate(iso: string): { date: string; time: string } {
 }
 
 export const LEVEL_CFG: Record<string, { dot: string; text: string; bg: string }> = {
-  INFO:     { dot: '#004ac6', text: '#004ac6', bg: '#eff4ff' },
+  INFO:     { dot: '#7e22ce', text: '#7e22ce', bg: '#faf5ff' },
   WARNING:  { dot: '#f97316', text: '#c2410c', bg: '#fff7ed' },
   ERROR:    { dot: '#b91c1c', text: '#b91c1c', bg: '#fee2e2' },
   CRITICAL: { dot: '#7f1d1d', text: '#7f1d1d', bg: '#fecaca' },
@@ -36,8 +36,8 @@ export const LEVEL_CFG: Record<string, { dot: string; text: string; bg: string }
 
 export const ACTION_COLORS: Record<string, string> = {
   OVERRIDE_ORDER_STATUS: '#f97316',
-  CREATE_OPERATOR:       '#004ac6',
-  UPDATE_OPERATOR:       '#004ac6',
+  CREATE_OPERATOR:       '#7e22ce',
+  UPDATE_OPERATOR:       '#7e22ce',
   DELETE_OPERATOR:       '#b91c1c',
   CREATE_INSTITUTION:    '#166534',
   UPDATE_INSTITUTION:    '#166534',
@@ -49,8 +49,8 @@ export function actionColor(action: string): string {
 }
 
 export const MODULE_CFG: Record<string, { bg: string; text: string }> = {
-  Order:       { bg: '#eff4ff', text: '#004ac6' },
-  Orders:      { bg: '#eff4ff', text: '#004ac6' },
+  Order:       { bg: '#faf5ff', text: '#7e22ce' },
+  Orders:      { bg: '#faf5ff', text: '#7e22ce' },
   Operator:    { bg: '#f8f0ff', text: '#7c3aed' },
   Institution: { bg: '#f0fdf4', text: '#166534' },
   Student:     { bg: '#fff7ed', text: '#c2410c' },

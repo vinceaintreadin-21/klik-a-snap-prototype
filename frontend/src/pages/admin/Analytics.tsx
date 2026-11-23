@@ -161,7 +161,7 @@ function AIConfidenceChart() {
                                 <XAxis dataKey="range" tick={{ fontSize: 11 }} />
                                 <YAxis allowDecimals={false} />
                                 <Tooltip />
-                                <Bar dataKey="count" name="Attempts" fill="#1d4ed8" />
+                                <Bar dataKey="count" name="Attempts" fill="#7e22ce" />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
@@ -206,7 +206,7 @@ function OrdersByInstitution({ orders }: { orders: { institution__name: string }
           </div>
           <div className="h-2 bg-[#e2e8f0] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#1d4ed8] rounded-full transition-all"
+              className="h-full bg-[#7e22ce] rounded-full transition-all"
               style={{ width: `${(d.value / max) * 100}%` }}
             />
           </div>
@@ -245,8 +245,8 @@ function OperatorProductivityChart({ operators }: { operators: { user__username:
         <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
         <Tooltip content={<ChartTooltip />} />
         <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: 11 }} />
-        <Bar dataKey="processed" name="Processed" fill="#1d4ed8" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="approved"  name="Approved"  fill="#60a5fa" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="processed" name="Processed" fill="#7e22ce" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="approved"  name="Approved"  fill="#c084fc" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -276,11 +276,11 @@ const Analytics = () => {
       <div className="flex items-end justify-between">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-[12px]">
-            <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#004ac6] transition-colors">
+            <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#7e22ce] transition-colors">
               Dashboard
             </button>
             <ChevronRight size={10} className="text-[#94a3b8]" />
-            <span className="text-[#004ac6] font-medium">Analytics</span>
+            <span className="text-[#7e22ce] font-medium">Analytics</span>
           </div>
           <h1 className="text-[24px] font-bold text-[#0b1c30] tracking-tight">Analytics</h1>
           <p className="text-[13px] text-[#64748b]">
@@ -351,8 +351,8 @@ const Analytics = () => {
               <AreaChart data={monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ordersGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3b5bdb" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b5bdb" stopOpacity={0.01} />
+                    <stop offset="5%"  stopColor="#9333ea" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#9333ea" stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -373,7 +373,7 @@ const Analytics = () => {
                   type="monotone"
                   dataKey="orders"
                   name="Orders"
-                  stroke="#3b5bdb"
+                  stroke="#9333ea"
                   strokeWidth={2.5}
                   fill="url(#ordersGrad)"
                   dot={false}

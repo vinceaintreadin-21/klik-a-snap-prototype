@@ -48,15 +48,15 @@ export default function InstitutionSidebar(toggleProps: SidebarToggleProps) {
                             className={cn(
                                 'gap-2.5 px-3 py-2.5 rounded-lg text-[13px] transition-all duration-150',
                                 active
-                                    ? 'bg-[#e8eeff] text-[#004ac6] font-semibold'
+                                    ? 'bg-[#f3e8ff] text-[#7e22ce] font-semibold'
                                     : 'text-[#64748b] hover:bg-[#f8fafc] font-normal'
                             )}>
                             {active && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#004ac6] rounded-full" />
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#7e22ce] rounded-full" />
                             )}
                             <item.icon
                                 size={15}
-                                className={cn('shrink-0', active ? 'text-[#004ac6]' : 'text-[#9ba3af]')}
+                                className={cn('shrink-0', active ? 'text-[#7e22ce]' : 'text-[#9ba3af]')}
                             />
                         </SidebarNavButton>
                     )

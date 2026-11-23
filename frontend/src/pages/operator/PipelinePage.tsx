@@ -1,3 +1,6 @@
+import ViewModeToggle, { type ViewMode } from '../../components/shared/ViewModeToggle'
+import OperatorOrderTable from '../../components/operator/OperatorOrderTable'
+import { useOrderSelection } from '../../hooks/useOrderSelection'
 /**
  * PipelinePage — live AI processing pipeline monitor.
  * Visual design: QUEUEBITS_UI/PipelineView.tsx
@@ -199,6 +202,7 @@ function StageFlow({ activeKey }: { activeKey: StageKey }) {
 
 function OrderSelect({ onSelect }: { onSelect: (order: any) => void }) {
   const { orders, progress } = useOrders()
+  const [view, setView] = useState<ViewMode>('list')
 
   const pipelineOrders = orders.filter(o =>
     ['PROCESSING', 'PROOFING', 'APPROVED', 'PENDING'].includes(o.status),
@@ -206,10 +210,13 @@ function OrderSelect({ onSelect }: { onSelect: (order: any) => void }) {
 
   if (pipelineOrders.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-8 px-6">
+      <div className="max-w-6xl mx-auto py-8 px-6">
         <div className="mb-7">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Select a Pipeline</h2>
           <p className="text-sm text-gray-500">Monitor the live processing status of a submitted batch.</p>
+          <div className="mt-4 flex justify-end">
+            <ViewModeToggle value={view} onChange={setView} />
+          </div>
         </div>
         <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
           <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center">
@@ -223,12 +230,24 @@ function OrderSelect({ onSelect }: { onSelect: (order: any) => void }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-6">
+    <div className="max-w-6xl mx-auto py-8 px-6">
       <div className="mb-7">
         <h2 className="text-xl font-bold text-gray-900 mb-1">Select a Pipeline</h2>
         <p className="text-sm text-gray-500">Monitor the live processing status of a submitted batch.</p>
       </div>
-      <div className="space-y-3">
+      <div className="mb-4 flex justify-end">
+        <ViewModeToggle value={view} onChange={setView} />
+      </div>
+      {view === 'list' ? (
+        <OperatorOrderTable
+          orders={pipelineOrders}
+          onSelect={onSelect}
+          actionLabel={order => order.status === 'PENDING' ? 'Queued' : 'Open Pipeline'}
+          isActionDisabled={order => order.status === 'PENDING'}
+          renderDetail={order => `${progress[order.id]?.processed ?? 0} processed`}
+        />
+      ) : (
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {pipelineOrders.map((order) => {
           const p = progress[order.id] ?? { processed: 0, manual_review: 0, total: order.student_count }
           const pct = p.total > 0 ? Math.round((p.processed / p.total) * 100) : 0
@@ -319,6 +338,7 @@ function OrderSelect({ onSelect }: { onSelect: (order: any) => void }) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }
@@ -334,6 +354,7 @@ function LivePipeline({ order }: { order: any }) {
   const [entries,     setEntries]     = useState<StreamEntry[]>([])
   const [loadingEntries, setLoadingEntries] = useState(true)
   const [filter,      setFilter]      = useState('')
+  const [view, setView] = useState<ViewMode>('list')
   const [paused,      setPaused]      = useState(false)
   const [resolvedIds, setResolvedIds] = useState<Set<number>>(new Set())
   const [abortLoading, setAbortLoading] = useState(false)
@@ -446,6 +467,7 @@ function LivePipeline({ order }: { order: any }) {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <ViewModeToggle value={view} onChange={setView} />
               <div className="relative">
                 <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
@@ -462,15 +484,15 @@ function LivePipeline({ order }: { order: any }) {
           </div>
 
           {/* Column headers */}
-          <div className="grid px-5 py-2 border-b border-gray-50 bg-gray-50/50 flex-shrink-0"
+          {view === 'list' && <div className="grid px-5 py-2 border-b border-gray-50 bg-gray-50/50 flex-shrink-0"
             style={{ gridTemplateColumns: '56px 1fr 1fr 148px 120px 80px' }}>
             {['PREVIEW', 'FILE / ID', 'STUDENT NAME', 'CONFIDENCE', 'STATUS', 'ACTION'].map(h => (
               <span key={h} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</span>
             ))}
-          </div>
+          </div>}
 
           {/* Rows */}
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+          <div className={cn('flex-1 overflow-y-auto', view === 'list' ? 'divide-y divide-gray-50' : 'grid content-start grid-cols-1 gap-3 p-3 xl:grid-cols-2')}>
             {loadingEntries && (
               <div className="flex items-center justify-center py-16">
                 <Loader2 size={20} className="text-blue-400 animate-spin" />
@@ -490,9 +512,10 @@ function LivePipeline({ order }: { order: any }) {
                   key={entry.id}
                   className={cn(
                     'grid px-5 py-3 items-center transition-colors',
+                    view === 'grid' && 'gap-3 rounded-xl border border-purple-100',
                     displayStatus === 'needs-review' ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-gray-50/60',
                   )}
-                  style={{ gridTemplateColumns: '56px 1fr 1fr 148px 120px 80px' }}
+                  style={{ gridTemplateColumns: view === 'list' ? '56px 1fr 1fr 148px 120px 80px' : 'minmax(0, 1fr) minmax(0, 1fr)' }}
                 >
                   {/* Thumbnail */}
                   <div
@@ -704,7 +727,7 @@ function LivePipeline({ order }: { order: any }) {
 
 export default function PipelinePage() {
   const { progress } = useOrders()
-  const [selected, setSelected] = useState<any | null>(null)
+  const { selectedOrder: selected, setSelectedOrder: setSelected } = useOrderSelection()
 
   const p = selected ? (progress[selected.id] ?? { processed: 0, manual_review: 0, total: selected.student_count }) : null
   const pct = p && p.total > 0 ? Math.round((p.processed / p.total) * 100) : 0

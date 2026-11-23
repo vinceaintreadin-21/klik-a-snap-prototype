@@ -198,7 +198,7 @@ export default function OrderDetail({ order, onBack, onOpenRevisions }: Props) {
     const processedCount = students.filter(s => s.photo_status === "PROCESSED").length;
 
     return (
-        <div className="flex flex-col h-full bg-[#F7F8FA] overflow-hidden">
+        <div className="flex flex-col h-full bg-[#f5f3ff] overflow-hidden">
 
             {/* Sticky header */}
             <header className="bg-white border-b border-gray-100 shadow-sm shrink-0">

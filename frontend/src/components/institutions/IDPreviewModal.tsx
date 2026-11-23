@@ -91,8 +91,8 @@ export default function IDPreviewModal({
                                 <ArrowLeft size={14} className="text-[#64748b]" />
                             </button>
                         )}
-                        <div className="w-8 h-8 rounded-lg bg-[#e8eeff] flex items-center justify-center">
-                            <CreditCard size={15} className="text-[#004ac6]" />
+                        <div className="w-8 h-8 rounded-lg bg-[#f3e8ff] flex items-center justify-center">
+                            <CreditCard size={15} className="text-[#7e22ce]" />
                         </div>
                         <div>
                             <h2 className="text-[15px] font-bold text-[#0b1c30]">
@@ -186,7 +186,7 @@ export default function IDPreviewModal({
                                     'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[14px] font-semibold transition-all shadow-sm',
                                     reviewStatus === 'approved'
                                         ? 'bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] cursor-default'
-                                        : 'bg-[#004ac6] text-white hover:bg-[#003da6] disabled:opacity-50'
+                                        : 'bg-[#7e22ce] text-white hover:bg-[#6b21a8] disabled:opacity-50'
                                 )}>
                                 <CheckCircle2 size={16} />
                                 {reviewStatus === 'approved' ? 'Approved' : loading ? 'Approving…' : 'Approve ID'}

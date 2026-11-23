@@ -155,7 +155,7 @@ export default function InstitutionProofingPage() {
                     </nav>
                     <div className="flex items-center gap-3">
                         <h1 className="text-[24px] font-bold text-[#0b1c30] leading-tight tracking-[-0.3px]">Proofing & Approvals</h1>
-                        <span className="bg-[#004ac6] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">{proofingOrders.length} Orders</span>
+                        <span className="bg-[#7e22ce] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">{proofingOrders.length} Orders</span>
                         {proofingOrders.length > 0 && (
                             <span className="bg-[#ffdad6] text-[#93000a] text-[11px] font-bold px-2.5 py-0.5 rounded-full">{proofingOrders.length} Pending</span>
                         )}
@@ -163,7 +163,7 @@ export default function InstitutionProofingPage() {
                     <p className="text-[14px] text-[#64748b] mt-1">Review final ID card outputs and approve or request revisions before production.</p>
                 </div>
 
-                <div className="px-8 py-6 bg-[#f7f8fa] flex-1 flex flex-col gap-4">
+                <div className="px-8 py-6 bg-[#f5f3ff] flex-1 flex flex-col gap-4">
                     {proofingOrders.length === 0 ? (
                         <div className="bg-white border border-[#e2e8f0] rounded-2xl flex flex-col items-center justify-center py-20 gap-3 shadow-[0px_1px_2px_rgba(0,0,0,0.04)]">
                             <CheckCircle2 size={32} className="text-[#c8cbd9]" />
@@ -177,11 +177,11 @@ export default function InstitutionProofingPage() {
                                 <div
                                     key={order.id}
                                     onClick={() => openOrder(order)}
-                                    className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-[0px_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#c7d4f0] transition-all cursor-pointer">
+                                    className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-[0px_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#d8b4fe] transition-all cursor-pointer">
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex items-start gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-[#e8eeff] flex items-center justify-center shrink-0">
-                                                <CreditCard size={22} className="text-[#004ac6]" />
+                                            <div className="w-12 h-12 rounded-xl bg-[#f3e8ff] flex items-center justify-center shrink-0">
+                                                <CreditCard size={22} className="text-[#7e22ce]" />
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2.5 mb-1">
@@ -201,7 +201,7 @@ export default function InstitutionProofingPage() {
                                         </div>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); openOrder(order) }}
-                                            className="flex items-center gap-2 bg-[#004ac6] text-white text-[13px] font-medium px-4 py-2 rounded-lg hover:bg-[#003da6] transition-colors shadow-sm shrink-0">
+                                            className="flex items-center gap-2 bg-[#7e22ce] text-white text-[13px] font-medium px-4 py-2 rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm shrink-0">
                                             Review IDs
                                             <ChevronRight size={14} />
                                         </button>
@@ -269,7 +269,7 @@ export default function InstitutionProofingPage() {
                 <nav className="flex items-center gap-1.5 text-[12px] mb-3">
                     <span className="text-[#9ba3af]">Institution</span>
                     <ChevronRight size={11} className="text-[#c8cbd9]" />
-                    <button onClick={() => setStage('orders')} disabled={approvingBatch} className="text-[#9ba3af] hover:text-[#004ac6] transition-colors">
+                    <button onClick={() => setStage('orders')} disabled={approvingBatch} className="text-[#9ba3af] hover:text-[#7e22ce] transition-colors">
                         Proofing & Approvals
                     </button>
                     <ChevronRight size={11} className="text-[#c8cbd9]" />
@@ -304,7 +304,7 @@ export default function InstitutionProofingPage() {
                             </div>
                             {students.length > 0 && (
                                 <div className="w-[160px] h-[5px] bg-[#f1f5f9] rounded-full overflow-hidden">
-                                    <div className="h-full bg-[#004ac6] rounded-full transition-all"
+                                    <div className="h-full bg-[#7e22ce] rounded-full transition-all"
                                         style={{ width: `${((approvedCount + revisionCount) / students.length) * 100}%` }} />
                                 </div>
                             )}
@@ -312,7 +312,7 @@ export default function InstitutionProofingPage() {
                         {order.status === 'PROOFING' && (
                             <button type="button" disabled={loadingStudents || approvingBatch}
                                 onClick={() => { setBatchError(null); void fetchStudents(order.id) }}
-                                className="text-sm font-medium text-[#004ac6] disabled:opacity-50">
+                                className="text-sm font-medium text-[#7e22ce] disabled:opacity-50">
                                 Refresh cards
                             </button>
                         )}
@@ -325,7 +325,7 @@ export default function InstitutionProofingPage() {
                                     ? 'bg-[#dcfce7] text-[#166534] border border-[#bbf7d0]'
                                     : !canApproveBatch
                                         ? 'bg-[#f1f5f9] text-[#9ba3af] cursor-not-allowed'
-                                        : 'bg-[#004ac6] text-white hover:bg-[#003da6]'
+                                        : 'bg-[#7e22ce] text-white hover:bg-[#6b21a8]'
                             )}>
                             <CheckCircle2 size={15} />
                             {batchApproved ? 'Batch Approved'
@@ -360,10 +360,10 @@ export default function InstitutionProofingPage() {
             </div>
 
             {/* Card grid */}
-            <div className="p-8 bg-[#f7f8fa] flex-1">
+            <div className="p-8 bg-[#f5f3ff] flex-1">
                 {loadingStudents ? (
                     <div className="flex items-center justify-center py-20">
-                        <div className="w-8 h-8 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                        <div className="w-8 h-8 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : students.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-2">
@@ -384,7 +384,7 @@ export default function InstitutionProofingPage() {
                                         'bg-white rounded-xl overflow-hidden border transition-all hover:shadow-lg cursor-pointer',
                                         status === 'approved' ? 'border-[#bbf7d0] ring-1 ring-[rgba(34,197,94,0.2)]' :
                                             status === 'revision' ? 'border-[#fca5a5] ring-1 ring-[rgba(239,68,68,0.2)]' :
-                                                'border-[#e2e8f0] hover:border-[#c7d4f0]'
+                                                'border-[#e2e8f0] hover:border-[#d8b4fe]'
                                     )}>
                                     {/* Photo area */}
                                     <div className="relative bg-[#f8fafc]" style={{ paddingTop: '75%' }}>

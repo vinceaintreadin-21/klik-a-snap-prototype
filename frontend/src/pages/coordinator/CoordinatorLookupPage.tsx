@@ -31,7 +31,7 @@ function ResultCard({
     onMark: (s: CoordSubject) => void
 }) {
     return (
-        <div className="bg-white border border-[#e2e8f0] rounded-2xl p-4 shadow-[0px_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#c7d4f0] transition-all">
+        <div className="bg-white border border-[#e2e8f0] rounded-2xl p-4 shadow-[0px_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-[#d8b4fe] transition-all">
             <div className="flex items-center gap-3">
                 <Avatar name={subject.full_name} id={subject.id} size={48} />
                 <div className="flex-1 min-w-0">
@@ -43,7 +43,7 @@ function ResultCard({
                         <div className="text-[12px] text-[#64748b]">{subject.section}</div>
                     )}
                     {subject.is_walk_in && (
-                        <span className="inline-block text-[10px] font-bold text-[#004ac6] bg-[#e8eeff] px-1.5 py-0.5 rounded-full mt-0.5">
+                        <span className="inline-block text-[10px] font-bold text-[#7e22ce] bg-[#f3e8ff] px-1.5 py-0.5 rounded-full mt-0.5">
                             Walk-in
                         </span>
                     )}
@@ -67,7 +67,7 @@ function ResultCard({
                 {subject.qr_code_url && (
                     <button
                         onClick={() => onShowQR(subject)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#004ac6] text-white text-[13px] font-semibold hover:bg-[#003da6] transition-colors shadow-sm">
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#7e22ce] text-white text-[13px] font-semibold hover:bg-[#6b21a8] transition-colors shadow-sm">
                         <QrCode size={15} />
                         Show QR Code
                     </button>
@@ -148,7 +148,7 @@ export default function CoordinatorLookupPage() {
                         placeholder="Type subject name or ID..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="w-full bg-white border-2 border-[#e2e8f0] focus:border-[#004ac6] rounded-xl pl-12 pr-12 py-4 text-[16px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:ring-4 focus:ring-[#e8eeff] transition-all shadow-[0px_1px_4px_rgba(0,0,0,0.05)]"
+                        className="w-full bg-white border-2 border-[#e2e8f0] focus:border-[#7e22ce] rounded-xl pl-12 pr-12 py-4 text-[16px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:ring-4 focus:ring-[#f3e8ff] transition-all shadow-[0px_1px_4px_rgba(0,0,0,0.05)]"
                     />
                     {query && (
                         <button
@@ -162,7 +162,7 @@ export default function CoordinatorLookupPage() {
                 {/* Searching indicator */}
                 {searching && (
                     <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                        <div className="w-3 h-3 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
                         <span className="text-[12px] text-[#9ba3af]">Searching...</span>
                     </div>
                 )}
@@ -201,8 +201,8 @@ export default function CoordinatorLookupPage() {
                 {/* Empty state */}
                 {query.trim().length === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
-                        <div className="w-16 h-16 rounded-2xl bg-[#e8eeff] flex items-center justify-center">
-                            <QrCode size={28} className="text-[#004ac6]" />
+                        <div className="w-16 h-16 rounded-2xl bg-[#f3e8ff] flex items-center justify-center">
+                            <QrCode size={28} className="text-[#7e22ce]" />
                         </div>
                         <p className="text-[14px] text-[#64748b] text-center leading-5 max-w-[260px]">
                             Search a subject to instantly display their QR code for photo day

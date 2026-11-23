@@ -90,7 +90,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 
 const PIE_COLORS: Record<string, string> = {
   PENDING:    '#94A3B8',
-  PROCESSING: '#3B82F6',
+  PROCESSING: '#a855f7',
   PRINTING:   '#6366F1',
   PROOFING:   '#F59E0B',
   APPROVED:   '#34D399',
@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                   tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : String(v))}
                 />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="orders" name="Orders" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                <Bar dataKey="orders" name="Orders" fill="#a855f7" radius={[4, 4, 0, 0]} maxBarSize={48} />
               </ComposedChart>
             </ResponsiveContainer>
           )}
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
                     outerRadius={82}
                     dataKey="value"
                     strokeWidth={2}
-                    stroke="#F7F8FA"
+                    stroke="#f5f3ff"
                   >
                     {pieData.map((entry, i) => (
                       <Cell key={i} fill={entry.color} />

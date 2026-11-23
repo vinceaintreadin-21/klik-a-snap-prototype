@@ -56,7 +56,7 @@ export default function ResponsiveSidebarLayout({
 
   return (
     <div
-      className="flex min-h-screen bg-[#f7f8fa]"
+      className="flex min-h-screen bg-[#f5f3ff]"
       style={style}
       onKeyDown={event => {
         if (overlayOpen && event.key === 'Escape' &&

@@ -1,3 +1,6 @@
+import ViewModeToggle, { type ViewMode } from '../../components/shared/ViewModeToggle'
+import OperatorOrderTable from '../../components/operator/OperatorOrderTable'
+import { useOrderSelection } from '../../hooks/useOrderSelection'
 /**
  * ManualReviewPage — operator manual review workspace.
  * Visual design: QUEUEBITS_UI/ManualReviewView.tsx
@@ -1166,6 +1169,7 @@ function ReviewInterface({
 function OrderQueue({ onSelect }: { onSelect: (order: any) => void }) {
   const { orders, progress } = useOrders()
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<ViewMode>('list')
 
   const reviewOrders = orders.filter(o => (progress[o.id]?.manual_review ?? 0) > 0)
 
@@ -1199,7 +1203,7 @@ function OrderQueue({ onSelect }: { onSelect: (order: any) => void }) {
 
       <main className="flex-1 px-8 py-8 overflow-y-auto">
         <div className="max-w-6xl w-full mx-auto">
-          <div className="flex items-end justify-between gap-4 mb-6">
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1">Review Queue</h2>
               <p className="text-sm text-gray-500">
@@ -1212,6 +1216,7 @@ function OrderQueue({ onSelect }: { onSelect: (order: any) => void }) {
                 onChange={e => setQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 placeholder:text-gray-400 transition-all" />
             </div>
+            <ViewModeToggle value={view} onChange={setView} />
           </div>
 
           {reviewOrders.length === 0 ? (
@@ -1222,8 +1227,15 @@ function OrderQueue({ onSelect }: { onSelect: (order: any) => void }) {
               <p className="text-sm font-semibold text-gray-600">No items need review</p>
               <p className="text-xs text-gray-400">All processed photos passed the AI pipeline.</p>
             </div>
+          ) : view === 'list' ? (
+            <OperatorOrderTable
+              orders={filtered}
+              onSelect={onSelect}
+              actionLabel="Start Review"
+              renderDetail={order => `${progress[order.id]?.manual_review ?? 0} photos need review`}
+            />
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {filtered.length === 0 && (
                 <div className="py-12 text-center text-sm text-gray-400">
                   No orders match &ldquo;{query}&rdquo;
@@ -1296,7 +1308,7 @@ function OrderQueue({ onSelect }: { onSelect: (order: any) => void }) {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export default function ManualReviewPage() {
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
+  const { selectedOrder, setSelectedOrder } = useOrderSelection()
 
   if (selectedOrder) {
     return (

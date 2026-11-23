@@ -64,7 +64,7 @@ function SuccessCard({
                     <div className="text-[12px] text-[#9ba3af]">{subject.grade_level}</div>
                     <div className="text-[11px] font-mono text-[#64748b] mt-0.5">{subject.student_id}</div>
                 </div>
-                <span className="text-[11px] font-bold text-[#004ac6] bg-[#e8eeff] px-2.5 py-1 rounded-full shrink-0">
+                <span className="text-[11px] font-bold text-[#7e22ce] bg-[#f3e8ff] px-2.5 py-1 rounded-full shrink-0">
                     Walk-in
                 </span>
             </div>
@@ -91,7 +91,7 @@ function SuccessCard({
                 {subject.qr_code_url && (
                     <button
                         onClick={onShowQR}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] transition-colors shadow-sm">
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] transition-colors shadow-sm">
                         <QrCode size={16} />
                         Show Full QR
                     </button>
@@ -168,12 +168,12 @@ export default function CoordinatorQuickAddPage() {
                 </p>
             </div>
 
-            <div className="px-4 md:px-8 py-6 bg-[#f7f8fa] pb-[100px] md:pb-8">
+            <div className="px-4 md:px-8 py-6 bg-[#f5f3ff] pb-[100px] md:pb-8">
                 {!added ? (
                     <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 md:p-6 max-w-[520px] shadow-[0px_1px_4px_rgba(0,0,0,0.05)]">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-[#e8eeff] flex items-center justify-center shrink-0">
-                                <UserPlus size={18} className="text-[#004ac6]" />
+                            <div className="w-10 h-10 rounded-xl bg-[#f3e8ff] flex items-center justify-center shrink-0">
+                                <UserPlus size={18} className="text-[#7e22ce]" />
                             </div>
                             <div>
                                 <h2 className="text-[15px] font-bold text-[#0b1c30]">Walk-in Registration</h2>
@@ -194,7 +194,7 @@ export default function CoordinatorQuickAddPage() {
                                         <select
                                             value={selectedOrder ?? ''}
                                             onChange={(e) => setSelected(Number(e.target.value))}
-                                            className="appearance-none w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors bg-white">
+                                            className="appearance-none w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors bg-white">
                                             {orders.map((o) => (
                                                 <option key={o.id} value={o.id}>
                                                     {o.school_name} — {o.batch_name}
@@ -219,7 +219,7 @@ export default function CoordinatorQuickAddPage() {
                                     placeholder="e.g. Alex Johnson"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors"
+                                    className="border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors"
                                 />
                             </div>
 
@@ -233,7 +233,7 @@ export default function CoordinatorQuickAddPage() {
                                         <select
                                             value={grade}
                                             onChange={(e) => setGrade(e.target.value)}
-                                            className="appearance-none w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors bg-white">
+                                            className="appearance-none w-full border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors bg-white">
                                             <option value="">Select...</option>
                                             {GRADE_OPTIONS.map((g) => (
                                                 <option key={g}>{g}</option>
@@ -255,7 +255,7 @@ export default function CoordinatorQuickAddPage() {
                                         placeholder="e.g. Science"
                                         value={section}
                                         onChange={(e) => setSection(e.target.value)}
-                                        className="border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors"
+                                        className="border border-[#e2e8f0] rounded-xl px-4 py-3 text-[15px] text-[#374151] placeholder-[#c8cbd9] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors"
                                     />
                                 </div>
                             </div>
@@ -272,7 +272,7 @@ export default function CoordinatorQuickAddPage() {
                             <button
                                 onClick={handleSubmit}
                                 disabled={!name.trim() || !selectedOrder || loading}
-                                className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#004ac6] text-white text-[15px] font-semibold hover:bg-[#003da6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
+                                className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#7e22ce] text-white text-[15px] font-semibold hover:bg-[#6b21a8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
                                 {loading
                                     ? <><Loader2 size={18} className="animate-spin" /> Adding…</>
                                     : <><UserPlus size={18} /> Register & Generate QR</>}

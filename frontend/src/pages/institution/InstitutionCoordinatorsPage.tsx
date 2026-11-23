@@ -81,12 +81,12 @@ export default function InstitutionCoordinatorsPage() {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-[24px] font-bold text-[#0b1c30] leading-tight tracking-[-0.3px]">Coordinators</h1>
-                            <span className="bg-[#004ac6] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">{coords.length} Members</span>
+                            <span className="bg-[#7e22ce] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">{coords.length} Members</span>
                         </div>
                         <p className="text-[14px] text-[#64748b] mt-1">Staff authorized to capture student photos via mobile capture link.</p>
                     </div>
                     <button onClick={() => setShowModal(true)}
-                        className="flex items-center gap-2 bg-[#004ac6] text-white text-[14px] font-medium px-4 py-2.5 rounded-lg hover:bg-[#003da6] transition-colors shadow-sm">
+                        className="flex items-center gap-2 bg-[#7e22ce] text-white text-[14px] font-medium px-4 py-2.5 rounded-lg hover:bg-[#6b21a8] transition-colors shadow-sm">
                         <Plus size={15} />
                         Generate New Coordinator
                     </button>
@@ -98,7 +98,7 @@ export default function InstitutionCoordinatorsPage() {
                 {[
                     { label: 'Active', count: activeCount, color: '#15803d', dot: '#22c55e' },
                     { label: 'Expired', count: expiredCount, color: '#b91c1c', dot: '#ef4444' },
-                    { label: 'Pending', count: pendingCount, color: '#1d4ed8', dot: '#3b82f6' },
+                    { label: 'Pending', count: pendingCount, color: '#7e22ce', dot: '#a855f7' },
                 ].map(({ label, count, color, dot }) => (
                     <div key={label} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
@@ -114,11 +114,11 @@ export default function InstitutionCoordinatorsPage() {
                     <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ba3af] pointer-events-none" />
                     <input type="text" placeholder="Search by name or email…"
                         value={search} onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2 text-[13px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors" />
+                        className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2 text-[13px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors" />
                 </div>
                 <div className="relative">
                     <select value={linkFilter} onChange={(e) => setLinkFilter(e.target.value)}
-                        className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#004ac6] transition-colors">
+                        className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#7e22ce] transition-colors">
                         <option value="All">All Link Status</option>
                         <option value="Active">Active</option>
                         <option value="Expired">Expired</option>
@@ -128,11 +128,11 @@ export default function InstitutionCoordinatorsPage() {
                 </div>
             </div>
 
-            <div className="px-8 py-6 bg-[#f7f8fa] flex-1">
+            <div className="px-8 py-6 bg-[#f5f3ff] flex-1">
                 <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-[0px_1px_2px_rgba(0,0,0,0.04)]">
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
-                            <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : (
                         <>
@@ -175,7 +175,7 @@ export default function InstitutionCoordinatorsPage() {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-[90px] h-[4px] bg-[#f1f5f9] rounded-full overflow-hidden">
-                                                            <div className="h-full bg-[#004ac6] rounded-full" style={{ width: `${photosPct}%` }} />
+                                                            <div className="h-full bg-[#7e22ce] rounded-full" style={{ width: `${photosPct}%` }} />
                                                         </div>
                                                         <span className="text-[13px] text-[#374151] font-medium shrink-0">
                                                             {c.photos_captured}<span className="text-[#9ba3af] font-normal"> / {c.photo_limit}</span>
@@ -187,8 +187,8 @@ export default function InstitutionCoordinatorsPage() {
                                                         <button className="p-1.5 rounded-lg hover:bg-[#f1f5f9] transition-colors" title="View">
                                                             <Eye size={14} className="text-[#64748b]" />
                                                         </button>
-                                                        <button className="p-1.5 rounded-lg hover:bg-[#e8eeff] transition-colors" title="Resend link">
-                                                            <Send size={14} className="text-[#004ac6]" />
+                                                        <button className="p-1.5 rounded-lg hover:bg-[#f3e8ff] transition-colors" title="Resend link">
+                                                            <Send size={14} className="text-[#7e22ce]" />
                                                         </button>
                                                         <button className="p-1.5 rounded-lg hover:bg-[#f1f5f9] transition-colors" title="More options">
                                                             <MoreVertical size={14} className="text-[#64748b]" />
@@ -209,7 +209,7 @@ export default function InstitutionCoordinatorsPage() {
                                     </p>
                                     {coords.length === 0 && (
                                         <button onClick={() => setShowModal(true)}
-                                            className="text-[13px] text-[#004ac6] hover:underline font-medium">
+                                            className="text-[13px] text-[#7e22ce] hover:underline font-medium">
                                             Generate your first coordinator →
                                         </button>
                                     )}

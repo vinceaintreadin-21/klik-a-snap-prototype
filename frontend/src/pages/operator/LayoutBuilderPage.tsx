@@ -1,3 +1,6 @@
+import ViewModeToggle, { type ViewMode } from '../../components/shared/ViewModeToggle'
+import OperatorOrderTable from '../../components/operator/OperatorOrderTable'
+import { useOrderSelection } from '../../hooks/useOrderSelection'
 import LayoutLoading from '../../components/operator/LayoutLoading'
 import { useState, useRef, useCallback } from 'react'
 import {
@@ -18,6 +21,7 @@ import { cn } from '../../lib/utils'
 function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
   const { orders } = useOrders()
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<ViewMode>('grid')
 
   const eligible = orders.filter((o) => !['COMPLETED', 'CANCELLED'].includes(o.status))
   const filtered = eligible.filter((o) => {
@@ -29,7 +33,7 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
 
   return (
     <div className="px-8 py-7 max-w-6xl mx-auto w-full">
-      <div className="flex items-end justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
           <h2 className="text-[22px] font-bold text-gray-900 mb-1 tracking-tight">Select an Order</h2>
           <p className="text-[13px] text-gray-500">Choose an order to begin designing or continue editing its ID card layout.</p>
@@ -44,6 +48,7 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
             className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 placeholder:text-gray-400 transition-all"
           />
         </div>
+        <ViewModeToggle value={view} onChange={setView} />
       </div>
 
       {filtered.length === 0 && (
@@ -52,6 +57,9 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
         </div>
       )}
 
+      {view === 'list' ? (
+        <OperatorOrderTable orders={filtered} onSelect={onSelect} actionLabel="Open Layout" />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {filtered.map((order) => (
           <div key={order.id} className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 p-5 flex flex-col justify-between">
@@ -87,6 +95,7 @@ function OrderSelectionView({ onSelect }: { onSelect: (order: any) => void }) {
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }
@@ -440,7 +449,7 @@ function ResizableElement({
                     width: handleVisualSize,
                     height: handleVisualSize,
                     background: '#ffffff',
-                    border: `${1.5 / zoom}px solid #3b82f6`,
+                    border: `${1.5 / zoom}px solid #a855f7`,
                     borderRadius: 2 / zoom,
                     pointerEvents: 'none',
                   }}
@@ -874,7 +883,7 @@ function LayoutBuilderView({ order, onBack }: { order: any; onBack: () => void }
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function LayoutBuilderPage() {
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
+  const { selectedOrder, setSelectedOrder } = useOrderSelection()
 
   return selectedOrder
     ? <LayoutBuilderView order={selectedOrder} onBack={() => setSelectedOrder(null)} />

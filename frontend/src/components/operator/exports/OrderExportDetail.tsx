@@ -88,7 +88,7 @@ export function OrderExportDetail({ order, onBack }: OrderExportDetailProps) {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#F7F8FA]">
+    <div className="flex flex-col h-screen bg-[#f5f3ff]">
       <header className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-3 px-6 py-3">
           <button

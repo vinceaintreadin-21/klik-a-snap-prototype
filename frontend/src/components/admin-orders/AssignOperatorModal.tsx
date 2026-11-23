@@ -68,8 +68,8 @@ const AssignOperatorModal = ({ order, onClose, onSuccess }: Props) => {
         <div className="px-6 py-3 bg-[#f8fafc] border-b border-gray-100">
           <span className="text-[11px] font-bold text-[#64748b] tracking-[0.55px] uppercase">Currently Assigned</span>
           <div className="flex items-center gap-2.5 mt-2">
-            <div className="w-7 h-7 rounded-full bg-[#dce9ff] flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-bold text-[#004ac6]">
+            <div className="w-7 h-7 rounded-full bg-[#f3e8ff] flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-[#7e22ce]">
                 {order.assigned_operator__username
                   ? order.assigned_operator__username.slice(0, 2).toUpperCase()
                   : '—'}
@@ -93,15 +93,15 @@ const AssignOperatorModal = ({ order, onClose, onSuccess }: Props) => {
             className={cn(
               'w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border transition-all',
               selectedId === ''
-                ? 'border-[#004ac6] bg-[#eff4ff] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]'
+                ? 'border-[#7e22ce] bg-[#faf5ff] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]'
                 : 'border-[#e2e8f0] hover:border-[#c3cfe0] hover:bg-[#f8fafc]',
             )}
           >
             <div className={cn(
               'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
-              selectedId === '' ? 'border-[#004ac6]' : 'border-[#cbd5e1]',
+              selectedId === '' ? 'border-[#7e22ce]' : 'border-[#cbd5e1]',
             )}>
-              {selectedId === '' && <div className="w-2 h-2 rounded-full bg-[#004ac6]" />}
+              {selectedId === '' && <div className="w-2 h-2 rounded-full bg-[#7e22ce]" />}
             </div>
             <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
               <span className="text-[11px] text-gray-400 font-medium">—</span>
@@ -127,15 +127,15 @@ const AssignOperatorModal = ({ order, onClose, onSuccess }: Props) => {
                 className={cn(
                   'w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border transition-all',
                   isSel
-                    ? 'border-[#004ac6] bg-[#eff4ff] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]'
+                    ? 'border-[#7e22ce] bg-[#faf5ff] shadow-[0px_0px_0px_2px_rgba(0,74,198,0.12)]'
                     : 'border-[#e2e8f0] hover:border-[#c3cfe0] hover:bg-[#f8fafc]',
                 )}
               >
                 <div className={cn(
                   'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
-                  isSel ? 'border-[#004ac6]' : 'border-[#cbd5e1]',
+                  isSel ? 'border-[#7e22ce]' : 'border-[#cbd5e1]',
                 )}>
-                  {isSel && <div className="w-2 h-2 rounded-full bg-[#004ac6]" />}
+                  {isSel && <div className="w-2 h-2 rounded-full bg-[#7e22ce]" />}
                 </div>
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-indigo-600 flex items-center justify-center shrink-0 border border-gray-100">
                   <span className="text-[11px] font-bold text-white">
@@ -146,7 +146,7 @@ const AssignOperatorModal = ({ order, onClose, onSuccess }: Props) => {
                   <div className="flex items-center gap-2">
                     <span className="text-[14px] font-semibold text-[#0b1c30] truncate">{op.user__username}</span>
                     {isCurrent && (
-                      <span className="text-[10px] font-bold text-[#004ac6] bg-[#dce9ff] px-1.5 py-0.5 rounded tracking-wide shrink-0">
+                      <span className="text-[10px] font-bold text-[#7e22ce] bg-[#f3e8ff] px-1.5 py-0.5 rounded tracking-wide shrink-0">
                         CURRENT
                       </span>
                     )}
@@ -188,7 +188,7 @@ const AssignOperatorModal = ({ order, onClose, onSuccess }: Props) => {
           <button
             onClick={handleConfirm}
             disabled={loading || (selectedId === '' && !order.assigned_operator__username)}
-            className="px-5 py-2 rounded-lg bg-[#004ac6] text-white text-[14px] font-semibold hover:bg-[#003da6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-5 py-2 rounded-lg bg-[#7e22ce] text-white text-[14px] font-semibold hover:bg-[#6b21a8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             <UserCheck size={14} />
             {loading ? 'Saving…' : 'Confirm Assignment'}

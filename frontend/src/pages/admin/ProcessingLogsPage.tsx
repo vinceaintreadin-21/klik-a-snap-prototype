@@ -31,7 +31,7 @@ function Pager({ total, page, onPage }: { total: number; page: number; onPage: (
         {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
           <button key={p} onClick={() => onPage(p)}
             className={cn('w-7 h-7 flex items-center justify-center rounded text-[12px] font-medium transition-colors',
-              page === p ? 'bg-[#004ac6] text-white' : 'text-[#434655] hover:bg-white border border-transparent hover:border-[#e2e8f0]')}>
+              page === p ? 'bg-[#7e22ce] text-white' : 'text-[#434655] hover:bg-white border border-transparent hover:border-[#e2e8f0]')}>
             {p}
           </button>
         ))}
@@ -84,13 +84,13 @@ const ProcessingLogsPage = () => {
       {/* Header */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5 text-[12px]">
-          <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#004ac6] transition-colors">
+          <button onClick={() => navigate('/admin/dashboard')} className="text-[#64748b] hover:text-[#7e22ce] transition-colors">
             Dashboard
           </button>
           <ChevronRight size={10} className="text-[#94a3b8]" />
           <span className="text-[#64748b]">Logs</span>
           <ChevronRight size={10} className="text-[#94a3b8]" />
-          <span className="text-[#004ac6] font-medium">Processing Logs</span>
+          <span className="text-[#7e22ce] font-medium">Processing Logs</span>
         </div>
         <h1 className="text-[24px] font-bold text-[#0b1c30] tracking-tight">Processing Logs</h1>
         <p className="text-[13px] text-[#64748b]">
@@ -121,13 +121,13 @@ const ProcessingLogsPage = () => {
               placeholder="Search by order ID, message, or user…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#004ac6]"
+              className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-[#0b1c30] placeholder-[#94a3b8] focus:outline-none focus:border-[#7e22ce]"
             />
           </div>
 
           <div className="relative">
             <select value={level} onChange={(e) => { setLevel(e.target.value); setPage(1) }}
-              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[13px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#004ac6]">
+              className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-3 pr-8 py-2.5 text-[13px] text-[#0b1c30] cursor-pointer focus:outline-none focus:border-[#7e22ce]">
               <option value="">All Levels</option>
               {['INFO', 'WARNING', 'ERROR', 'CRITICAL'].map((l) => (
                 <option key={l} value={l}>{l}</option>
@@ -151,7 +151,7 @@ const ProcessingLogsPage = () => {
           </button>
 
           {hasFilter && (
-            <button onClick={clear} className="text-[12px] font-semibold text-[#004ac6] hover:underline">
+            <button onClick={clear} className="text-[12px] font-semibold text-[#7e22ce] hover:underline">
               Clear
             </button>
           )}
@@ -162,7 +162,7 @@ const ProcessingLogsPage = () => {
       <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-14 flex flex-col items-center gap-3">
-            <div className="w-7 h-7 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
             <p className="text-[13px] text-[#64748b]">Loading logs…</p>
           </div>
         ) : error ? (
@@ -201,7 +201,7 @@ const ProcessingLogsPage = () => {
                           </span>
                         </td>
                         <td className="px-4 py-4">
-                          <span className="text-[13px] font-mono text-[#004ac6]">#{log.order_id}</span>
+                          <span className="text-[13px] font-mono text-[#7e22ce]">#{log.order_id}</span>
                         </td>
                         <td className="px-4 py-4 max-w-[320px]">
                           <p className="text-[13px] text-[#0b1c30] leading-snug line-clamp-2">{log.message}</p>
@@ -221,7 +221,7 @@ const ProcessingLogsPage = () => {
                         </td>
                         <td className="px-6 py-4 text-right">
                           {log.details ? (
-                            <button className="text-[12px] font-medium text-[#004ac6] hover:underline">
+                            <button className="text-[12px] font-medium text-[#7e22ce] hover:underline">
                               View
                             </button>
                           ) : (

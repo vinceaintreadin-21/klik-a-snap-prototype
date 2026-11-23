@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import api, { refreshAccessToken } from '../utils/api';
 import { clearAccessToken, getAccessToken, getRefreshToken, isTokenExpired } from '../utils/jwt';
 
 const MAX_AUTH_RETRIES = 3;
 
 interface OrderContextType {
+  refreshOrders: () => Promise<void>;
   orders: any[];
   progress: Record<number, { processed: number; manual_review: number; total: number }>;
   addOrder: (order: any) => void;
@@ -45,6 +46,28 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }>>({});
   const [currentStage, setCurrentStage] = useState<Record<number, string>>({});
 
+  const applyOrderList = useCallback((loaded: any[]) => {
+    setOrders(loaded);
+    setProgress(previous => {
+      const next = { ...previous };
+      for (const order of loaded) {
+        if (order.processed_count !== undefined) {
+          next[order.id] = {
+            processed: order.processed_count,
+            manual_review: order.manual_review_count,
+            total: order.student_count,
+          };
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const refreshOrders = useCallback(async () => {
+    const response = await api.get('/orders/');
+    applyOrderList(response.data);
+  }, [applyOrderList]);
+
   const orderSockets = useRef<Record<number, WebSocket>>({});
   const authRetries = useRef<Record<number, number>>({});
 
@@ -75,6 +98,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (data.action === 'status_update') {
         updateOrder({ id: data.id, status: data.status });
+        void refreshOrders().catch(() => console.error('Could not refresh order actions'));
 
         if (data.status === 'PROOFING' && data.processed !== undefined) {
           setProgress(prev => ({
@@ -152,13 +176,13 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const response = await api.get('/orders/');
         const fetchedOrders: any[] = response.data;
-        setOrders(fetchedOrders);
+        applyOrderList(fetchedOrders);
 
         // Restore progress for PROOFING orders from the student API,
         // since the WebSocket only pushes progress during active processing.
         // Without this, the "Needs Review" button is invisible after a refresh.
         for (const order of fetchedOrders) {
-          if (order.status === 'PROOFING') {
+          if (order.status === 'PROOFING' && order.processed_count === undefined) {
             try {
               const studentsRes = await api.get(`/orders/${order.id}/students/`);
               const students: any[] = studentsRes.data;
@@ -221,6 +245,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <OrderContext.Provider value={{
       orders,
+      refreshOrders,
       progress,
       currentStage,
       addOrder,

@@ -30,10 +30,10 @@ export default function CoordinatorBottomNav() {
                         onClick={() => navigate(item.path)}
                         className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-colors relative">
                         {active && (
-                            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#004ac6] rounded-full" />
+                            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#7e22ce] rounded-full" />
                         )}
-                        <item.icon size={18} className={active ? 'text-[#004ac6]' : 'text-[#9ba3af]'} />
-                        <span className={cn('text-[9px] font-medium leading-none', active ? 'text-[#004ac6]' : 'text-[#9ba3af]')}>
+                        <item.icon size={18} className={active ? 'text-[#7e22ce]' : 'text-[#9ba3af]'} />
+                        <span className={cn('text-[9px] font-medium leading-none', active ? 'text-[#7e22ce]' : 'text-[#9ba3af]')}>
                             {item.label}
                         </span>
                     </button>

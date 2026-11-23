@@ -37,7 +37,7 @@ function OrderSwitcher({
             <select
                 value={selected ?? ''}
                 onChange={(e) => onChange(Number(e.target.value))}
-                className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#004ac6] transition-colors">
+                className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#7e22ce] transition-colors">
                 {orders.map((o) => (
                     <option key={o.id} value={o.id}>
                         {o.school_name} — {o.batch_name}
@@ -80,13 +80,13 @@ function SubjectMobileCard({
                     {subject.section ? ` · ${subject.section}` : ''}
                 </div>
                 {subject.is_walk_in && (
-                    <span className="text-[10px] font-bold text-[#004ac6]">Walk-in</span>
+                    <span className="text-[10px] font-bold text-[#7e22ce]">Walk-in</span>
                 )}
             </div>
             {!subject.is_photographed && (
                 <button
                     onClick={() => onMark(subject.id)}
-                    className="w-10 h-10 rounded-xl bg-[#004ac6] flex items-center justify-center shadow-sm active:scale-95 transition-transform">
+                    className="w-10 h-10 rounded-xl bg-[#7e22ce] flex items-center justify-center shadow-sm active:scale-95 transition-transform">
                     <Camera size={16} className="text-white" />
                 </button>
             )}
@@ -122,7 +122,7 @@ function SubjectTableRow({
                     <div>
                         <div className="text-[14px] font-medium text-[#0b1c30]">{subject.full_name}</div>
                         {subject.is_walk_in && (
-                            <span className="text-[10px] font-bold text-[#004ac6] bg-[#e8eeff] px-1.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-[#7e22ce] bg-[#f3e8ff] px-1.5 py-0.5 rounded-full">
                                 Walk-in
                             </span>
                         )}
@@ -146,15 +146,15 @@ function SubjectTableRow({
                     {subject.qr_code_url && (
                         <button
                             onClick={() => onQR(subject)}
-                            className="p-1.5 rounded-lg hover:bg-[#e8eeff] transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-[#f3e8ff] transition-colors"
                             title="Show QR">
-                            <QrCode size={14} className="text-[#004ac6]" />
+                            <QrCode size={14} className="text-[#7e22ce]" />
                         </button>
                     )}
                     {!subject.is_photographed && (
                         <button
                             onClick={() => onMark(subject.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#004ac6] text-white text-[12px] font-medium hover:bg-[#003da6] transition-colors shadow-sm">
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#7e22ce] text-white text-[12px] font-medium hover:bg-[#6b21a8] transition-colors shadow-sm">
                             <Camera size={12} />
                             Mark Done
                         </button>
@@ -244,7 +244,7 @@ export default function CoordinatorStudentsPage() {
             <div className="px-4 md:px-8 pt-6 pb-4 border-b border-[#eceef0] bg-white">
                 <div className="flex items-center gap-3">
                     <h1 className="text-[22px] md:text-[24px] font-bold text-[#0b1c30] tracking-[-0.3px]">Subjects</h1>
-                    <span className="bg-[#004ac6] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                    <span className="bg-[#7e22ce] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
                         {total}
                     </span>
                 </div>
@@ -287,8 +287,8 @@ export default function CoordinatorStudentsPage() {
                         className={cn(
                             'px-3 py-1.5 rounded-lg text-[12px] font-medium shrink-0 transition-all border',
                             filter === f
-                                ? 'bg-[#004ac6] text-white border-[#004ac6]'
-                                : 'bg-[#f8fafc] text-[#64748b] border-[#e2e8f0] hover:border-[#004ac6]'
+                                ? 'bg-[#7e22ce] text-white border-[#7e22ce]'
+                                : 'bg-[#f8fafc] text-[#64748b] border-[#e2e8f0] hover:border-[#7e22ce]'
                         )}>
                         {f.charAt(0).toUpperCase() + f.slice(1)}{' '}
                         ({f === 'all' ? total : f === 'pending' ? pend : done})
@@ -301,7 +301,7 @@ export default function CoordinatorStudentsPage() {
                         placeholder="Search..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-7 pr-3 py-1.5 text-[12px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:border-[#004ac6] focus:ring-2 focus:ring-[#e8eeff] w-[130px] transition-all"
+                        className="bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-7 pr-3 py-1.5 text-[12px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:border-[#7e22ce] focus:ring-2 focus:ring-[#f3e8ff] w-[130px] transition-all"
                     />
                 </div>
             </div>
@@ -309,13 +309,13 @@ export default function CoordinatorStudentsPage() {
             {/* Loading */}
             {loading && (
                 <div className="flex items-center justify-center py-12">
-                    <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-6 h-6 border-2 border-[#7e22ce] border-t-transparent rounded-full animate-spin" />
                 </div>
             )}
 
             {/* Mobile card list */}
             {!loading && (
-                <div className="md:hidden px-4 py-4 bg-[#f7f8fa] flex flex-col gap-3 pb-[80px]">
+                <div className="md:hidden px-4 py-4 bg-[#f5f3ff] flex flex-col gap-3 pb-[80px]">
                     {filtered.map((s) => (
                         <SubjectMobileCard
                             key={s.id}
@@ -335,7 +335,7 @@ export default function CoordinatorStudentsPage() {
 
             {/* Desktop table */}
             {!loading && (
-                <div className="hidden md:block px-8 py-6 bg-[#f7f8fa] flex-1">
+                <div className="hidden md:block px-8 py-6 bg-[#f5f3ff] flex-1">
                     <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-[0px_1px_2px_rgba(0,0,0,0.04)]">
                         <table className="w-full border-collapse">
                             <thead>

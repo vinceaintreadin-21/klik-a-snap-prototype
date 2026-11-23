@@ -13,7 +13,7 @@ const PER_PAGE = 10
 function ProgressBar({ pct, label }: { pct: number; label: string }) {
     const isHold = label === 'HOLD'
     const isDone = label === 'Done'
-    const barColor = isHold ? '#ba1a1a' : '#004ac6'
+    const barColor = isHold ? '#ba1a1a' : '#7e22ce'
     const labelColor = isHold ? '#ba1a1a' : isDone ? '#22c55e' : '#64748b'
     return (
         <div className="flex items-center gap-2 w-[200px]">
@@ -80,7 +80,7 @@ export default function InstitutionOrdersPage() {
                 </nav>
                 <div className="flex items-center gap-3">
                     <h1 className="text-[24px] font-bold text-[#0b1c30] leading-tight tracking-[-0.3px]">Orders</h1>
-                    <span className="bg-[#004ac6] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">{orders.length} Total</span>
+                    <span className="bg-[#7e22ce] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">{orders.length} Total</span>
                 </div>
                 <p className="text-[14px] text-[#64748b] mt-1">Manage and track your institution's ID card orders.</p>
             </div>
@@ -91,11 +91,11 @@ export default function InstitutionOrdersPage() {
                     <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ba3af] pointer-events-none" />
                     <input type="text" placeholder="Search by order ID or batch…"
                         value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                        className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2 text-[13px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:ring-2 focus:ring-[#e8eeff] focus:border-[#004ac6] transition-colors" />
+                        className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg pl-9 pr-4 py-2 text-[13px] text-[#374151] placeholder-[#9ba3af] focus:outline-none focus:ring-2 focus:ring-[#f3e8ff] focus:border-[#7e22ce] transition-colors" />
                 </div>
                 <div className="relative">
                     <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-                        className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#004ac6] transition-colors">
+                        className="appearance-none bg-[#f8fafc] border border-[#e2e8f0] rounded-lg text-[13px] text-[#374151] pl-3 pr-8 py-2 cursor-pointer focus:outline-none hover:border-[#7e22ce] transition-colors">
                         <option>All Statuses</option>
                         <option>PENDING</option>
                         <option>PROCESSING</option>
@@ -108,7 +108,7 @@ export default function InstitutionOrdersPage() {
                 </div>
             </div>
 
-            <div className="px-8 py-6 bg-[#f7f8fa] flex-1">
+            <div className="px-8 py-6 bg-[#f5f3ff] flex-1">
                 <div className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-[0px_1px_2px_rgba(0,0,0,0.04)]">
                     <table className="w-full border-collapse">
                         <thead>
@@ -129,7 +129,7 @@ export default function InstitutionOrdersPage() {
                                 return (
                                     <tr key={order.id} className="border-b border-[#f8fafc] hover:bg-[#fafbfd] transition-colors">
                                         <td className="px-6 py-4">
-                                            <span className="font-mono text-[13px] font-semibold text-[#004ac6]">#{order.id}</span>
+                                            <span className="font-mono text-[13px] font-semibold text-[#7e22ce]">#{order.id}</span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-[13px] font-medium text-[#374151]">{order.batch_name}</div>
@@ -159,8 +159,8 @@ export default function InstitutionOrdersPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDownloadQR(order.id)}
-                                                    className="p-1.5 rounded-lg hover:bg-[#e8eeff] transition-colors" title="Download QR Codes">
-                                                    <QrCode size={14} className="text-[#004ac6]" />
+                                                    className="p-1.5 rounded-lg hover:bg-[#f3e8ff] transition-colors" title="Download QR Codes">
+                                                    <QrCode size={14} className="text-[#7e22ce]" />
                                                 </button>
                                             </div>
                                         </td>
@@ -192,7 +192,7 @@ export default function InstitutionOrdersPage() {
                                 <button key={p} onClick={() => setPage(p)}
                                     className={cn(
                                         'w-7 h-7 flex items-center justify-center rounded-lg text-[12px] font-medium transition-all',
-                                        page === p ? 'bg-[#004ac6] text-white' : 'border border-[#e2e8f0] text-[#64748b] hover:bg-white'
+                                        page === p ? 'bg-[#7e22ce] text-white' : 'border border-[#e2e8f0] text-[#64748b] hover:bg-white'
                                     )}>
                                     {p}
                                 </button>
