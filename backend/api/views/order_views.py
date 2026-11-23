@@ -744,100 +744,172 @@ def download_id_cards(request, order_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def generate_test_photos(request, order_id):
-    """
-    Testing utility: overlays each student's QR code onto a randomly chosen
-    uploaded photo, randomizes position slightly under the neck area, zips
-    all output images.
-    """
-    import numpy as np
-    from PIL import Image
-    import io
-    import requests as req
+    """Generate one test photo per QR-ready subject using distinct inputs."""
+    import hashlib
+    import logging
     import random
 
-    order, err = check_order_access(request, order_id, action=OrderAction.PROCESS)
+    import qrcode
+    from PIL import Image, ImageOps
+
+    order, err = check_order_access(
+        request, order_id, action=OrderAction.PROCESS
+    )
     if err is not None:
         return err
 
-    students = Subject.objects.filter(
-        order=order
-    ).exclude(qr_code_url__isnull=True).exclude(qr_code_url='')
+    subjects = list(
+        Subject.objects.filter(order=order)
+        .exclude(qr_code_data__isnull=True)
+        .exclude(qr_code_data='')
+        .order_by('id')
+    )
 
-    if not students.exists():
-        return Response({'error': 'No students with QR codes found for this order'}, status=404)
+    if not subjects:
+        return Response(
+            {'error': 'No subjects with QR payloads found for this order.'},
+            status=404,
+        )
 
     photo_files = request.FILES.getlist('photos')
     if not photo_files:
-        return Response({'error': 'At least one base photo file is required'}, status=400)
+        return Response(
+            {'error': 'At least one base photo is required.'},
+            status=400,
+        )
 
-    # Decode all uploaded photos once up front
-    base_photos = []
-    for pf in photo_files:
+    def read_photo(upload):
+        upload.seek(0)
+        with Image.open(BytesIO(upload.read())) as image:
+            return ImageOps.exif_transpose(image).convert('RGB')
+
+    # Compare decoded pixels, including dimensions.
+    # Keep uploaded files instead of retaining every decoded image in memory.
+    unique_photos = []
+    seen_images = set()
+    invalid_files = []
+
+    for upload in photo_files:
         try:
-            img = Image.open(pf).convert('RGBA')
-            base_photos.append(img)
-        except Exception as e:
-            print(f"Skipping unreadable photo {getattr(pf, 'name', '?')}: {e}")
-            continue
-
-    if not base_photos:
-        return Response({'error': 'None of the uploaded photos could be read'}, status=400)
-
-    zip_buffer = BytesIO()
-
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for student in students:
-            try:
-                qr_response = req.get(student.qr_code_url, timeout=10)
-                if qr_response.status_code != 200:
+            with read_photo(upload) as photo:
+                if min(photo.size) < 4:
+                    invalid_files.append(upload.name)
                     continue
 
-                qr_img_src = Image.open(BytesIO(qr_response.content)).convert('RGBA')
+                digest = hashlib.sha256()
+                digest.update(
+                    f'{photo.width}x{photo.height}:'.encode()
+                )
+                digest.update(photo.tobytes())
+                fingerprint = digest.digest()
 
-                # Pick a random base photo for this student
-                base_photo = random.choice(base_photos)
-                photo_w, photo_h = base_photo.size
+            if fingerprint not in seen_images:
+                seen_images.add(fingerprint)
+                unique_photos.append(upload)
 
-                QR_SIZE = min(photo_w, photo_h) // 4
-                NECK_Y_MIN = int(photo_h * 0.75)
-                NECK_Y_MAX = int(photo_h * 0.90)
+        except (OSError, ValueError, Image.DecompressionBombError):
+            invalid_files.append(upload.name)
 
-                qr_img = qr_img_src.resize((QR_SIZE, QR_SIZE), Image.LANCZOS)
+    if len(unique_photos) < len(subjects):
+        return Response(
+            {
+                'error': (
+                    f'This order has {len(subjects)} QR-ready subjects, '
+                    f'but only {len(unique_photos)} distinct readable '
+                    'photos were uploaded. Upload one distinct photo '
+                    'per subject.'
+                ),
+                'required': len(subjects),
+                'available': len(unique_photos),
+                'invalid_files': invalid_files,
+            },
+            status=400,
+        )
 
-                photo_copy = base_photo.copy()
+    # Shuffle once, then assign each selected photo to exactly one subject.
+    random.shuffle(unique_photos)
+    zip_buffer = BytesIO()
 
-                center_x = (photo_w - QR_SIZE) // 2
-                x_offset = int(photo_w * 0.10)
-                paste_x = center_x + random.randint(-x_offset, x_offset)
-                paste_x = max(0, min(paste_x, photo_w - QR_SIZE))
+    try:
+        with zipfile.ZipFile(
+            zip_buffer, 'w', zipfile.ZIP_DEFLATED
+        ) as archive:
+            for subject, upload in zip(subjects, unique_photos):
+                with read_photo(upload) as photo:
+                    # Processing matches this exact payload to the subject.
+                    qr = qrcode.QRCode(
+                        error_correction=qrcode.constants.ERROR_CORRECT_L,
+                        box_size=10,
+                        border=4,
+                    )
+                    qr.add_data(subject.qr_code_data)
+                    qr.make(fit=True)
 
-                y_low = NECK_Y_MIN
-                y_high = max(NECK_Y_MIN, NECK_Y_MAX - QR_SIZE)
-                paste_y = random.randint(y_low, y_high) if y_high > y_low else y_low
-                paste_y = max(0, min(paste_y, photo_h - QR_SIZE))
+                    qr_size = min(photo.size) // 4
 
-                photo_copy.paste(qr_img, (paste_x, paste_y), qr_img)
+                    with qr.make_image().convert('RGB') as qr_source:
+                        qr_image = qr_source.resize(
+                            (qr_size, qr_size),
+                            Image.Resampling.NEAREST,
+                        )
 
-                out_buffer = BytesIO()
-                photo_copy.convert('RGB').save(out_buffer, format='JPEG', quality=95)
-                out_buffer.seek(0)
+                    try:
+                        center_x = (photo.width - qr_size) // 2
+                        offset = int(photo.width * 0.10)
 
-                clean_name = student.full_name.replace(' ', '_')
-                filename = f"{student.student_id}_{clean_name}.jpg"
-                zf.writestr(filename, out_buffer.getvalue())
+                        paste_x = max(
+                            0,
+                            min(
+                                center_x + random.randint(-offset, offset),
+                                photo.width - qr_size,
+                            ),
+                        )
 
-            except Exception as e:
-                print(f"Error generating test photo for {student.full_name}: {e}")
-                continue
+                        y_low = min(
+                            int(photo.height * 0.75),
+                            photo.height - qr_size,
+                        )
+                        y_high = min(
+                            max(
+                                y_low,
+                                int(photo.height * 0.90) - qr_size,
+                            ),
+                            photo.height - qr_size,
+                        )
 
-    zip_buffer.seek(0)
-    content = zip_buffer.getvalue()
+                        photo.paste(
+                            qr_image,
+                            (paste_x, random.randint(y_low, y_high)),
+                        )
+                    finally:
+                        qr_image.close()
 
-    if not content or len(content) < 100:
-        return Response({'error': 'Failed to generate test photos'}, status=500)
+                    output = BytesIO()
+                    photo.save(output, format='JPEG', quality=95)
 
-    response = HttpResponse(content, content_type='application/zip')
-    response['Content-Disposition'] = f'attachment; filename="test_photos_order_{order_id}.zip"'
+                    clean_name = subject.full_name.replace(' ', '_')
+                    filename = (
+                        f'{subject.student_id}_{clean_name}.jpg'
+                    )
+                    archive.writestr(filename, output.getvalue())
+
+    except Exception:
+        logging.getLogger(__name__).exception(
+            'Test-photo generation failed for order %s',
+            order_id,
+        )
+        return Response(
+            {'error': 'Test-photo generation failed. Please try again.'},
+            status=500,
+        )
+
+    response = HttpResponse(
+        zip_buffer.getvalue(),
+        content_type='application/zip',
+    )
+    response['Content-Disposition'] = (
+        f'attachment; filename="test_photos_order_{order_id}.zip"'
+    )
     return response
 
 @api_view(['GET'])

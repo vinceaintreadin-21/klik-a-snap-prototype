@@ -2,6 +2,7 @@
 import os
 import gc
 import time
+import logging
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
@@ -21,29 +22,34 @@ def trim_memory():
 
 BATCH_SIZE = 25  # pause briefly every N subjects to let memory settle
 
+logger = logging.getLogger(__name__)
+
+
+def _send_order_event(order_id, message):
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+        async_to_sync(channel_layer.group_send)(
+            f"order_{order_id}",
+            {"type": "post_update", "message": message},
+        )
+    except Exception:
+        logger.exception("Could not broadcast update for order %s", order_id)
+
+
 def broadcast_status(order_id, status, extra=None):
-    channel_layer = get_channel_layer()
     message = {"action": "status_update", "id": order_id, "status": status}
     if extra:
         message.update(extra)
-    async_to_sync(channel_layer.group_send)(
-        f"order_{order_id}", # Scope by order ID 
-        {"type": "post_update", "message": message}
-    )
+    _send_order_event(order_id, message)
 
 def broadcast_stage(order_id, stage_key):
     """Broadcast the current AI pipeline stage for a given order."""
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f"order_{order_id}",
-        {
-            "type": "post_update",
-            "message": {
-                "action": "stage_update",
-                "stage": stage_key,   # one of: read-qr | crop | extract-face | match-student | confidence | generate-id
-            }
-        }
-    )
+    _send_order_event(order_id, {
+        "action": "stage_update",
+        "stage": stage_key,
+    })
 
 
 def start_processing_queue(order_id):

@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     default-libmysqlclient-dev \
     libgl1 \
+    libgles2 \
     libglib2.0-0 \
     libusb-1.0-0 \
     && rm -rf /var/lib/apt/lists/*

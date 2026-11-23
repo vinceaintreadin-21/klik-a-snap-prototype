@@ -140,6 +140,16 @@ def process_single_photo(image_path, order_id):
         if subject is not None:
             attempt.fail_reason = subject.fail_reason
         return subject, outcome
+    except Exception:
+        logger.exception("Photo processing failed for order %s", order_id)
+        subject = attempt.subject
+        if subject is not None:
+            subject.photo_status = Subject.PhotoStatus.MANUAL_REVIEW
+            subject.fail_reason = "error"
+            subject.save(update_fields=["photo_status", "fail_reason"])
+            attempt.fail_reason = "error"
+            return subject, "manual_review"
+        raise
     finally:
         attempt.elapsed_ms = round((perf_counter() - started) * 1000)
 
@@ -150,6 +160,28 @@ def process_single_photo(image_path, order_id):
                 "Could not save photo processing metrics for order %s",
                 order_id,
             )
+
+def _read_photo_qr(img):
+    detector = cv2.QRCodeDetector()
+
+    # Scan the full image first.
+    data, _, _ = detector.detectAndDecode(img)
+    if data:
+        return data.strip()
+
+    # Generated test photos place the QR in the lower half.
+    lower_half = img[img.shape[0] // 2:]
+    gray = cv2.cvtColor(lower_half, cv2.COLOR_BGR2GRAY)
+    enlarged = cv2.resize(
+        gray,
+        None,
+        fx=2,
+        fy=2,
+        interpolation=cv2.INTER_CUBIC,
+    )
+
+    data, _, _ = detector.detectAndDecode(enlarged)
+    return data.strip() if data else ""
 
 def _process_single_photo(image_path, order_id, attempt):
     """
@@ -166,12 +198,15 @@ def _process_single_photo(image_path, order_id, attempt):
     broadcast_stage(order_id, "read-qr")
     try:
         response  = requests.get(image_path, timeout=15)
+        response.raise_for_status()
         img_array = np.frombuffer(response.content, np.uint8)
         img       = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     except Exception as e:
         print(f"ERROR: Image download or decode crashed: {e}")
         subject = Subject.objects.filter(order_id=order_id, student_id=possible_sub_id).first()
         if subject:
+            if not subject.original_photo_url:
+                subject.original_photo_url = image_path
             subject.photo_status = Subject.PhotoStatus.MANUAL_REVIEW
             subject.fail_reason  = 'error'
             subject.save()
@@ -181,6 +216,8 @@ def _process_single_photo(image_path, order_id, attempt):
     if img is None:
         subject = Subject.objects.filter(order_id=order_id, student_id=possible_sub_id).first()
         if subject:
+            if not subject.original_photo_url:
+                subject.original_photo_url = image_path
             subject.photo_status = Subject.PhotoStatus.MANUAL_REVIEW
             subject.fail_reason  = 'error'
             subject.save()
@@ -188,8 +225,7 @@ def _process_single_photo(image_path, order_id, attempt):
         return None, 'manual_review'
 
     # --- Step 1: QR Detection ---
-    detector        = cv2.QRCodeDetector()
-    data, bbox, _   = detector.detectAndDecode(img)
+    data = _read_photo_qr(img)
     print(f"DEBUG: QR data detected: '{data}'")
 
     if not data:
@@ -214,17 +250,19 @@ def _process_single_photo(image_path, order_id, attempt):
         if subject:
             if not subject.original_photo_url:
                 subject.original_photo_url = image_path
+
             subject.photo_status = Subject.PhotoStatus.MANUAL_REVIEW
             subject.fail_reason  = 'qr_not_found'
             subject.save()
             return subject, 'manual_review'
         return None, 'manual_review'
 
-    if not subject.original_photo_url:
-        subject.original_photo_url = image_path
+    subject.original_photo_url = image_path
+    subject.save(update_fields=["original_photo_url"])
+
+    attempt.subject = subject
 
     # --- Step 3: Crop face ---
-    attempt.subject = subject
     cropped_path, face_found, detector, confidence = _crop_face(order_id, img, image_path)
     attempt.detector = detector 
     attempt.face_confidence = confidence
@@ -327,7 +365,7 @@ def _crop_face(order_id, img, image_path):
     
 
     except Exception as e:
-        director_name = "haar"
+        detector_name = "haar"
         confidence = None
         
         print(f"DEBUG: MediaPipe Tasks init failed ({e}). Falling back to Haar Cascades...")
@@ -356,14 +394,14 @@ def _crop_face(order_id, img, image_path):
 
     if not settings.DEBUG:
         _, buf = cv2.imencode('.jpg', cropped)
-        return buf.tobytes(), face_detected, face_detected, detector_name, confidence
+        return buf.tobytes(), face_detected, detector_name, confidence
     else:
         out_dir  = os.path.join(settings.MEDIA_ROOT, 'cropped_faces')
         os.makedirs(out_dir, exist_ok=True)
         filename = f"cropped_{os.path.basename(image_path.split('/')[-1].split('?')[0])}"
         out      = os.path.join(out_dir, filename)
         cv2.imwrite(out, cropped)
-        return out, face_detected, face_detected, detector_name, confidence
+        return out, face_detected, detector_name, confidence
 
 
 def _render_id_card(cropped_path_or_bytes, subject, layout, *, background_bytes=None, preview=False):
