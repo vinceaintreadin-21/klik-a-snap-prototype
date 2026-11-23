@@ -1,7 +1,9 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.db.models import Count
+from django.db.models import Count, Q, Exists, OuterRef
+from api.models.id_layout import IDLayout
+from api.services.order_workflow import get_order_workflow
 from django.db import transaction
 from api.services.qr_service import bulk_generate_qr_codes
 from api.services.id_engine import finalize_order_production
@@ -120,14 +122,30 @@ def _list_orders(request):
                 total_students=Count('subjects')
             ).filter(institution=profile.institution)
 
-        result = orders.values(
-            'id', 'school_name', 'batch_name', 'status', 'created_at', 'total_students'
-        )
+        if profile.role == UserProfile.Role.OPERATOR:
+            orders = orders.annotate(
+                processed_count=Count('subjects', filter=Q(subjects__photo_status=Subject.PhotoStatus.PROCESSED)),
+                manual_review_count=Count('subjects', filter=(
+                    Q(subjects__photo_status=Subject.PhotoStatus.MANUAL_REVIEW) |
+                    (Q(status=Order.Status.PROOFING, subjects__photo_status=Subject.PhotoStatus.PENDING) &
+                     (Q(subjects__original_photo_url='') | Q(subjects__original_photo_url__isnull=True)))
+                )),
+                has_layout=Exists(IDLayout.objects.filter(
+                    order_id=OuterRef('pk'), side='FRONT', background_image_url__isnull=False
+                ).exclude(background_image_url='')),
+            )
+        fields = ['id', 'school_name', 'batch_name', 'status', 'created_at', 'deadline', 'total_students']
+        if profile.role == UserProfile.Role.OPERATOR:
+            fields += ['processed_count', 'manual_review_count', 'has_layout']
+        result = orders.values(*fields)
 
         order_list = [
             {**{k: v for k, v in o.items() if k != 'total_students'}, 'student_count': o['total_students']}
             for o in result
         ]
+        if profile.role == UserProfile.Role.OPERATOR:
+            for order in order_list:
+                order.update(get_order_workflow(order))
         return Response(order_list)
 
     except Exception as e:
@@ -199,6 +217,8 @@ def start_processing(request, pk):
     order, err = check_order_access(request, pk, action=OrderAction.PROCESS)
     if err:
         return err
+    if not order.layouts.filter(side='FRONT', background_image_url__isnull=False).exclude(background_image_url='').exists():
+        return Response({'error': 'Save a front layout before starting photo processing.'}, status=400)
     try:
         updated = Order.objects.filter(id=pk, status__in=['PENDING', 'FAILED', 'PROOFING']).update(status='PROCESSING')
         if not updated:
@@ -218,12 +238,12 @@ def complete_order(request, pk):
     if err:
         return err
     try:
-        success, new_status = finalize_order_production(pk)
+        success, new_status = finalize_order_production(pk, expected_status=request.data.get('expected_status'))
         if success:
-            if new_status == 'COMPLETED':
-                Order.objects.filter(id=pk).update(completed_at=timezone.now())
-            return JsonResponse({'message': f'Order moved to {new_status}'}, status=200)
+            return JsonResponse({'message': f'Order moved to {new_status}', 'status': new_status}, status=200)
         return JsonResponse({"error": "Order is not in a state that can be completed"}, status=400)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=400)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 

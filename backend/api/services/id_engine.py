@@ -620,34 +620,44 @@ def compose_print_sheet(order_id):
     return sheet_results
 
 
-def finalize_order_production(order_id):
-    """
-    PENDING → PRINTING  : triggers print-sheet composition
-    PRINTING → COMPLETED: marks order done
-    """
-    order = Order.objects.get(id=order_id)
+def finalize_order_production(order_id, expected_status=None):
+    from django.db import transaction
+    from django.db.models import Q
+    from api.services.processing_service import broadcast_status
 
-    if order.status == Order.Status.APPROVED:
-        order.status = Order.Status.PRINTING
-        order.save()
-        from api.services.processing_service import broadcast_status
-        broadcast_status(order.id, Order.Status.PRINTING)
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(id=order_id)
+        if expected_status is not None and order.status != expected_status:
+            raise ValueError('The order status has changed. Refresh the order and try again.')
 
-        # Compose print sheets now that all cards are approved
-        try:
-            sheet_paths = compose_print_sheet(order_id)
-            print(f"INFO: Generated {len(sheet_paths)} print sheet(s) for order {order_id}.")
-        except Exception as e:
-            print(f"WARNING: Print sheet composition failed: {e}")
+        if order.status == Order.Status.APPROVED:
+            if not order.layouts.filter(side='FRONT', background_image_url__isnull=False).exclude(background_image_url='').exists():
+                raise ValueError('Save a front layout before sending this order to print.')
+            subjects = order.subjects.all()
+            missing_output = Q(processed_photo='') | Q(processed_photo__isnull=True)
+            if order.layouts.filter(side='BACK').exists():
+                missing_output |= Q(processed_photo_back='') | Q(processed_photo_back__isnull=True)
+            if (not subjects.exists() or
+                    subjects.exclude(photo_status=Subject.PhotoStatus.PROCESSED, is_approved=True).exists() or
+                    subjects.filter(missing_output).exists()):
+                raise ValueError('Every subject must be processed, approved and have the required ID outputs before printing.')
+            if not compose_print_sheet(order_id):
+                raise ValueError('No print sheets were generated. The order is still approved.')
+            order.status = Order.Status.PRINTING
+        elif order.status == Order.Status.PRINTING:
+            order.status = Order.Status.COMPLETED
+            order.completed_at = timezone.now()
+        else:
+            return False, None
 
-        return True, 'PRINTING'
+        order.save(update_fields=['status', 'completed_at', 'updated_at'])
+        new_status = order.status
 
-    if order.status == Order.Status.PRINTING:
-        order.status       = Order.Status.COMPLETED
-        order.completed_at = timezone.now()
-        order.save()
-        from api.services.processing_service import broadcast_status
-        broadcast_status(order.id, Order.Status.COMPLETED)
-        return True, 'COMPLETED'
+        def notify():
+            try:
+                broadcast_status(order_id, new_status)
+            except Exception:
+                logger.exception('Could not broadcast the production status for order %s', order_id)
 
-    return False, None
+        transaction.on_commit(notify)
+    return True, new_status
