@@ -1,262 +1,319 @@
 <div align="center">
 
-# <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Camera%20with%20Flash.png" alt="Camera" width="50" /> `Klik-a-Snap`
+# QueueBits
 
-### **The Ultimate AI-Powered ID Production System**
+### Institutional ID Production Management
 
-![Production Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
-![AI-Powered](https://img.shields.io/badge/AI-MediaPipe-orange?style=for-the-badge)
+A centralized platform for Klik-A-Snap to manage subject records, photo processing, ID layouts, approvals, and production.
 
-*Streamlining student data ingestion and automated card generation with surgical precision.*
+**Project stage · Functional prototype undergoing integration and validation**
 
----
+**Estimated feature completion · 75%**
 
 </div>
 
-## 🚀 Tech Stack
+---
 
-### **Frontend**
+## Project Overview
 
-| Tool | Logo | Description |
-| :--- | :---: | :--- |
-| **React 18** | <img src="https://skillicons.dev/icons?i=react" width="40" /> | Type-safe, component-based UI using TypeScript. |
-| **Tailwind CSS** | <img src="https://skillicons.dev/icons?i=tailwind" width="40" /> | Modern, utility-first responsive styling. |
-| **State Management** | <img src="https://skillicons.dev/icons?i=ts" width="40" /> | Context API for Auth and Order tracking. |
-| **React-Draggable** | 🖱️ | Visual "What You See Is What You Get" (WYSIWYG) editor. |
+QueueBits connects the people involved in institutional ID production through four dedicated workspaces.
 
-### **Backend**
+The application supports the production cycle from subject-list submission and QR preparation to photo matching, proofing, institution approval, printing, and completion.
 
-| Tool | Logo | Description |
-| :--- | :---: | :--- |
-| **Django 5.0** | <img src="https://skillicons.dev/icons?i=django" width="40" /> | Robust Python framework for core business logic. |
-| **DRF** | ⚙️ | Secure, scalable RESTful API architecture. |
-| **SimpleJWT** | 🔐 | Stateless authentication via JSON Web Tokens. |
-| **Threading** | 🧵 | Asynchronous processing for heavy AI workloads. |
+A **subject** is an ID recipient, including a student, employee, member, or other registered individual. Flexible spreadsheet fields allow institutions to provide information suited to their requirements.
 
-### **AI & Computer Vision**
+## Current Project Status
 
-| Tool | Logo | Description |
-| :--- | :---: | :--- |
-| **OpenCV** | <img src="https://skillicons.dev/icons?i=opencv" width="40" /> | Image manipulation and background processing. |
-| **MediaPipe** | 🎯 | Real-time face detection and coordinate mapping. |
-| **Pillow (PIL)** | 🖼️ | High-quality image compositing and print rendering. |
+| Area | Current position |
+| --- | --- |
+| Core application | Role-based workspaces and the main production workflow are implemented |
+| Operator workflow | Layout building, photo uploads, review tools, production actions, and exports are available |
+| Client participation | Subject-list submission, proofing, revision requests, and batch approval are available |
+| Interface | Shared purple theme, responsive navigation, and Operator list/grid views are implemented |
+| Integration | Spreadsheet compatibility, Coordinator permissions, and selected dashboard metrics require follow-up |
+| Validation | Full production acceptance testing and operational reliability checks remain pending |
+
+### Completion Estimate
+
+**The project is approximately 75% complete at the feature level.**
+
+This estimate reflects the implemented core workflows and the remaining integration, data-validation, reporting, and reliability work identified during the code review. Formal acceptance criteria are still needed to establish a measured completion percentage.
 
 ---
 
-## 👥 System Roles
+## Core Functionalities by Role
 
-Klik-a-Snap is built around four cooperating roles, each with a dedicated dashboard and a distinct slice of the order lifecycle.
+### Admin — Klik-A-Snap Head
 
-| Role | Access Point | Primary Responsibility |
-| :--- | :--- | :--- |
-| 🛡️ **Admin** (Klik-A-Snap Head) | Admin Console | System-wide oversight, account/institution management, audit & analytics |
-| 🧑‍💻 **Operator** (Klik-A-Snap Staff) | Operator Dashboard | Layout building, AI batch processing, manual review, print export |
-| 🏫 **Institution** (Client Head) | Institution Portal | Order submission, proofing, batch approval |
-| 📱 **Coordinator** (Client Staff) | Coordinator Mobile Dashboard | On-site photo day support, student lookup, walk-in registration |
+The Admin oversees accounts, client institutions, order assignments, and production activity.
 
-### Order Lifecycle at a Glance
+**Account and institution management**
 
-```
-Submitted → IS Checker Validation → Layout Configured → AI Pipeline → Manual Review
-   → Ready for Institution Proofing → Institution Approval (gate) → PRINTING → COMPLETED
-```
+- Create and manage Operator accounts.
+- Register and manage client institutions.
+- Maintain institution contract details and order quotas.
+- Manage institution suspension and deactivation.
+- Track cleanup progress and retry failed cleanup operations.
 
----
+**Order oversight**
 
-## 🛡️ 1. Admin Process Flow — Klik-A-Snap Head
+- View orders across institutions.
+- Assign or reassign Operators.
+- Filter and inspect order activity.
+- Perform administrative status overrides.
+- Review recorded override details in the audit trail.
 
-#### Account & Operator Management
-- Create operator accounts and assign credentials
-- Deactivate or reassign operators as needed
-- Reset operator passwords when required
+**Monitoring and reporting**
 
-#### Institution Management
-- Register new institutions into the system
-- Suspend institutions when necessary
-- View all orders tied to each institution
+- Review order-volume and production summaries.
+- Monitor average order turnaround and manual review rates.
+- Inspect recorded pipeline attempts and face-detection confidence.
+- Review processing logs, errors, and administrative actions.
 
-#### Order Oversight
-- View all orders system-wide using status filters
-- Assign or reassign operators to specific orders
-- Manually override any order status (all overrides are logged to the audit trail)
+**Contract-end cleanup**
 
-#### Monitoring & Logs
-- View processing logs and error reports
-- Review the override audit log — includes who overrode, what status was changed, reason given, and timestamp
-- Monitor manual review rates and flag systemic issues
+Eligible institution deactivation disables associated accounts and initiates deletion of related orders, subject records, layouts, and assets. The workflow requires a reached contract end date, completed or cancelled orders, a reason, and deletion confirmation.
 
-#### System Analytics
-- Track total IDs produced
-- Monitor orders per month
-- Review average turnaround time per order
-- Analyze manual review rates across the system
+### Operator — Klik-A-Snap Staff
 
-#### Quality & Compliance
-- Ensure operators configure layouts before triggering pipelines
-- Verify institution approvals are recorded before printing is authorized
-- Use audit logs to investigate disputes or errors
+The Operator handles the technical production work for assigned orders.
 
----
+**Order Dashboard**
 
-## 🧑‍💻 2. Operator Process Flow — Klik-A-Snap Staff
+- View assigned orders, deadlines, subject counts, and processing progress.
+- Switch between list and grid views.
+- Search and sort assigned orders.
+- Open the next workflow action directly for a selected order.
 
-#### Order Management
-- View all orders assigned to them
-- Monitor the status of each assigned order
+Each order displays one primary action.
 
-#### Layout Configuration *(must be completed before processing)*
-- Open the ID Layout Builder for the assigned order
-- Upload the institution's background/ID design image
-- Drag and drop placeholders onto the canvas (Photo Box, Full Name, Student ID, etc.)
-- Configure each placeholder — font size, color, alignment, visibility
-- Preview the layout using a dummy student record in real time
-- Save the layout as a `fields_config` JSON — this unlocks the AI pipeline for the order
-- Edit or copy layout from a previous order if needed
+| Order stage | Dashboard action |
+| --- | --- |
+| Awaiting layout | Set Up Layout |
+| Awaiting photos | Upload Photos |
+| Processing | View Pipeline |
+| Needs review | Review Photos |
+| Proofing | View Proofs |
+| Approved | Send to Print |
+| Printing | Mark Completed |
+| Completed or cancelled | View Order |
 
-#### Batch Photo Upload
-- Upload a folder of batch photos (~500 photos per batch)
-- Trigger the AI processing pipeline (only available after layout is saved)
+During layout setup and photo-upload preparation, a **⋮ menu** provides **Generate test photos**. This utility produces downloadable test images with subject QR codes overlaid.
 
-#### Monitoring & Progress Tracking
-- Monitor real-time processing progress via WebSocket
-- Track how many photos have been processed, flagged, or failed
+**ID Layout Builder**
 
-#### Manual Review
-- Access the manual review queue for unmatched or unreadable QR photos
-- Search for the student manually, or filter for students needing manual review and link the photo to the correct record
+- Configure front and back ID designs.
+- Upload background images.
+- Add and position portraits, text, QR codes, and optional barcodes.
+- Resize and reposition elements.
+- Adjust text size, color, and visibility.
+- Use fields supplied by the institution’s spreadsheet.
+- Preview layouts using dummy subject data.
+- Publish configured layouts.
 
-#### Order Progression
-- Mark order as **Ready for Institution Proofing** once all IDs are reviewed
-- Wait for institution approval before proceeding
-- Mark order as **PRINTING** only after institution approval is recorded *(system-enforced)*
-- Mark order as **COMPLETED** after printing is done
+**Batch upload and processing**
 
-#### Export & Output
-- Download final print-ready output files after printing is approved
-- Export as a ZIP of print-ready PNGs or a PDF print sheet
+- Select an assigned order and upload subject photos.
+- Open the upload step directly from the dashboard.
+- Review upload results and batch progress.
+- Switch the uploaded-photo collection between list and grid views.
+- Start photo processing after a front layout has been saved.
+- Monitor processing updates through the pipeline workspace.
 
----
+**Manual review and proofing**
 
-## 🏫 3. Institution Process Flow — Client Head
+- Inspect photos requiring intervention.
+- Link photos to subject records.
+- Replace photos, adjust crops, and retry processing.
+- Review generated IDs and flag corrections.
+- Resolve revision requests before production proceeds.
 
-#### Account Access
-- Log in to the Institution/Client Portal
-- View all existing orders and their current statuses
-- View complete order history
+**Printing and export**
 
-#### Submitting a New Order *(with IS Checker)*
-- Submit a new order with: institution name, batch name, and subject list (via CSV, Excel, or manual entry)
-- The system validates data entry via the **IS Checker** — entries with errors are routed to manual proofing
+- Send approved orders to printing.
+- Generate print-sheet outputs.
+- Mark printing orders completed.
+- Download available ID-card and print-sheet ZIP files.
 
-#### After Student List Upload *(immediately available)*
-- QR codes and barcodes are automatically generated per student upon upload
-- Download QR code sheets per student for use during pictorial/photo day
-- Share QR codes with school coordinators for photo day preparation
+### Institution — Client Admin
 
-#### Coordinator Access Management
-- Generate a unique coordinator access link from the institution portal (multiple coordinators supported)
-- Share the generated link with the designated school coordinator personnel
-- Coordinators use the link to access the Coordinator Mobile Dashboard tied to the institution's active order
-- Institution can regenerate a new link if needed (e.g., change of personnel)
+The Institution workspace supports data submission, order monitoring, and approval of final ID content.
 
-#### Order Monitoring
-- Track the status of all submitted orders
-- Monitor progress as the operator processes the batch
+**Subject-list submission**
 
-#### Proofing Stage
-- View all generated ID proofs per student once processing is complete
-- Review each student's ID individually
-- Approve or request a revision per student ID
+- Create an order for a production batch.
+- Upload an XLSX subject list.
+- Preview columns from the uploaded spreadsheet.
+- Retain custom fields for use in ID layouts.
+- Edit imported values before submission.
+- Identify missing names and browse records through pagination.
+- Generate subject records and QR assets during order creation.
 
-#### Batch Approval
-- Approve the entire batch to move to **PRINTING** status
-- This approval is recorded by the system and is required before the operator can proceed to printing *(system-enforced gate)*
+**Coordinator management**
 
-#### Post-Approval
-- Monitor the order as it progresses to **PRINTING** and **COMPLETED**
-- View the finalized order in order history once completed
+- Create Coordinator invitations.
+- Associate Coordinators with the institution.
+- Provide account activation access for designated personnel.
 
----
+**Order monitoring and proofing**
 
-## 📱 4. Coordinator Process Flow — Client Staff
+- Track submitted orders and processing progress.
+- Inspect generated subject ID proofs.
+- Approve individual IDs.
+- Request revisions for incorrect content.
+- Approve a complete batch for the next production stage.
+- View completed orders while their records remain retained.
 
-#### Account Access
-- Receive the unique coordinator access link from the institution
-- Open the link to access the Coordinator Mobile Dashboard
-- Dashboard is automatically tied to the institution's active order — no manual login or setup required
+### Coordinator — Client Liaison
 
-#### Student Lookup
-- Search for a student by name
-- Display the student's QR code on screen for immediate use during photo day **(Fail-Safe A)**
+The Coordinator workspace supports photography-day activities and subject verification.
 
-#### Student List Monitoring
-- View the complete list of all students in the batch
-- Monitor each student's photo status in real time
+**Subject lookup and QR display**
 
-#### Photo Day Management
-- Mark individual students as photographed after their photo is taken
-- Photo status is visible to the operator on their dashboard as a progress indicator
+- Search for subjects within the institution’s orders.
+- View subject details.
+- Display QR codes for use during photography.
 
-#### Walk-in / Late Student Handling
-- Use **Quick Add** to register a walk-in student on the spot
-- A QR code is instantly generated for the new student
-- The new student is automatically added to the batch and propagated to the operator's order in real time **(Fail-Safe C)**
+**Photography attendance**
+
+- View the subject roster.
+- Mark subjects as photographed.
+- Monitor photographed, pending, and walk-in counts.
+- Retrieve updated roster information through automatic refreshes.
+
+**Proof review**
+
+- Inspect available proofs.
+- Request revisions for subject IDs requiring correction.
+
+**Walk-in registration**
+
+A Quick Add interface is available for walk-in registration. Coordinator access to this operation remains part of the pending permission alignment.
 
 ---
 
-## 🔒 System-Enforced Gates & Fail-Safes
+## Application Workflow
 
-| Type | Name | Behavior |
-| :--- | :--- | :--- |
-| Gate | Layout-before-pipeline | The AI processing pipeline cannot be triggered until the operator saves a `fields_config` layout |
-| Gate | Approval-before-print | An order cannot move to `PRINTING` until institution batch approval is recorded |
-| Fail-Safe A | On-demand QR display | Coordinator can pull up any student's QR code on the spot if a printed sheet is lost or misread |
-| Fail-Safe C | Real-time walk-in sync | New walk-in students added via Quick Add propagate instantly to the operator's order, no re-upload needed |
-| Audit | Status override logging | Every admin override of an order status is logged with who, what changed, reason, and timestamp |
+### 1. Institution Preparation
 
----
+The Admin registers the institution and establishes account access. The Institution activates its account and invites Coordinators as needed.
 
-## 🤖 AI Production Engine
+### 2. Subject-List Submission
 
-- **Auto-Crop & Align:** Automatically identifies and crops faces to the exact aspect ratio using MediaPipe.
-- **QR-Photo Linking:** Uses OpenCV to scan QR codes within photos to link images to student records.
-- **Automated Sheet Imposition:** Stitches IDs onto A4/Long Bond layouts for physical printing.
-- **Manual Review Fallback:** Unmatched or unreadable QR photos are routed to the operator's manual review queue instead of failing silently.
+The Institution uploads its subject list, reviews the preview, corrects detected issues, and submits the order.
 
----
+The system creates subject records and generates QR assets for photography preparation.
 
-## 📁 System Architecture
+### 3. Operator Assignment and Layout Setup
+
+The Admin assigns an Operator to the order.
+
+The Operator configures the ID layout, places the required fields, previews the design, and saves the configured sides.
+
+### 4. Photography and Photo Upload
+
+Coordinators support subject lookup, QR display, and photography attendance.
+
+The Operator uploads the collected photos to the selected order.
+
+### 5. Automated Photo Processing
+
+The processing engine performs the following sequence.
 
 ```text
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # Reusable UI (Modals, Draggables)
-│   │   ├── context/        # Auth & Order State Management
-│   │   ├── pages/          # Dashboard, Login, Layout Studio
-│   │   └── utils/          # API Axios instance & interceptors
-├── backend/
-│   ├── api/                # DRF Views, Serializers, & Routes
-│   ├── services/           # AI Engine & Processing Logic
-│   ├── media/              # Uploaded Templates & Processed IDs
-│   └── core/                # Django Settings & WSGI
+Read Photo
+    ↓
+Decode QR Code
+    ↓
+Identify Subject Within the Order
+    ↓
+Detect and Crop Face
+    ↓
+Apply Saved Layouts
+    ↓
+Render ID Outputs
 ```
 
-## ⚙️ Installation & Setup
+Subjects requiring intervention enter manual review.
 
-### 1. Backend
+### 6. Manual Review and Corrections
 
-```bash
-cd backend
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
+The Operator resolves photo-linking, cropping, layout, or processing issues and retries affected subjects.
+
+The order becomes available for proofing after the processing run. Outstanding subject issues continue to block batch approval.
+
+### 7. Proofing and Institution Approval
+
+The Institution reviews the generated IDs and requests revisions where necessary.
+
+A complete batch can advance to `APPROVED` when its subjects are processed and the required rendered outputs are available.
+
+### 8. Printing and Completion
+
+The assigned Operator sends the approved order to printing.
+
+Print-sheet generation must succeed before the order advances to `PRINTING`. The Operator marks the order `COMPLETED` after production is finished.
+
+### 9. Contract-End Deactivation
+
+After the contract ends and all orders are completed or cancelled, the Admin can deactivate the institution and initiate the confirmed data-cleanup workflow.
+
+---
+
+## Order Lifecycle
+
+```text
+PENDING
+    ↓
+PROCESSING
+    ↓
+PROOFING
+    ↓
+APPROVED
+    ↓
+PRINTING
+    ↓
+COMPLETED
 ```
 
-### 2. Frontend
+| Status | Meaning |
+| --- | --- |
+| `PENDING` | The order is being prepared for processing |
+| `PROCESSING` | Photo processing and ID generation are running |
+| `PROOFING` | Outputs and outstanding issues are available for review |
+| `APPROVED` | The batch has passed the approval gate |
+| `PRINTING` | The order has advanced to printing |
+| `COMPLETED` | Production is complete |
+| `FAILED` | An order-level processing failure occurred |
+| `CANCELLED` | The order was cancelled |
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+**Awaiting Layout** and **Needs Review** are dashboard display stages derived from the order’s current data.
+
+## Workflow Controls
+
+| Control | Purpose |
+| --- | --- |
+| Assigned-order access | Restricts Operator production actions to assigned orders |
+| Saved front layout | Establishes a layout requirement before batch processing |
+| Batch completeness | Blocks approval while subjects remain unresolved or required outputs are missing |
+| Approval before printing | Establishes the normal approval gate for production |
+| Print-generation validation | Preserves the approved state when print-sheet generation fails |
+| Status checks | Rejects production actions submitted against a changed order status |
+| Audit records | Records administrative overrides and deactivation activity |
+| Confirmed cleanup | Requires contract and order conditions before permanent institution cleanup |
+
+## Remaining Work
+
+| Priority | Work required |
+| --- | --- |
+| High | Complete duplicate detection for institution-selected identifiers and flexible spreadsheet fields |
+| High | Define and implement the stakeholder-requested Deferred-record workflow |
+| High | Align Coordinator Quick Add permissions with the intended photography-day workflow |
+| High | Validate the full workflow using representative production batches |
+| High | Strengthen processing recovery and background-job reliability |
+| Medium | Complete flexible preview integration for CSV, XLS, and worksheet selection |
+| Medium | Replace generated live confidence and Operator-productivity figures with measured data |
+| Medium | Tighten administrative override conditions, required reasons, and audit consistency |
+| Medium | Complete usability, responsive-layout, and operational acceptance testing |
+
+The next project milestone is an integrated production pilot covering data submission, layout publication, photo processing, corrections, institution approval, and verified final outputs.
