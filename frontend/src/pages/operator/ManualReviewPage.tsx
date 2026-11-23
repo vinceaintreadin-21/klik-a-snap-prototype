@@ -66,7 +66,6 @@ const ISSUE_STRIP: Record<IssueType, string> = {
 const HUES = [210, 350, 160, 40, 270, 15, 195, 310, 55, 130, 240, 180, 320, 95]
 
 function issueType(s: ReviewStudent): IssueType {
-  if (s.photo_status === 'PENDING' && !s.original_photo_url) return 'no_qr'
   const r = s.fail_reason as IssueType
   if (['no_qr', 'qr_not_found', 'no_face', 'no_layout', 'error'].includes(r)) return r
   return 'error'
@@ -951,15 +950,14 @@ function ReviewInterface({
 
   const reviewStudents = useMemo(
     () => students.filter(s =>
-      s.photo_status === 'MANUAL_REVIEW' ||
-      (s.photo_status === 'PENDING' && !s.original_photo_url)
+      s.photo_status === 'MANUAL_REVIEW'
     ),
     [students],
   )
 
   const filtered = useMemo(() => {
     if (filter === 'all') return reviewStudents
-    return reviewStudents.filter(s => s.fail_reason === filter)
+    return reviewStudents.filter(s => issueType(s) === filter)
   }, [reviewStudents, filter])
 
   const tabCounts = useMemo(() => {
